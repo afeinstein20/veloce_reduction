@@ -9,7 +9,7 @@ import glob
 import astropy.io.fits as pyfits
 import numpy as np
 
-from veloce_reduction.veloce_reduction.helper_functions import laser_on, thxe_on
+from veloce_reduction.veloce_reduction.helper_functions import laser_on, thxe_on, find_nearest
 from veloce_reduction.veloce_reduction.calibration import correct_for_bias_and_dark_from_filename
 
 #path = '/Users/christoph/UNSW/veloce_spectra/test1/'
@@ -85,7 +85,7 @@ def identify_obstypes(path):
 
 
 
-def get_obstype_lists(path, pattern=None, weeding=True):
+def get_obstype_lists(path, pattern=None, weeding=True, quick=False):
 
     date = path[-9:-1]
 
@@ -164,12 +164,24 @@ def get_obstype_lists(path, pattern=None, weeding=True):
     calib_list = laser_list + thxe_list + laser_and_thxe_list
     calib_list.sort()
     
-    if int(date) < 20190503:
+    if quick:
+        checkdate = date[:]
+    else:
+        checkdate = '1' + date[1:]
+    
+    if int(checkdate) < 20190503:
         chipmask_path = '/Users/christoph/OneDrive - UNSW/chipmasks/archive/'
-        try:
+        # check if chipmask for that night already exists (if not revert to the closest one in time (preferably earlier in time))
+        if os.path.isfile(chipmask_path + 'chipmask_' + date + '.npy'):
             chipmask = np.load(chipmask_path + 'chipmask_' + date + '.npy').item()
-        except:
-            chipmask = np.load(chipmask_path + 'chipmask_' + '20180921' + '.npy').item()
+        else:
+            cm_list = glob.glob(chipmask_path + 'chipmask*.npy')
+            cm_datelist = [int(cm.split('.')[-2][-8:]) for cm in cm_list]
+            cm_datelist.sort()   # need to make sure it is sorted, so that find_nearest finds the earlier one in time if two dates are found that have the same delta_t to date
+            cm_dates = np.array(cm_datelist)
+            alt_date = find_nearest(cm_dates, int(date))
+            chipmask = np.load(chipmask_path + 'chipmask_' + str(alt_date) + '.npy').item()
+            
         # look at the actual 2D image (using chipmasks for LFC and simThXe) to determine which calibration lamps fired
         for file in calib_list:
             img = correct_for_bias_and_dark_from_filename(file, np.zeros((4096,4112)), np.zeros((4096,4112)), gain=[1., 1.095, 1.125, 1.], scalable=False, savefile=False, path=path)
@@ -196,7 +208,7 @@ def get_obstype_lists(path, pattern=None, weeding=True):
             else:   # if not, just go with the OBJECT field
                 if file in laser_list + laser_and_thxe_list:
                     lc = 1
-            if h['SIMCALTT'] > 0:
+            if (h['SIMCALTT'] > 0) and (h['SIMCALN'] > 0) and (h['SIMCALSE'] > 0):
                 thxe = 1
             if lc+thxe == 1:
                 if lc == 1:

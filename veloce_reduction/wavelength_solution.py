@@ -2525,6 +2525,7 @@ def get_dispsol_for_all_fibs_3(obsname, date=None, relto='LFC', degpol=7, nx=411
     except:
         # air_wl = pyfits.getdata(raw_path + lamptype + '_dispsol_' + date + '.fits', 0)
         vac_wl = pyfits.getdata(raw_path + lamptype + '_dispsol_' + date + '.fits', 1)
+#         vac_wl = pyfits.getdata('/Volumes/BERGRAID/data/veloce/reduced/20190621/thxe_dispsol_20190621.fits', 1)
             
     # read file containing LFC peak positions of observation
 #     _, yref, xref, _, _, _, _, _, _, _, _ = readcol(lfc_path + '21sep30019olc.nst', twod=False, skipline=2)

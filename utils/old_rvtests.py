@@ -7,7 +7,7 @@ from readcol import readcol
 
 from veloce_reduction.veloce_reduction.wavelength_solution import get_dispsol_for_all_fibs, get_dispsol_for_all_fibs_2
 from veloce_reduction.veloce_reduction.get_radial_velocity import get_RV_from_xcorr, get_RV_from_xcorr_2, make_ccfs, old_make_ccfs
-from veloce_reduction.veloce_reduction.helper_functions import get_mean_snr
+from veloce_reduction.veloce_reduction.helper_functions import get_snr
 from veloce_reduction.veloce_reduction.flat_fielding import onedim_pixtopix_variations, deblaze_orders
 from veloce_reduction.veloce_reduction.barycentric_correction import get_barycentric_correction
 from veloce_reduction.veloce_reduction.cosmic_ray_removal import onedim_medfilt_cosmic_ray_removal
@@ -16,7 +16,7 @@ from veloce_reduction.veloce_reduction.cosmic_ray_removal import onedim_medfilt_
 ########################################################################################################################
 # HOUSEKEEPING
 # path = '/Users/christoph/data/reduced/tauceti/tauceti_with_LFC/'
-path = '/Volumes/BERGRAID/data/veloce/reduced/tauceti/tauceti_with_LFC/'
+path = '/Volumes/BERGRAID/data/veloce/reduced_archive/v5_pre_July2019/tauceti/tauceti_with_LFC/'
 
 files_sep = glob.glob(path + 'sep2018/' + '*10700*')
 files_nov = glob.glob(path + 'nov2018/' + '*10700*')
@@ -137,8 +137,8 @@ date_0 = '20180920'
 # obsname_0 = '25nov30084'     # that's the 2nd highest SNR observation for Nov 18
 # wldict0,wl0 = get_dispsol_for_all_fibs(obsname_0, date=date_0, fudge=fudge, signflip_shift=signflip_shift,
 #                                        signflip_slope=signflip_slope, signflip_secord=signflip_secord)
-# wldict0,wl0 = get_dispsol_for_all_fibs(obsname_0, date=date_0, fibs='stellar', refit=False, fibtofib=True, nightly_coeffs=True)
-wldict0,wl0 = get_dispsol_for_all_fibs_2(obsname_0, refit=True, eps=2)
+wldict0,wl0 = get_dispsol_for_all_fibs(obsname_0, date=date_0, fibs='stellar', refit=False, fibtofib=True, nightly_coeffs=True)
+# wldict0,wl0 = get_dispsol_for_all_fibs_2(obsname_0, refit=True, eps=2)
 mw_flux = pyfits.getdata('/Volumes/BERGRAID/data/veloce/reduced/' + date_0 + '/master_white_optimal3a_extracted.fits')
 smoothed_flat, pix_sens = onedim_pixtopix_variations(mw_flux, filt='gaussian', filter_width=25)
 
@@ -162,9 +162,9 @@ f0_dblz, err0_dblz = deblaze_orders(f0_clean, smoothed_flat[:,2:21,:], maskdict,
 # f0 = pyfits.getdata('/Users/christoph/OneDrive - UNSW/synthetic_templates/phoenix/lte05400-4.50-0.0.PHOENIX-ACES-AGSS-COND-2011-HiRes.fits')
 
 
-for i,filename in enumerate(files[73:83]):
-# for i,filename in enumerate(files):
-    i += 73
+# for i,filename in enumerate(files[73:83]):
+for i,filename in enumerate(files):
+#     i += 73
     print('Processing RV for tau Ceti observation ' + str(i+1) + '/' + str(len(files)))
     # get obsname and date
     dum = filename.split('/')
@@ -193,12 +193,13 @@ for i,filename in enumerate(files[73:83]):
 #     wl = pyfits.getdata(filename, 2)
 #     wl = pyfits.getdata('/Users/christoph/OneDrive - UNSW/dispsol/individual_fibres_dispsol_poly7_21sep30019.fits')
 #     wldict,wl = get_dispsol_for_all_fibs(obsname, date=date, fibs='stellar', refit=False, fibtofib=True, nightly_coeffs=True)
-    wldict, wl = get_dispsol_for_all_fibs_2(obsname, refit=True, eps=2)
+    wl = pyfits.getdata(path + 'wl_' + obsname + '_surface.fits')
+#     wldict, wl = get_dispsol_for_all_fibs_2(obsname, refit=True, eps=2)
 #     f_dblz, err_dblz = deblaze_orders(f_clean, smoothed_flat[:,2:21,:], maskdict, err=err, combine_fibres=True, skip_first_order=True, degpol=2, gauss_filter_sigma=3., maxfilter_size=100)   
 #     all_xc.append(old_make_ccfs(f, wl, f0, wl0, bc=all_bc[i], bc0=all_bc[6], mask=None, smoothed_flat=None, delta_log_wl=1e-6, relgrid=False,
 #                             flipped=False, individual_fibres=False, debug_level=1, timit=False))
 #     rv,rverr,xcsum = get_RV_from_xcorr_2(f, wl, f0, wl0, bc=all_bc[i], bc0=all_bc[6], individual_fibres=True, individual_orders=True, old_ccf=True, debug_level=1)
-    sumrv,sumrverr,xcsum = get_RV_from_xcorr_2(f, wl, f0, wl0, bc=all_bc[i], bc0=all_bc[ix0], smoothed_flat=smoothed_flat, fitrange=35, individual_fibres=False, individual_orders=False, 
+    sumrv,sumrverr,xcsum = get_RV_from_xcorr_2(f, wl, f0, wl0, bc=all_bc[i], bc0=all_bc[ix0], smoothed_flat=None, fitrange=35, individual_fibres=False, individual_orders=False, 
                                                fit_slope=True, old_ccf=False, debug_level=1)
 #     sumrv,sumrverr,xcsum = get_RV_from_xcorr_2(f_dblz, wl, f0_dblz, wl0, bc=all_bc[i], bc0=all_bc[6], individual_fibres=False, individual_orders=False, old_ccf=True, debug_level=1)
 #     all_rv[i,:,:] = rv
@@ -207,15 +208,15 @@ for i,filename in enumerate(files[73:83]):
     xcsums[i,:] = xcsum
 xcsums = np.array(xcsums)
 
-np.save('/Users/christoph/OneDrive - UNSW/tauceti/rvtest/july_2019/rvs_' + vers + '.npy', all_sumrv)
+np.savetxt('/Users/christoph/OneDrive - UNSW/tauceti/rvtest/jul_2019/rvs_' + vers + '.txt', all_sumrv)
 
 # PLOT
 plt.plot(all_sumrv, 'x')
 plt.xlabel('# obs')
 plt.ylabel('dRV [m/s]')
 plt.title('Tau Ceti (N=151)   --   ' + vers)
-plt.text(100, 100, 'RMS = ' + str(np.round(np.std(all_sumrv),1)) + ' m/s', size='large')
-plt.savefig('/Users/christoph/OneDrive - UNSW/tauceti/rvtest/july_2019/rvs_' + vers + '.eps')
+plt.text(100, 60, 'RMS = ' + str(np.round(np.std(all_sumrv),1)) + ' m/s', size='large')
+plt.savefig('/Users/christoph/OneDrive - UNSW/tauceti/rvtest/jul_2019/rvs_' + vers + '.eps')
 
 ########################################################################################################################
 ########################################################################################################################

@@ -19,7 +19,7 @@ import scipy.optimize as op
 from veloce_reduction.veloce_reduction.linalg import linalg_extract_column
 from veloce_reduction.veloce_reduction.helper_functions import make_norm_profiles_2, central_parts_of_mask, CMB_pure_gaussian
 from veloce_reduction.veloce_reduction.order_tracing import flatten_single_stripe, flatten_single_stripe_from_indices
-
+from veloce_reduction.veloce_reduction.wavelength_solution import find_suitable_peaks
 
 
 
@@ -787,10 +787,6 @@ def get_relints_single_order_gaussian(sc, sr, err_sc, ordpol, ordmask=None, nfib
                 #                               bounds=(lower_bounds, upper_bounds))
 
 
-
-
-
-
                 global_model = np.zeros(grid.shape)
 
                 # if debug_level >= 2:
@@ -913,11 +909,9 @@ def get_relints_from_indices_gaussian(P_id, img, err_img, stripe_indices, mask=N
             cenmask[ord] = np.ones(sc.shape[1], dtype='bool')
 
         # fit profile for single order and save result in "global" parameter dictionary for entire chip
-        relints_ord, relints_ord_norm, positions, snr_ord = get_relints_single_order_gaussian(sc, sr, err_sc, ordpol,
-                                                                                   ordmask=cenmask[ord], nfib=nfib,
-                                                                                   sampling_size=sampling_size)
-
-
+        relints_ord, relints_ord_norm, positions, snr_ord = get_relints_single_order_gaussian(sc, sr, err_sc, ordpol, ordmask=cenmask[ord], nfib=nfib, sampling_size=sampling_size)
+        
+        # debugging...
         if debug_level >= 2:
             # try to find cause for NaNs
             print('n_elements should be:   len(relints_ord)*nfib = ' + str(len(relints_ord) * 19))

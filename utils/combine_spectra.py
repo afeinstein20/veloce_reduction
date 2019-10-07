@@ -14,6 +14,7 @@ import barycorrpy
 
 from veloce_reduction.veloce_reduction.barycentric_correction import get_bc_from_gaia
 from veloce_reduction.veloce_reduction.wavelength_solution import interpolate_dispsols
+from veloce_reduction.veloce_reduction.cosmic_ray_removal import onedim_medfilt_cosmic_ray_removal
 
 
 
@@ -384,8 +385,7 @@ def main_script_for_sarah(date = '20190722'):
                  '140805004201070':6381051156688800896,
                  '170711005801135':6485376840021854848}
     
-    
-    
+
     # assign wl-solutions to stellar spectra by linear interpolation between a library of fibThXe dispsols
     path = '/Volumes/BERGRAID/data/veloce/reduced/' + date + '/'
     
@@ -406,7 +406,7 @@ def main_script_for_sarah(date = '20190722'):
     # t_stellar = [pyfits.getval(fn, 'UTMJD') + 0.5*pyfits.getval(fn, 'ELAPSED')/86400. for fn in stellar_list]
     
     
-    ### STEP 1: create w (39 x 26 x 4112) wavelength solution for every stellar observation by linearly interpolating between wl-solutions of surrounding fibre ThXe exposures
+    ### STEP 1: create (39 x 26 x 4112) wavelength solution for every stellar observation by linearly interpolating between wl-solutions of surrounding fibre ThXe exposures
     # loop over all stellar observations
     for i,file in enumerate(stellar_list):
         if i==0:
@@ -451,7 +451,7 @@ def main_script_for_sarah(date = '20190722'):
                 bc = get_bc_from_gaia(gaia_dr2_id, jd)
         else:
             hipnum = hipnum_dict[object]
-            bc = barycorrpy.get_BC_vel(JDUTC=jd,hip_id=hipnum,obsname='AAO',ephemeris='de430')[0][0]
+            bc = barycorrpy.get_BC_vel(JDUTC=jd, hip_id=hipnum, obsname='AAO', ephemeris='de430')[0][0]
         
         bc = np.round(bc,2)
         assert not np.isnan(bc), 'ERROR: could not calculate barycentric correction for '+file
@@ -485,7 +485,7 @@ def main_script_for_sarah(date = '20190722'):
         if ('LCEXP' in h.keys()) or ('LCMNEXP' in h.keys()):   # this indicates the LFC actually was actually exposed (either automatically or manually)
             comb_f_sky, comb_err_sky, ref_wl_sky = median_fibres(f, err, wl, osf=5, fibs=[1, 2, 22, 23])   # we don't want to use the sky fibre right next to the LFC if the LFC was on!!!
         else:
-            comb_f_sky, comb_err_sky, ref_wl_sky = median_fibres(f, err, wl, osf=5, fibs='sky')
+            comb_f_sky, comb_err_sky, ref_wl_sky = median_fibres(f, err, wl, osf=5, fibs='sky'
         
         # save to new FITS file
         outpath = path + 'fibres_combined/'
@@ -500,7 +500,7 @@ def main_script_for_sarah(date = '20190722'):
         pyfits.append(sky_fn, ref_wl_sky, clobber=True)
     
     
-    ### STEP 4: combine all single-shot exposures for each target and do sky-subtraction, and flux-weighting of barycentrio correction
+    ### STEP 4: combine all single-shot exposures for each target and do sky-subtraction, and flux-weighting of barycentric correction
     # first we need to make a new list for the combined-fibre spectra 
     fc_stellar_list = glob.glob(path + 'fibres_combined/' + '*optimal*stellar*.fits')
     fc_stellar_list.sort()
@@ -554,8 +554,217 @@ def main_script_for_sarah(date = '20190722'):
         # write the barycentric correction into the FITS header of both the quick-extracted and the optimal-extracted reduced spectrum files
         pyfits.setval(new_fn, 'BARYCORR', value=wm_bc, comment='barycentric velocity correction [m/s]')
 
-    return
+    return 1
 
+
+
+
+
+def main_script_for_timtim(date = '20190621'):
+    
+    print(date)
+    
+    # barycentric correction is now already written into the FITS headers of the reduced spectra
+    
+    # assign wl-solutions to stellar spectra by linear interpolation between a library of fibThXe dispsols
+    path = '/Volumes/BERGRAID/data/veloce/white_and_bedding/' + date + '/'
+    
+    air_wl_list = glob.glob(path + 'fibth_dispsols/' + '*air*.fits')
+    air_wl_list.sort()
+    vac_wl_list = glob.glob(path + 'fibth_dispsols/' + '*vac*.fits')
+    vac_wl_list.sort()
+     
+    fibth_obsnames = [fn.split('_air_')[0][-10:] for fn in air_wl_list]
+    # arc_list = glob.glob(path + 'calibs/' + 'ARC*optimal*.fits')   
+    used_fibth_list = [path + 'calibs/' + 'ARC - ThAr_' + obsname + '_optimal3a_extracted.fits' for obsname in fibth_obsnames]
+    stellar_list = glob.glob(path + 'stellar_only/' + '*optimal*.fits')
+    stellar_list.sort()
+    # stellar_list_quick = glob.glob(path + 'stellar_only/' + '*quick*.fits')
+    # stellar_list_quick.sort()
+     
+    t_calibs = np.array([pyfits.getval(fn, 'UTMJD') + 0.5*pyfits.getval(fn, 'ELAPSED')/86400. for fn in used_fibth_list])
+    # t_stellar = [pyfits.getval(fn, 'UTMJD') + 0.5*pyfits.getval(fn, 'ELAPSED')/86400. for fn in stellar_list]
+    
+    
+    ### STEP 1: create (39 x 26 x 4112) wavelength solution for every stellar observation by linearly interpolating between wl-solutions of surrounding fibre ThXe exposures
+    # loop over all stellar observations
+    for i,file in enumerate(stellar_list):
+        if i==0:
+            print('STEP 1: wavelength solutions')
+        print(str(i+1)+'/'+str(len(stellar_list)))
+        # get observation midpoint in time
+        tobs = pyfits.getval(file, 'UTMJD') + 0.5*pyfits.getval(file, 'ELAPSED')/86400.
+        
+        # find the indices of the ARC files bracketing the stellar observations
+        above = np.argmax(t_calibs > tobs)   # first occurrence where t_calibs are larger than tobs
+        below = above - 1
+        # get obstimes and wl solutions for these ARC exposures
+        t1 = t_calibs[below]
+        t2 = t_calibs[above] 
+        wl1 = pyfits.getdata(air_wl_list[below])
+        wl2 = pyfits.getdata(air_wl_list[above])
+        # do a linear interpolation to find the wl-solution at t=tobs
+        wl = interpolate_dispsols(wl1, wl2, t1, t2, tobs)
+        # append this wavelength solution to the extracted spectrum FITS files
+        pyfits.append(file, wl, clobber=True)
+    
+    
+#     ### STEP 2: append barycentric correction!?!?!?
+#     # loop over all stellar observations
+#     for i,file in enumerate(stellar_list):
+#         if i==0:
+#             print
+#             print('STEP 3: appending barycentric correction')
+#         print(str(i+1)+'/'+str(len(stellar_list)))
+#         
+#         # get object name
+#         object = pyfits.getval(file, 'OBJECT').split('+')[0]
+#         # get observation midpoint in time (in JD)
+#         jd = pyfits.getval(file, 'UTMJD') + 0.5*pyfits.getval(file, 'ELAPSED')/86400. + 2.4e6 + 0.5
+#         # get Gaia DR2 ID from object
+#         if object in gaia_dict.keys():
+#             gaia_dr2_id = gaia_dict[object]
+#             # get barycentric correction from Gaia DR2 ID and obstime
+#             try:
+#                 bc = get_bc_from_gaia(gaia_dr2_id, jd)[0]
+#             except:
+#                 bc = get_bc_from_gaia(gaia_dr2_id, jd)
+#         else:
+#             hipnum = hipnum_dict[object]
+#             bc = barycorrpy.get_BC_vel(JDUTC=jd, hip_id=hipnum, obsname='AAO', ephemeris='de430')[0][0]
+#         
+#         bc = np.round(bc,2)
+#         assert not np.isnan(bc), 'ERROR: could not calculate barycentric correction for '+file
+#         print('barycentric correction for object ' + object + ' :  ' + str(bc) + ' m/s')
+#         
+#         # write the barycentric correction into the FITS header of both the quick-extracted and the optimal-extracted reduced spectrum files
+#         pyfits.setval(file, 'BARYCORR', value=bc, comment='barycentric velocity correction [m/s]')
+    
+    
+    ### STEP 3: combine the flux in all fibres for each exposure (by going to a common wl-grid (by default the one for the central fibre) and get median sky spectrum
+    # loop over all stellar observations
+    for i,file in enumerate(stellar_list):
+        if i==0:
+            print
+            print('STEP 2: combining fibres')
+        print(str(i+1)+'/'+str(len(stellar_list)))
+    
+        # read in extracted spectrum file
+        f = pyfits.getdata(file, 0)
+        err = pyfits.getdata(file, 1)
+        wl = pyfits.getdata(file, 2)
+        h = pyfits.getheader(file, 0)
+        h_err = pyfits.getheader(file, 1)
+        
+        # combine sky fibres (3, if LFC & ThXe were on, 4 if LC was on, 5 otherwise), then take the median
+        h = pyfits.getheader(file)
+        if file in [path + 'stellar_only/HD222496_21jun30131_optimal3a_extracted.fits', path + 'stellar_only/HD222496_21jun30132_optimal3a_extracted.fits']:
+            # both simcalibs were on
+            comb_f_sky, comb_err_sky, ref_wl_sky = median_fibres(f, err, wl, osf=5, fibs=[2, 22, 23])
+        elif file in [path + 'stellar_only/HD17693_22jun30231_optimal3a_extracted.fits', path + 'stellar_only/HD199247_15apr30270_optimal3a_extracted.fits', path + 'stellar_only/HD200835_15apr30274_optimal3a_extracted.fits']:
+            # only LFC was on
+            comb_f_sky, comb_err_sky, ref_wl_sky = median_fibres(f, err, wl, osf=5, fibs=[1, 2, 22, 23])
+        else:
+            # neither simcalib was on
+            comb_f_sky, comb_err_sky, ref_wl_sky = median_fibres(f, err, wl, osf=5, fibs='sky')
+            
+        # sky subtraction (for stellar fibres only)
+        f_ss = np.zeros(f.shape)
+        err_ss = np.zeros(f.shape)
+        for o in range(f.shape[0]):
+            for fib in range(3,22):
+                f_ss[o,fib,:] = f[o,fib,:] -  comb_f_sky[o,:]
+                err_ss[o,fib,:] = np.sqrt(err[o,fib,:]**2 + comb_err_sky[o,:]**2)
+        
+        # remove cosmics (from stellar fibres only)
+        f_clean = np.zeros(f.shape)
+        for o in range(f.shape[0]):
+            for fib in range(3,22):
+                f_clean[o,fib,:],ncos = onedim_medfilt_cosmic_ray_removal(f_ss[o,fib,:], err_ss[o,fib,:], w=31, thresh=5., low_thresh=3.)
+                
+        # now combine the sky-subtracted and cosmic-cleaned stellar fibres
+        comb_f, comb_err, ref_wl = combine_fibres(f_clean, err_ss, wl, osf=5, fibs='stellar')
+        
+        # save to new FITS file
+        outpath = path + 'fibres_combined/'
+        fname = file.split('/')[-1]
+        new_fn = outpath + fname.split('.')[0] + '_stellar_fibres_combined.fits'
+        pyfits.writeto(new_fn, comb_f, h, clobber=True)
+        pyfits.append(new_fn, comb_err, h_err, clobber=True)
+        pyfits.append(new_fn, ref_wl, clobber=True)
+        sky_fn = outpath + fname.split('.')[0] + '_median_sky.fits'
+        pyfits.writeto(sky_fn, comb_f_sky, h, clobber=True)
+        pyfits.append(sky_fn, comb_err_sky, h_err, clobber=True)
+        pyfits.append(sky_fn, ref_wl_sky, clobber=True)
+    
+    
+    ### STEP 4: combine all single-shot exposures for each target and do sky-subtraction, and flux-weighting of barycentric correction
+    # first we need to make a new list for the combined-fibre spectra 
+    fc_stellar_list = glob.glob(path + 'fibres_combined/' + '*optimal*stellar*.fits')
+    fc_stellar_list.sort()
+#     sky_list = glob.glob(path + 'fibres_combined/' + '*optimal*sky*.fits')
+#     sky_list.sort()
+     
+    object_list = [pyfits.getval(file, 'OBJECT').split('+')[0] for file in fc_stellar_list]
+    
+    # speed of light in m/s
+    c = 2.99792458e8
+     
+    # loop over all stellar observations
+#     for i,(file,skyfile) in enumerate(zip(fc_stellar_list, sky_list)):
+    for i,file in enumerate(fc_stellar_list):
+        if i==0:
+            print
+            print('STEP 4: combining single-shot exposures')
+        print(str(i+1)+'/'+str(len(fc_stellar_list)))
+         
+        # get headers
+        h = pyfits.getheader(file, 0)
+        h_err = pyfits.getheader(file, 1)
+         
+        # get object name
+        object = pyfits.getval(file, 'OBJECT').split('+')[0]
+         
+        # make list that keeps a record of which observations feed into the combined final one
+        used_obsnames = [(fn.split('/')[-1]).split('_')[1] for fn,obj in zip(fc_stellar_list, object_list) if obj == object]
+        # add this information to the fits headers
+        h['N_EXP'] = (len(used_obsnames), 'number of single-shot exposures')
+        h_err['N_EXP'] = (len(used_obsnames), 'number of single-shot exposures')
+        for j in range(len(used_obsnames)):
+            h['EXP_' + str(j+1)] = (used_obsnames[j], 'name of single-shot exposure')
+            h_err['EXP_' + str(j+1)] = (used_obsnames[j], 'name of single-shot exposure')
+         
+        # make lists containing the (sky-subtracted) flux, error, wl-arrays, barycentric correction, and exposure times for the fibre-combined optimal extracted spectra  
+        f_list = [pyfits.getdata(fn,0) for fn,obj in zip(fc_stellar_list, object_list) if obj == object]
+        err_list = [pyfits.getdata(fn,1) for fn,obj in zip(fc_stellar_list, object_list) if obj == object]
+        wl_list = [pyfits.getdata(fn,2) for fn,obj in zip(fc_stellar_list, object_list) if obj == object]
+        bc_list = [pyfits.getval(fn, 'BARYCORR') for fn,obj in zip(fc_stellar_list, object_list) if obj == object]
+        texp_list = [pyfits.getval(fn, 'ELAPSED') for fn,obj in zip(fc_stellar_list, object_list) if obj == object]
+         
+        # only do this if there are actually 2 or more single-shot exposures
+        if len(used_obsnames) > 1:
+            # now shift the wl-grids by the difference in b.c. (use the first one in the list as the reference one)
+            wl_list_shifted = [wl*(1. + (bc-bc_list[0])/c) for wl,bc in zip(wl_list, bc_list)]
+            # combine the single-shot exposures (uses wl-grid of first exposure in list)
+            comb_f, comb_err, ref_wl = combine_exposures(f_list, err_list, wl_list_shifted, osf=5, remove_cosmics=True, thresh=7, low_thresh=3, debug_level=0, timit=False)
+        else:
+            comb_f = f_list[0].copy()
+            comb_err = err_list[0].copy()
+            ref_wl = wl_list[0].copy()
+         
+        # we used the barycentric correction of the first spectrum as the reference, so need to write that to FITS header of combined multi-shot spectrum
+        bc = bc_list[0]  
+         
+        # save to new FITS file(s)
+        outpath = path + 'final_combined_spectra/'
+        new_fn = outpath + object + '_final_combined.fits'
+        pyfits.writeto(new_fn, comb_f, h, clobber=True)
+        pyfits.append(new_fn, comb_err, h_err, clobber=True)
+        pyfits.append(new_fn, ref_wl, clobber=True)
+        # write the barycentric correction into the FITS header of both the quick-extracted and the optimal-extracted reduced spectrum files
+        pyfits.setval(new_fn, 'BARYCORR', value=bc, comment='barycentric velocity correction [m/s]')
+
+    return 1
 
 
 

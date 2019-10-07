@@ -45,6 +45,7 @@ fibparms_path = '/Users/christoph/OneDrive - UNSW/fibre_profiles/archive/'
 
 ### (0) GET INFO FROM FITS HEADERS ##################################################################################################################
 acq_list, bias_list, dark_list, flat_list, skyflat_list, domeflat_list, arc_list, thxe_list, laser_list, laser_and_thxe_list, stellar_list, unknown_list = get_obstype_lists(path)
+q_acq_list, q_bias_list, q_dark_list, q_flat_list, q_skyflat_list, q_domeflat_list, q_arc_list, q_thxe_list, q_laser_list, q_laser_and_thxe_list, q_stellar_list, q_unknown_list = get_obstype_lists(path, quick=True)
 assert len(unknown_list) == 0, "WARNING: unknown files encountered!!!"
 # obsnames = short_filenames(bias_list)
 dumimg = crop_overscan_region(correct_orientation(pyfits.getdata(bias_list[0])))
@@ -52,6 +53,13 @@ ny,nx = dumimg.shape
 del dumimg
 #####################################################################################################################################################
 
+# check white light exposures      
+        
+for file in flat_list:
+    fimg = crop_overscan_region(correct_orientation(pyfits.getdata(file)))
+    # fimg = correct_for_bias_and_dark_from_filename(file, np.zeros((4096,4112)), np.zeros((4096,4112)), gain=[1., 1.095, 1.125, 1.], scalable=False, savefile=False, path=path)
+    # plt.plot(fimg[165:230,3327])
+    plt.plot(fimg[1650:1717,2709])
 
 
 ### (1) BAD PIXEL MASK ##############################################################################################################################
@@ -196,7 +204,7 @@ else:
         sure = raw_input("Are you sure you want to create fibre profiles for " + date + "??? This may take several hours!!! ['y' / 'n']")
     if sure == 'y':
         fp_in = fit_multiple_profiles_from_indices(P_id, MW, err_MW, MW_indices, slit_height=slit_height, timit=True, debug_level=1)
-        np.save(archive_path + 'individual_fibre_profiles_' + date + '.npy', fp_in)
+        np.save(fibparms_path + 'individual_fibre_profiles_' + date + '.npy', fp_in)
         stellar_fibparms = make_real_fibparms_by_ord(fp_in, date=date)
         fibparms = combine_fibparms(date)
 #####################################################################################################################################################
@@ -264,9 +272,9 @@ if len(thxe_list) > 0:
         master_simth, err_master_simth = make_master_calib(thxe_list, lamptype='simth', MB=medbias, ronmask=ronmask, MD=MDS, gain=gain, chipmask=chipmask, remove_bg=True, savefile=True, path=path)
     # now do the extraction    
     pix_q,flux_q,err_q = extract_spectrum_from_indices(master_simth, err_master_simth, simth_indices, method='quick', slit_height=calsh, ronmask=ronmask, savefile=True,
-                                                       date=date, filetype='fits', obsname='master_simthxe', path=path, timit=True)
+                                                       date=date, filetype='fits', obsname='master_simth', path=path, timit=True)
     pix,flux,err = extract_spectrum_from_indices(master_simth, err_master_simth, indices, method='optimal', slit_height=slit_height, fibs='simth', slope=True, offset=True, date=date,
-                                                 individual_fibres=True, ronmask=ronmask, savefile=True, filetype='fits', obsname='master_simthxe', path=path, timit=True)
+                                                 individual_fibres=True, ronmask=ronmask, savefile=True, filetype='fits', obsname='master_simth', path=path, timit=True)
     
 if len(laser_list) > 0:
     choice = 'r'
@@ -295,8 +303,8 @@ if len(laser_and_thxe_list) > 0:
     else:
         master_both, err_master_both = make_master_calib(laser_and_thxe_list, lamptype='both', MB=medbias, ronmask=ronmask, MD=MDS, gain=gain, chipmask=chipmask, remove_bg=True, savefile=True, path=path)
     # now do the extraction
-    # pix_q,flux_q,err_q = extract_spectrum_from_indices(master_both, err_master_both, q_indices, method='quick', slit_height=qsh, ronmask=ronmask, savefile=True,
-    #                                                    date=date, filetype='fits', obsname='master_laser_and_thxe_list', path=path, timit=True)
+    pix_q,flux_q,err_q = extract_spectrum_from_indices(master_both, err_master_both, q_indices, method='quick', slit_height=qsh, ronmask=ronmask, savefile=True,
+                                                       date=date, filetype='fits', obsname='master_lfc_plus_simth', path=path, timit=True)
     pix,flux,err = extract_spectrum_from_indices(master_both, err_master_both, indices, method='optimal', slit_height=slit_height, fibs='calibs', slope=True, offset=True, date=date,
                                                  individual_fibres=True, ronmask=ronmask, savefile=True, filetype='fits', obsname='master_lfc_plus_simth', path=path, timit=True)
 #####################################################################################################################################################    
@@ -306,49 +314,53 @@ if len(laser_and_thxe_list) > 0:
 # first, figure out the configuration of the calibration lamps for the ARC exposures
 print('Processing ARC (fibre Thorium) images...')
 arc_sublists = {'lfc':[], 'thxe':[], 'both':[], 'neither':[]}
-if int(date) < 20190503:
-        # look at the actual 2D image (using chipmasks for LFC and simThXe) to determine which calibration lamps fired
-        for file in arc_list:
-            img = correct_for_bias_and_dark_from_filename(file, medbias, MDS, gain=gain, scalable=False, savefile=False, path=path)
-            lc = laser_on(img, chipmask)
-            thxe = thxe_on(img, chipmask)
-            if (not lc) and (not thxe):
-                arc_sublists['neither'].append(file)
-            elif (lc) and (thxe):
-                arc_sublists['both'].append(file)
+
+# nasty temp fix to make sure we are always looking at the 2D images until the header keywords are reliable
+checkdate = '1' + date[1:]
+
+if int(checkdate) < 20190503:
+    # look at the actual 2D image (using chipmasks for LFC and simThXe) to determine which calibration lamps fired
+    for file in arc_list:
+        img = correct_for_bias_and_dark_from_filename(file, medbias, MDS, gain=gain, scalable=False, savefile=False, path=path)
+        lc = laser_on(img, chipmask)
+        thxe = thxe_on(img, chipmask)
+        if (not lc) and (not thxe):
+            arc_sublists['neither'].append(file)
+        elif (lc) and (thxe):
+            arc_sublists['both'].append(file)
+        else:
+            if lc:
+                arc_sublists['lfc'].append(file)
+            elif thxe:
+                arc_sublists['thxe'].append(file)
+else:
+    # since May 2019 the header keywords are correct, so check for LFC / ThXe in header, as that is MUCH faster
+    for file in arc_list:
+        lc = 0
+        thxe = 0
+        h = pyfits.getheader(file)
+        if 'LCNEXP' in h.keys():  # this indicates the latest version of the FITS headers (from May 2019 onwards)
+            if ('LCEXP' in h.keys()) or ('LCMNEXP' in h.keys()):  # this indicates the LFC actually was actually exposed (either automatically or manually)
+                lc = 1
+        else:  # if not, just go with the OBJECT field
+            if ('LC' in pyfits.getval(file, 'OBJECT').split('+')) or ('LFC' in pyfits.getval(file, 'OBJECT').split('+')):
+                lc = 1
+        if (h['SIMCALTT'] > 0) and (h['SIMCALN'] > 0) and (h['SIMCALSE'] > 0):
+            thxe = 1
+        assert lc+thxe in [0,1,2], 'ERROR: could not establish status of LFC and simultaneous ThXe for the exposures in this list!!!'    
+        if lc+thxe == 0:
+            arc_sublists['neither'].append(file)
+        if lc+thxe == 1:
+            if lc == 1:
+                arc_sublists['lfc'].append(file)
             else:
-                if lc:
-                    arc_sublists['lfc'].append(file)
-                elif thxe:
-                    arc_sublists['thxe'].append(file)
-    else:
-        # since May 2019 the header keywords are correct, so check for LFC / ThXe in header, as that is MUCH faster
-        for file in arc_list:
-            lc = 0
-            thxe = 0
-            h = pyfits.getheader(file)
-            if 'LCNEXP' in h.keys():  # this indicates the latest version of the FITS headers (from May 2019 onwards)
-                if ('LCEXP' in h.keys()) or ('LCMNEXP' in h.keys()):  # this indicates the LFC actually was actually exposed (either automatically or manually)
-                    lc = 1
-            else:  # if not, just go with the OBJECT field
-                if ('LC' in pyfits.getval(file, 'OBJECT').split('+')) or ('LFC' in pyfits.getval(file, 'OBJECT').split('+')):
-                    lc = 1
-            if h['SIMCALTT'] > 0:
-                thxe = 1
-            assert lc+thxe in [0,1,2], 'ERROR: could not establish status of LFC and simultaneous ThXe for the exposures in this list!!!'    
-            if lc+thxe == 0:
-                arc_sublists['neither'].append(file)
-            if lc+thxe == 1:
-                if lc == 1:
-                    arc_sublists['lfc'].append(file)
-                else:
-                    arc_sublists['thxe'].append(file)
-            elif lc+thxe == 2:
-                arc_sublists['both'].append(file)
+                arc_sublists['thxe'].append(file)
+        elif lc+thxe == 2:
+            arc_sublists['both'].append(file)
 
 for subl in arc_sublists.keys():
     if len(arc_sublists[subl]) > 0:
-        dum = process_science_images(arc_sublists[subl], traces, chipmask, mask=mask, stripe_indices=indices, quick_indices=indices, sampling_size=25,
+        dum = process_science_images(arc_sublists[subl], traces['allfib'], chipmask, mask=mask, stripe_indices=indices, quick_indices=indices, sampling_size=25,
                                      slit_height=slit_height, qsh=slit_height, gain=gain, MB=medbias, ronmask=ronmask, MD=MDS, scalable=True, saveall=False,
                                      path=path, ext_method='optimal', fibs='all', offset=True, slope=True, date=date, from_indices=True, timit=True)
 #####################################################################################################################################################
@@ -358,19 +370,19 @@ for subl in arc_sublists.keys():
 # TODO: use different traces and smaller slit_height for LFC only and lfc only???
 if len(thxe_list) > 0:
     print('Processing sim-ThXe images...')
-    dum = process_science_images(thxe_list, traces, chipmask, mask=mask, stripe_indices=indices, quick_indices=simth_indices,
+    dum = process_science_images(thxe_list, traces['simth'], chipmask, mask=mask, stripe_indices=indices, quick_indices=simth_indices,
                                  sampling_size=25, slit_height=slit_height, qsh=calsh, gain=gain, MB=medbias,
                                  ronmask=ronmask, MD=MDS, scalable=True, saveall=False, path=path, ext_method='optimal',
                                  offset=True, slope=True, fibs='simth', date=date, from_indices=True, timit=True)
 if len(laser_list) > 0:
     print('Processing LFC images...')
-    dum = process_science_images(laser_list, traces, chipmask, mask=mask, stripe_indices=indices, quick_indices=lfc_indices,
+    dum = process_science_images(laser_list, traces['lfc'], chipmask, mask=mask, stripe_indices=indices, quick_indices=lfc_indices,
                                  sampling_size=25, slit_height=slit_height, qsh=calsh, gain=gain, MB=medbias,
                                  ronmask=ronmask, MD=MDS, scalable=True, saveall=False, path=path, ext_method='optimal',
                                  offset=True, slope=True, fibs='lfc', date=date, from_indices=True, timit=True)
 if len(laser_and_thxe_list) > 0:
     print('Processing LFC+sim-ThXe images...')
-    dum = process_science_images(laser_and_thxe_list, traces, chipmask, mask=mask, stripe_indices=indices, quick_indices=indices,
+    dum = process_science_images(laser_and_thxe_list, traces['allfib'], chipmask, mask=mask, stripe_indices=indices, quick_indices=indices,
                                  sampling_size=25, slit_height=slit_height, qsh=slit_height, gain=gain, MB=medbias,
                                  ronmask=ronmask, MD=MDS, scalable=True, saveall=False, path=path, ext_method='optimal',
                                  offset=True, slope=True, fibs='calibs', date=date, from_indices=True, timit=True)
@@ -380,7 +392,7 @@ if len(laser_and_thxe_list) > 0:
 ### (9) PROCESS STELLAR IMAGES ######################################################################################################################
 if len(stellar_list) > 0:
     print('Processing stellar images...')
-    dum = process_science_images(stellar_list, traces, chipmask, mask=mask, stripe_indices=indices, quick_indices=st_indices,
+    dum = process_science_images(stellar_list, traces['stellar'], chipmask, mask=mask, stripe_indices=indices, quick_indices=st_indices,
                                  sampling_size=25, slit_height=slit_height, qsh=stsh, gain=gain, MB=medbias,
                                  ronmask=ronmask, MD=MDS, scalable=True, saveall=False, path=path, ext_method='optimal',
                                  offset=True, slope=True, fibs='all', date=date, from_indices=True, timit=True)

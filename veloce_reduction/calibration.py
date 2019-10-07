@@ -48,7 +48,8 @@ def make_median_image(imglist, MB=None, correct_OS=True, scalable=False, raw=Fal
         
         if correct_OS:
             # get the overscan levels so we can subtract them later
-            os_levels = get_bias_and_readnoise_from_overscan(img, gain=None, return_oslevels_only=True)
+#             os_levels = get_bias_and_readnoise_from_overscan_polyfit(img, gain=[1,1,1,1], return_oslevels_only=True)
+            os_levels = get_bias_and_readnoise_from_overscan_collapse(img, gain=[1,1,1,1], return_oslevels_only=True)
         if not raw:
             # bring to "correct" orientation
             img = correct_orientation(img)
@@ -377,7 +378,7 @@ def measure_gains(filelist, MB, MD=None, scalable=True, timit=False, debug_level
 
 
 
-def get_bias_and_readnoise_from_overscan(img, ramps=[35, 35, 35, 35], gain=None, degpol=5, clip=5, add=0, return_oslevels_only=False, verbose=False, timit=False):
+def get_bias_and_readnoise_from_overscan_polyfit(img, ramps=[35, 35, 35, 35], gain=None, degpol=5, clip=5, add=0, return_oslevels_only=False, verbose=False, timit=False):
     """
     PURPOSE:
     get an estimate of the bias and the read noise from a selected sub-region of the overscan region for each quadrant
@@ -413,6 +414,7 @@ def get_bias_and_readnoise_from_overscan(img, ramps=[35, 35, 35, 35], gain=None,
     os1, os2, os3, os4 = extract_overscan_region(img)
 
     # code defensively...
+    assert (ny, nx) == (4096, 4112), 'ERROR: image dimensions not correct!'
     assert os1.shape == (53, 2056), 'ERROR: Overscan region has the wrong shape!'
     assert (os1.shape == os2.shape) and (os1.shape == os3.shape) and (os1.shape == os4.shape), 'ERROR: not all 4 overscan regions have the same dimensions!'
 
@@ -490,6 +492,131 @@ def get_bias_and_readnoise_from_overscan(img, ramps=[35, 35, 35, 35], gain=None,
 
 
 
+def get_bias_and_readnoise_from_overscan_collapse(img, gain=None, ramps=[35, 35, 35, 35], clip=5, add=0, return_oslevels_only=False, verbose=False, timit=False):
+    """
+    PURPOSE:
+    get an estimate of the bias and the read noise from a selected sub-region of the overscan region for each quadrant
+    
+    INPUT:
+    'img'     - the (raw, ie 4202x4112) image for which to determine the bias and read noise from the overscan region
+    'gain'    - array of gains for each quadrant (in units of e-/ADU)
+    'clip'    - threshold for sigma clipping
+    'add'     - number of ADUs to add (from comparing a number of bias frames with the bias estimate from the overscan regions, there sometimes seems to be a ~1ADU offset)
+    'return_oslevels_only'  - boolean - do you want to return the overscan levels only?
+    'verbose' - boolean - do you want to print user info to screen?
+    'timit'   - boolean - do you want to measure execution run time?
+    
+    OUTPUT:
+    'bias'       - 4096 x 4112 array containing the estimated bias level plus the overscan levls for every "real" pixel [ADU]
+    'rons'       - 4-element array containing the read noise for each quadrant [e-]
+
+    PROCEDURE:
+    The procedure that has been developed to overscan subtract Veloce data is as follows.
+    Overscan subtraction is performed on a quadrant basis, where each quadrant is mapped (by inverting its X and Y axes),
+    so that it looks just like Q2 (i.e. read-out amplifier at the bottom left hand corner).
+    (a) Columns 10-51 are averaged (indexed so the first column is column 0) to obtain a shape for the overscan in the X direction,
+    which is then subtracted from all rows in the column 10-51 region.
+    (b) This "flattened" region is then averaged in the X direction to get a shape for the overscan in the Y direction.
+    (d) The Y-profile output from the second pass of step b is then subtracted from the entire quadrant to produce an overscan subtracted quadrant.
+    That procedure is then applied to all 4 quadrants, resulting in a single image with mean levels of zero in the overscan region.
+
+    
+    TODO:
+    step (c) : sigma-clipping and repeating step (a) and (b)
+    """
+    
+    if timit:
+        start_time = time.time()
+
+    if verbose:
+        print('Determining offset levels and read-out noise properties from overscan regions for 4 quadrants...')
+
+    # get image dimensions
+    ny, nx = crop_overscan_region(correct_orientation(img)).shape
+
+    # extract all four overscan regions
+    os1, os2, os3, os4 = extract_overscan_region(img)
+
+    # code defensively...
+    assert (ny, nx) == (4096, 4112), 'ERROR: image dimensions not correct!'
+    assert os1.shape == (53, 2056), 'ERROR: Overscan region has the wrong shape!'
+    assert (os1.shape == os2.shape) and (os1.shape == os3.shape) and (os1.shape == os4.shape), 'ERROR: not all 4 overscan regions have the same dimensions!'
+
+    nxq = os1.shape[1]
+
+    # for quadrant 1
+    dispdir_avg = np.average(os1[10:52,:], axis=1)
+    os1_flat = os1[10:52,:] - np.reshape(np.repeat(dispdir_avg, nxq), (42,nxq))
+    dispdir_shape = np.average(os1_flat, axis=0)
+    os1_flatflat = os1_flat - np.reshape(np.repeat(dispdir_shape, 42), (nxq,42)).T
+    ron1 = np.nanstd(sigma_clip(os1_flatflat.flatten(), clip))
+    model_os1 = np.reshape(np.repeat(dispdir_shape, ny//2), (nxq,ny//2)).T
+    
+    # for quadrant 2
+    dispdir_avg = np.average(os2[10:52,:], axis=1)
+    os2_flat = os2[10:52,:] - np.reshape(np.repeat(dispdir_avg, nxq), (42,nxq))
+    dispdir_shape = np.average(os2_flat, axis=0)
+    os2_flatflat = os2_flat - np.reshape(np.repeat(dispdir_shape, 42), (nxq,42)).T
+    ron2 = np.nanstd(sigma_clip(os2_flatflat.flatten(), clip))
+    model_os2 = np.reshape(np.repeat(dispdir_shape, ny//2), (nxq,ny//2)).T
+    
+    # for quadrant 3
+    dispdir_avg = np.average(os3[-52:-10,:], axis=1)
+    os3_flat = os3[-52:-10,:] - np.reshape(np.repeat(dispdir_avg, nxq), (42,nxq))
+    dispdir_shape = np.average(os3_flat, axis=0)
+    os3_flatflat = os3_flat - np.reshape(np.repeat(dispdir_shape, 42), (nxq,42)).T
+    ron3 = np.nanstd(sigma_clip(os3_flatflat.flatten(), clip))
+    model_os3 = np.reshape(np.repeat(dispdir_shape, ny//2), (nxq,ny//2)).T
+    
+    # for quadrant 4
+    dispdir_avg = np.average(os4[-52:-10,:], axis=1)
+    os4_flat = os4[-52:-10,:] - np.reshape(np.repeat(dispdir_avg, nxq), (42,nxq))
+    dispdir_shape = np.average(os4_flat, axis=0)
+    os4_flatflat = os4_flat - np.reshape(np.repeat(dispdir_shape, 42), (nxq,42)).T
+    ron4 = np.nanstd(sigma_clip(os4_flatflat.flatten(), clip))
+    model_os4 = np.reshape(np.repeat(dispdir_shape, ny//2), (nxq,ny//2)).T
+
+    rons_adu = np.array([ron1, ron2, ron3, ron4])
+    # convert read-out noise (but NOT the bias image!!!) to units of electrons rather than ADUs by multiplying with the gain (which has units of e-/ADU)
+    assert gain is not None, 'ERROR: gain is not defined!'
+    rons = rons_adu * gain
+  
+    # define good / usable regions within each overscan region (ie where I consider it flat enough)
+    good_os1 = os1[ramps[0]:, :]
+    good_os2 = os2[ramps[1]:, :]
+    good_os3 = os3[:-ramps[2], :]
+    good_os4 = os4[:-ramps[3], :]
+    
+    # get the overscan levels, ie the constant offsets (excluding the first/last dodgy pixel column)
+    # NOTE: this is usually within +/- 1 ADU of the median of the bias level as measured from bias frames !!! (tested by looking at the OS region of bias frames)
+    os_level_1 = np.nanmedian(sigma_clip(good_os1[:, 1:].flatten(), clip))
+    os_level_2 = np.nanmedian(sigma_clip(good_os2[:, :-1].flatten(), clip))
+    os_level_3 = np.nanmedian(sigma_clip(good_os3[:, :-1].flatten(), clip))
+    os_level_4 = np.nanmedian(sigma_clip(good_os4[:, 1:].flatten(), clip))
+    offsets = np.array([os_level_1, os_level_2, os_level_3, os_level_4])
+    if return_oslevels_only:
+        return offsets
+ 
+    # make (4k x 4k) frame of the offsets
+    offmask = np.ones((ny,nx))
+    q1,q2,q3,q4 = make_quadrant_masks(nx,ny)
+    for q,offset in zip([q1,q2,q3,q4], offsets):
+        offmask[q] = offmask[q] * offset
+  
+    # create "master bias" (4k x 4k) frame (incl. OS levels) from that (note the order is important, following the definition of the quadrants)
+    bias_only = np.vstack([np.hstack([model_os1, model_os2]), np.hstack([model_os4, model_os3])]) + add
+      
+    # add overscan levels
+    bias = bias_only + offmask
+      
+    if timit:
+        print('Time elapsed: '+str(np.round(time.time() - start_time, 1))+' seconds')
+    
+    return bias, bias_only, offsets, rons
+
+
+
+
 def get_bias_and_readnoise_from_bias_frames(bias_list, degpol=5, clip=5, gain=None, save_medimg=True, debug_level=0, timit=False):
     """
     Calculate the median bias frame after subtracting the overscan levels, the remaining offsets in the four different quadrants
@@ -550,7 +677,8 @@ def get_bias_and_readnoise_from_bias_frames(bias_list, degpol=5, clip=5, gain=No
         # get the overscan levels so we can subtract them later
         ### OLD WAY:
         #  offsets = get_bias_and_readnoise_from_overscan(img, gain=gain, return_oslevels_only=True)
-        overscan_img, bias_only, offsets, readnoise = get_bias_and_readnoise_from_overscan(img, gain=gain, return_oslevels_only=False)
+#         overscan_img, bias_only, offsets, readnoise = get_bias_and_readnoise_from_overscan_polyfit(img, gain=gain, return_oslevels_only=False)
+        overscan_img, bias_only, offsets, readnoise = get_bias_and_readnoise_from_overscan_collapse(img, gain=gain)
         
         # bring to "correct" orientation
         img = correct_orientation(img)
@@ -1240,7 +1368,8 @@ def correct_for_bias_and_dark_from_filename(imgname, MB, MD, gain=None, scalable
     # get the overscan levels so we can subtract them later
     ### OLD WAY:
     #  offsets = get_bias_and_readnoise_from_overscan(img, gain=gain, return_oslevels_only=True)
-    overscan_img, bias_only, offsets, readnoise = get_bias_and_readnoise_from_overscan(img, gain=gain, return_oslevels_only=False)
+#     overscan_img, bias_only, offsets, readnoise = get_bias_and_readnoise_from_overscan_polyfit(img, gain=gain, return_oslevels_only=False)
+    overscan_img, bias_only, offsets, readnoise = get_bias_and_readnoise_from_overscan_collapse(img, gain=gain)
     
     if not simu:
         # bring to "correct" orientation

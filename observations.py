@@ -5,7 +5,12 @@ import os
 import glob
 import astropy.io.fits as pyfits
 import matplotlib.pyplot as plt
-import re
+
+
+from veloce_reduction.veloce_reduction.calibration import correct_orientation, crop_overscan_region
+from veloce_reduction.veloce_reduction.helper_functions import laser_on, thxe_on
+
+
 
 
 
@@ -114,16 +119,14 @@ def create_toi_velobs_dict(obspath='/Users/christoph/OneDrive - UNSW/observation
     for targ, t0, per in zip(targets, T0, P):
         
         print(targ)
-        
-        # initialise sub-dictionary for this object
-        vo[targ] = {}
 
         # loop over all "names"
         typ = targ[:3]
         
         # for TOIs
         if typ == 'TOI':
-            name = targ[-3:]
+#             name = targ[-3:]
+            name = targ.split('I')[-1]
             synonyms = ['TOI'+name, 'TOI'+name+'.01', 'TIC'+name+'.01', name+'.01']
             if src.lower() in ['red', 'reduced']:
                 fn_list = [fn for fn in all_obs_list if ((fn.split('/')[-1]).split('_')[0]).split('+')[0] in synonyms]
@@ -150,41 +153,46 @@ def create_toi_velobs_dict(obspath='/Users/christoph/OneDrive - UNSW/observation
         # sort the entire list            
         fn_list.sort()
 
-        # prepare dictionary entry for this target
-        vo[targ]['filenames'] = fn_list
-        vo[targ]['nobs'] = len(fn_list)
-        vo[targ]['P'] = per
-        vo[targ]['T0'] = t0
-        vo[targ]['JD'] = []
-        vo[targ]['texp'] = []
-        vo[targ]['obsnames'] = []
-        vo[targ]['phase'] = []
-        # vo[targ]['snr'] = []     # would be nice as an upgrade in the future
-        # vo[targ]['cal'] = []     # would be nice as an upgrade in the future (calibration source: LFC, ThXe, interp?)
-        # vo[targ]['rv'] = []     # would be nice as an upgrade in the future
-        days = []
-        seq = []
-        # fill dictionary
-        # loop over all observations for this target
-        for file in fn_list:
-            h = pyfits.getheader(file)
-            vo[targ]['JD'].append(h['UTMJD'] + 2.4e6 + 0.5 + (0.5 * h['ELAPSED'] / 86400.))  # use plain JD here, in order to avoid confusion
-            vo[targ]['texp'].append(h['ELAPSED'])
-            if src.lower() in ['red', 'reduced']:
-                obsname = (file.split('/')[-1]).split('_')[1]
-            elif src.lower() == 'raw':
-                obsname = ((file.split('/')[-1]).split('_')[0]).split('.')[0]
-            vo[targ]['obsnames'].append(obsname)
-            days.append(obsname[:5])
-            seq.append(obsname[5:])
-        vo[targ]['phase'].append(calculate_orbital_phase(targ, vo[targ]['JD']))
-        # check which exposures are adjacent to determine the number of epochs
-        vo[targ]['nepochs'] = vo[targ]['nobs']
-        if vo[targ]['nobs'] >= 2:
-            for d in set(days):
-                ix = [i for i, day in enumerate(days) if day == d]
-                rundiff = np.diff(np.array(seq)[ix].astype(int))
-                vo[targ]['nepochs'] -= np.sum(rundiff == 1)
+        # only create an entry if we jave observations for this target
+        if len(fn_list) > 0:
+            # initialise sub-dictionary for this object
+            vo[targ] = {}
+    
+            # prepare dictionary entry for this target
+            vo[targ]['filenames'] = fn_list
+            vo[targ]['nobs'] = len(fn_list)
+            vo[targ]['P'] = per
+            vo[targ]['T0'] = t0
+            vo[targ]['JD'] = []
+            vo[targ]['texp'] = []
+            vo[targ]['obsnames'] = []
+            vo[targ]['phase'] = []
+            # vo[targ]['snr'] = []     # would be nice as an upgrade in the future
+            # vo[targ]['cal'] = []     # would be nice as an upgrade in the future (calibration source: LFC, ThXe, interp?)
+            # vo[targ]['rv'] = []     # would be nice as an upgrade in the future
+            days = []
+            seq = []
+            # fill dictionary
+            # loop over all observations for this target
+            for file in fn_list:
+                h = pyfits.getheader(file)
+                vo[targ]['JD'].append(h['UTMJD'] + 2.4e6 + 0.5 + (0.5 * h['ELAPSED'] / 86400.))  # use plain JD here, in order to avoid confusion
+                vo[targ]['texp'].append(h['ELAPSED'])
+                if src.lower() in ['red', 'reduced']:
+                    obsname = (file.split('/')[-1]).split('_')[1]
+                elif src.lower() == 'raw':
+                    obsname = ((file.split('/')[-1]).split('_')[0]).split('.')[0]
+                vo[targ]['obsnames'].append(obsname)
+                days.append(obsname[:5])
+                seq.append(obsname[5:])
+            vo[targ]['phase'].append(calculate_orbital_phase(targ, vo[targ]['JD']))
+            # check which exposures are adjacent to determine the number of epochs
+            vo[targ]['nepochs'] = vo[targ]['nobs']
+            if vo[targ]['nobs'] >= 2:
+                for d in set(days):
+                    ix = [i for i, day in enumerate(days) if day == d]
+                    rundiff = np.diff(np.array(seq)[ix].astype(int))
+                    vo[targ]['nepochs'] -= np.sum(rundiff == 1)
 
     if savefile:
         np.save(obspath + 'velobs_' + rawred + '.npy', vo)
@@ -479,7 +487,87 @@ class star(object):
         
 
 
+def update_redobs(starname, starpath=None, pattern=None, overwrite=False):
+    
+    redpath = '/Volumes/BERGRAID/data/veloce/reduced/'
+    
+    # create target directory if not provided
+    if starpath is None:
+        starpath = redpath + starname + '/'
+    lfc_path = starpath + 'with_lfc/'
+    thxe_path = starpath + 'with_thxe/'
+    neither_path = starpath + 'neither/'
+    
+    # define search pattern if not provided
+    if pattern is None:
+        if starname[:2] == 'HD':
+            pattern = starname[2:]
+        elif starname[:3] == 'TOI':
+            pattern = starname[3:]
+        else:
+            print('WARNING: automated pattern creation failed - please provide pattern')
+            return
+    
+    # check if path exists, if not then create it
+    if not os.path.exists(starpath):
+        os.system("mkdir " + starpath)
+    if not os.path.exists(lfc_path):    
+        os.system("mkdir " + lfc_path)
+    if not os.path.exists(thxe_path):    
+        os.system("mkdir " + thxe_path)
+    if not os.path.exists(neither_path):    
+        os.system("mkdir " + neither_path)
+        
+    # copy all reduced files of the target to the target folder
+    os.system("find " + redpath + "20* -name '" + pattern + "*optimal*' -exec cp '{}' " + starpath + " \;")
+    
+    # some more housekeeping...
+    chipmask_path = '/Users/christoph/OneDrive - UNSW/chipmasks/archive/'
+    all_files = glob.glob(starpath + pattern + '*.fits')
 
+    for i,file in enumerate(all_files):
+        short_filename = file.split('/')[-1]
+        obsname = file.split('_')[-3]
+        utdate = pyfits.getval(file, 'UTDATE')
+        date = utdate[:4] + utdate[5:7] + utdate[8:]
+        print('Processing file ' + str(i+1) + '/' + str(len(all_files)) + '   (' + obsname + ')')
+        chipmask = np.load(chipmask_path + 'chipmask_' + date + '.npy').item()
+        img = crop_overscan_region(correct_orientation(pyfits.getdata('/Volumes/BERGRAID/data/veloce/raw_goodonly/' + date + '/' + obsname + '.fits')))
+        lc = laser_on(img, chipmask)
+        thxe = thxe_on(img, chipmask)
+        if lc:
+            if os.path.isfile(lfc_path + short_filename):
+                if overwrite:
+                    os.rename(file, lfc_path + short_filename)
+                else:
+                    os.remove(file)
+            else:
+                os.rename(file, lfc_path + short_filename)
+        else:
+            if thxe:
+                if os.path.isfile(thxe_path + short_filename):
+                    if overwrite:
+                        os.rename(file, thxe_path + short_filename)
+                    else:
+                        os.remove(file)
+                else:
+                    os.rename(file, thxe_path + short_filename)
+            else:
+                if os.path.isfile(neither_path + short_filename):
+                    if overwrite:
+                        os.rename(file, neither_path + short_filename)
+                    else:
+                        os.remove(file)
+                else:
+                    os.rename(file, neither_path + short_filename)
+    
+    # make sure there are no remaining (uncategorised) files
+    rem_files = glob.glob(starpath + pattern + '*.fits')
+    if len(rem_files) > 0:
+        print('WARNING: some files could not be taken care of!!!')
+        print(rem_files)
+        
+    return
 
 
 

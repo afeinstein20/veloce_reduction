@@ -322,7 +322,7 @@ def process_science_images(imglist, P_id, chipmask, mask=None, stripe_indices=No
                     if os.path.isfile(path + 'temp_bg_lfc.fits'):
                         os.remove(path + 'temp_bg_lfc.fits')
                     if os.path.isfile(path + 'temp_bg_thxe.fits'):
-                        os.remove(path + 'temp_bgthxe.fits')
+                        os.remove(path + 'temp_bg_thxe.fits')
                     if os.path.isfile(path + 'temp_bg_both.fits'):
                         os.remove(path + 'temp_bg_both.fits')
                     if os.path.isfile(path + 'temp_bg_neither.fits'):
@@ -333,7 +333,7 @@ def process_science_images(imglist, P_id, chipmask, mask=None, stripe_indices=No
                 if os.path.isfile(path + 'temp_bg_lfc.fits'):
                     os.remove(path + 'temp_bg_lfc.fits')
                 if os.path.isfile(path + 'temp_bg_thxe.fits'):
-                    os.remove(path + 'temp_bgthxe.fits')
+                    os.remove(path + 'temp_bg_thxe.fits')
                 if os.path.isfile(path + 'temp_bg_both.fits'):
                     os.remove(path + 'temp_bg_both.fits')
                 if os.path.isfile(path + 'temp_bg_neither.fits'):
@@ -352,7 +352,11 @@ def process_science_images(imglist, P_id, chipmask, mask=None, stripe_indices=No
             epoch_list = list(np.array(imglist)[epoch_ix])
             # make sublists according to the four possible calibration lamp configurations
             epoch_sublists = {'lfc':[], 'thxe':[], 'both':[], 'neither':[]}
-            if int(date) < 20190503:
+            
+            # nasty temp fix to make sure we are always looking at the 2D images until the header keywords are reliable
+            checkdate = '1' + date[1:]
+            
+            if int(checkdate) < 20190503:
                 # look at the actual 2D image (using chipmasks for LFC and simThXe) to determine which calibration lamps fired
                 for file in epoch_list:
                     img = correct_for_bias_and_dark_from_filename(file, MB, MD, gain=gain, scalable=scalable, savefile=saveall, path=path)
@@ -393,7 +397,7 @@ def process_science_images(imglist, P_id, chipmask, mask=None, stripe_indices=No
                     else:  # if not, just go with the OBJECT field
                         if ('LC' in pyfits.getval(filename, 'OBJECT').split('+')) or ('LFC' in pyfits.getval(filename, 'OBJECT').split('+')):
                             lc = 1
-                    if h['SIMCALTT'] > 0:
+                    if (h['SIMCALTT'] > 0) and (h['SIMCALN'] > 0) and (h['SIMCALSE'] > 0):
                         thxe = 1
                     assert lc+thxe in [0,1,2], 'ERROR: could not establish status of LFC and simultaneous ThXe for ' + obsname + '.fits !!!'    
                     if lc+thxe == 0:

@@ -58,13 +58,16 @@ def get_barycentric_correction(fn, rvabs=None, obs_path='/Users/christoph/OneDri
     try:
         # for TOIs
         if (typ == '.01') or (targ[:3] in ['TOI', 'TIC']):
-            if targ[:3] in ['TOI', 'TIC']:
-                gaia_dr2_id = gaia_dict['TOI'+targ[3:6]]['gaia_dr2_id']
+            if len(targ) <= 10:
+                if targ[:3] in ['TOI', 'TIC']:
+                    gaia_dr2_id = gaia_dict['TOI'+targ[3:6]]['gaia_dr2_id']
+                else:
+                    gaia_dr2_id = gaia_dict['TOI'+targ[:3]]['gaia_dr2_id']
             else:
-                gaia_dr2_id = gaia_dict['TOI'+targ[:3]]['gaia_dr2_id']
+                gaia_dr2_id = gaia_dict[targ]['gaia_dr2_id']
         # for other targets
         else:
-            if targ.lower() in ['gj674', 'gl87', 'proxima', 'kelt-15b', 'wasp-54b', 'gj514', 'gj526', 'gj699']:
+            if targ.lower() in ['gj674', 'gl87', 'gl480.1', 'proxima', 'kelt-15b', 'wasp-54b', 'gj514', 'gj526', 'gj699', 'gj3192', 'gj3193']:
                 gaia_dr2_id = gaia_dict[targ]['gaia_dr2_id']
             elif targ.lower() == 'gj87':
                 gaia_dr2_id = gaia_dict['Gl87']['gaia_dr2_id']
@@ -74,7 +77,7 @@ def get_barycentric_correction(fn, rvabs=None, obs_path='/Users/christoph/OneDri
                 gaia_dr2_id = gaia_dict['EKEri']['gaia_dr2_id']
             elif targ.lower() in ['ksihya', 'ksi hya', 'ksihya_new']:
                 gaia_dr2_id = gaia_dict['ksiHya']['gaia_dr2_id']
-            elif targ.lower()[:2] == 'hd':
+            elif targ.lower()[:2] in ['hd', 'hr', 'as']:
                 gaia_dr2_id = gaia_dict[targ]['gaia_dr2_id']
             else:
                 gaia_dr2_id = gaia_dict['HD'+targ]['gaia_dr2_id']

@@ -54,12 +54,12 @@ def flux_ratios_from_seeing(seeing, verbose=False):
     11/05/2018  - CMB modified output format and included possibility to iterate over 1-element seeing-array
     '''
     
-    #initialise output dictionary
+    # initialise output dictionary
     flux_ratios = {}    
     
-    #inner-radius r of hexagonal fibre is 0.26", therefore outer-radius R is (2/sqrt(3))*0.26" = 0.30"
-    #what we really want is the "effective" radius though, for a regular hexagon that comes from A = 3*r*R = 2*sqrt(3)*r = pi * r_eff**2
-    #ie r_eff = sqrt( (2*sqrt(3)) / pi )
+    # inner-radius r of hexagonal fibre is 0.26", therefore outer-radius R is (2/sqrt(3))*0.26" = 0.30"
+    # what we really want is the "effective" radius though, for a regular hexagon that comes from A = 3*r*R = 2*sqrt(3)*r = pi * r_eff**2
+    # ie r_eff = sqrt( (2*sqrt(3)) / pi )
 #    fac = np.sqrt((2.*np.sqrt(3.)) / np.pi)
     rc = 0.26
     Rc = rc * 2. / np.sqrt(3.) 
@@ -75,12 +75,12 @@ def flux_ratios_from_seeing(seeing, verbose=False):
     x = np.arange(-10,10.01,.01)
     y = np.arange(-10,10.01,.01)
     xx, yy = np.meshgrid(x, y)
-    #define constant (FWHM vs sigma, because FWHM = sigma * 2*sqrt(2*log(2))
+    # define constant (FWHM vs sigma, because FWHM = sigma * 2*sqrt(2*log(2))
     cons = 2*np.sqrt(np.log(2)) 
     
     
-    m1 = 1./np.sqrt(3.)  #slope1
-    m2 = -m1              #slope2
+    m1 = 1./np.sqrt(3.)   # slope1
+    m2 = -m1              # slope2
     central = np.logical_and(np.logical_and(np.logical_and(np.logical_and(np.abs(xx) <= rc, yy <= m1*xx + Rc), yy >= m1*xx - Rc), yy <= m2*xx + Rc), yy >= m2*xx - Rc)
     inner = np.logical_and(np.logical_and(np.logical_and(np.logical_and(np.logical_and(np.abs(xx-di) <= rc, yy <= m1*(xx-di) + Rc), yy >= m1*(xx-di) - Rc), yy <= m2*(xx-di) + Rc), yy >= m2*(xx-di) - Rc), ~central)
     outer1 = np.logical_and(np.logical_and(np.logical_and(np.logical_and(np.logical_and(np.abs(xx-do1) <= rc, yy <= m1*(xx-do1) + Rc), yy >= m1*(xx-do1) - Rc), yy <= m2*(xx-do1) + Rc), yy >= m2*(xx-do1) - Rc), ~inner)

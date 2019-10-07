@@ -5,6 +5,8 @@ Created on 11 Aug. 2017
 """
 
 import astropy.io.fits as pyfits
+import os
+import glob
 import numpy as np
 import itertools
 import warnings
@@ -19,6 +21,7 @@ from numpy.polynomial import polynomial
 from scipy.integrate import quad, fixed_quad
 from scipy import ndimage
 # from json.decoder import _decode_uXXXX
+
 
 
 
@@ -1265,11 +1268,17 @@ def brendans_weighted_sample_variance(rv, rverr):
 
 
 
-def wsv(data, err):
+def wm_and_wsv(values, weights):
     """
-    Finds the weighted sample variance of an array given it's uncertainties
+    Return the weighted average and standard deviation.
+
+    values, weights -- Numpy ndarrays with the same shape.
     """
-    return 1
+    average = np.average(values, weights=weights)
+    # Fast and numerically precise:
+    variance = np.average((values-average)**2, weights=weights)
+    return (average, np.sqrt(variance))
+    
 
 
 
@@ -1315,6 +1324,8 @@ def thxe_on(img, chipmask, thresh=1000, count=1500):
     n_high = np.sum(img[chipmask['thxe']] > thresh)
     ison = n_high >= count
     return ison
+
+
 
 
 
