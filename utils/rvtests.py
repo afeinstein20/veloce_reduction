@@ -172,7 +172,7 @@ f0_dblz, err0_dblz = deblaze_orders(f0_clean, mw_flux, mask=maskdict, err=err0, 
 # f0 = pyfits.getdata('/Users/christoph/OneDrive - UNSW/synthetic_templates/phoenix/lte05400-4.50-0.0.PHOENIX-ACES-AGSS-COND-2011-HiRes.fits')
 
 
-# loopo over all observations
+# loop over all observations
 for i,filename in enumerate(files):
     print('Processing RV for observation ' + str(i + 1) + '/' + str(len(files)))
 #     # get obsname and date

@@ -546,7 +546,7 @@ def get_RV_from_xcorr_2(f, wl, f0, wl0, bc=0, bc0=0, mask=None, smoothed_flat=No
 
 
 def make_ccfs(f, wl, f0, wl0, bc=0., bc0=0., smoothed_flat=None, delta_log_wl=1e-6, deg_interp=1, flipped=False, individual_fibres=True, 
-              norm_cont=True, synthetic_template=False, debug_level=0, timit=False):
+              norm_cont=True, use_orders=None, synthetic_template=False, debug_level=0, timit=False):
     """
     This routine calculates the CCFs of an observed spectrum and a template spectrum for each order.
     Note that input spectra should be de-blazed for the cross-correlation, so can do that either externally, or internally
@@ -565,6 +565,7 @@ def make_ccfs(f, wl, f0, wl0, bc=0., bc0=0., smoothed_flat=None, delta_log_wl=1e
     'flipped'            : boolean - reverse order of inputs to xcorr routine?
     'individual_fibres'  : boolean - do you want to return the CCFs for individual fibres? (if FALSE, then the sum of the ind. fib. CCFs is returned)
     'norm_cont'          : boolean - do you want to normalise the continuum?
+    'use_orders'         : which orders do you want to use for the xcorr?
     'synthetic_template' : boolean - are you using a synthetic template?
     'debug_level'        : for debugging...
     'timit'              : boolean - do you want to measure execution run time?
@@ -671,8 +672,16 @@ def make_ccfs(f, wl, f0, wl0, bc=0., bc0=0., smoothed_flat=None, delta_log_wl=1e
     # Duncan's suggestion
 #     for o in [4,5,6,25,26,33,34,35]:
 #     for o in [5, 6, 17, 25, 26, 27, 31, 34, 35, 36, 37]:
-    for o in [5, 6, 17, 25, 26, 27, 31, 34, 35, 36]:         # at the moment 17 and 34 give the lowest scatter
-    # for o in [5]:
+#     if use_orders == 'all':
+#         use_orders = np.arange(1,39)
+#     if use_orders is None:
+#         use_orders = [5, 6, 17, 25, 26, 27, 31, 34, 35, 36]         # at the moment 17 and 34 give the lowest scatter
+    use_orders = [5, 6, 17, 25, 26, 27, 31, 34, 35, 36]
+    # use_orders = np.arange(1, 39)
+
+    print('Using ' + str(len(use_orders)) + ' orders for CCF...')
+
+    for o in use_orders:         # at the moment 17 and 34 give the lowest scatter
 
         if debug_level >= 2:
             print('Order ' + str(o + 1).zfill(2))
