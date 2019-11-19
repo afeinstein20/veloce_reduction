@@ -2473,7 +2473,8 @@ def get_dispsol_for_all_fibs_2(obsname, date=None, relto='LFC', degpol=7, fibs='
 
 
 
-def get_dispsol_for_all_fibs_3(obsname, date=None, relto='LFC', degpol=7, nx=4112, refit=True, fibtofib=True, return_auxdata=False, norm_coords=False, laptop=False, debug_level=0, timit=False):
+def get_dispsol_for_all_fibs_3(obsname, date=None, relto='LFC', degpol=7, nx=4112, refit=True, fibtofib=True, return_auxdata=False, 
+                               norm_coords=False, laptop=False, debug_level=0, timit=False):
     '''using CGT's new DAOPHOT results to measure LFC shifts; anchor using the wl-solution from the master ARC that night'''
 
     # TODO: IDEA: instead of reading P_id for the LFC, do a divide into orders and fit new x-y-traces
@@ -2571,7 +2572,7 @@ def get_dispsol_for_all_fibs_3(obsname, date=None, relto='LFC', degpol=7, nx=411
         auxdata[ord] = {}
         
         # divide DAOPHOT LFC peaks into orders
-        peaks = divide_lfc_peaks_into_orders(x, y)
+#         peaks = divide_lfc_peaks_into_orders(x, y)
         ord_x = np.array(peaks[ord])[:,0]
         ord_y = np.array(peaks[ord])[:,1]
         ord_y = ord_y[ord_x.argsort()]

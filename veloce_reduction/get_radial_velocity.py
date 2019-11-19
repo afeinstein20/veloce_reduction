@@ -13,7 +13,7 @@ import time
 from scipy import ndimage
 from readcol import readcol
 
-from veloce_reduction.veloce_reduction.helper_functions import xcorr, gausslike_with_amp_and_offset, gausslike_with_amp_and_offset_and_slope, central_parts_of_mask
+from veloce_reduction.veloce_reduction.helper_functions import xcorr, gausslike_with_amp_and_offset, gausslike_with_amp_and_offset_and_slope, central_parts_of_mask, spectres, cmb_scrunch
 from veloce_reduction.veloce_reduction.flat_fielding import deblaze_orders, onedim_pixtopix_variations
 
 
@@ -286,9 +286,9 @@ def get_RV_from_xcorr(f, err, wl, f0, wl0, mask=None, smoothed_flat=None, osf=2,
 
 
 
-def get_RV_from_xcorr_2(f, wl, f0, wl0, bc=0, bc0=0, mask=None, smoothed_flat=None, delta_log_wl=1e-6, 
-                        addrange=150, fitrange=25, flipped=False, deg_interp=3, individual_fibres=True, individual_orders=True,
-                        fit_slope=False, norm_cont=False, synthetic_template=False, old_ccf=False, debug_level=0, timit=False):
+def get_RV_from_xcorr_2(f, wl, f0, wl0, bc=0, bc0=0, mask=None, smoothed_flat=None, delta_log_wl=1e-6, addrange=150, fitrange=35,
+                        taper=True, taper_width=0.05, flipped=False, deg_interp=3, individual_fibres=True, individual_orders=True,
+                        scrunch=False, fit_slope=False, norm_cont=False, synthetic_template=False, old_ccf=False, debug_level=0, timit=False):
     """
     This routine calculates the radial velocity of an observed spectrum relative to a template using cross-correlation.
     Note that input spectra should be de-blazed already!!!
@@ -306,10 +306,13 @@ def get_RV_from_xcorr_2(f, wl, f0, wl0, bc=0, bc0=0, mask=None, smoothed_flat=No
     'delta_log_wl'  : stepsize of the log-wl grid
     'addrange'      : the central (2*addrange + 1) pixels of the CCFs will be added
     'fitrange'      : a Gauss-like function will be fitted to the central (2*fitrange + 1) pixels
+    'taper'         : boolean - do you want to taper off the edges for the inputs to the xcorr-routine?
+    'taper_width'   : fractional width/length of the input arrays to the xcorr-routine that will be tapered to zero at both ends
     'flipped'       : boolean - reverse order of inputs to xcorr routine?
     'deg_interp'         : the degree of the interpolation (1 = linear, 3 = cubic)
     'individual_fibres'  : boolean - do you want to return the RVs for individual fibres? (if FALSE, then the RV is calculated from the sum of the ind. fib. CCFs)
     'individual_orders'  : boolean - do you want to return the RVs for individual orders? (if FALSE, then the RV is calculated from the sum of the ind. ord. CCFs)
+    'scrunch'            : boolean - do you want to scrunch the spectra or simply interpolate them when rebinning?
     'norm_cont'          : boolean - do you want to normalise the continuum?
     'synthetic_template' : boolean - are you using a synthetic template?
     'debug_level'   : boolean - for debugging...
@@ -345,8 +348,8 @@ def get_RV_from_xcorr_2(f, wl, f0, wl0, bc=0, bc0=0, mask=None, smoothed_flat=No
 
     # make cross-correlation functions (list of length n_orders used)
     if not old_ccf:
-        xcs = make_ccfs(f, wl, f0, wl0, bc=bc, bc0=bc0, smoothed_flat=smoothed_flat, delta_log_wl=delta_log_wl, deg_interp=deg_interp,flipped=flipped,
-                        individual_fibres=individual_fibres, synthetic_template=synthetic_template, norm_cont=norm_cont, debug_level=debug_level, timit=timit)
+        xcs = make_ccfs(f, wl, f0, wl0, bc=bc, bc0=bc0, smoothed_flat=smoothed_flat, delta_log_wl=delta_log_wl, deg_interp=deg_interp, flipped=flipped,
+                        individual_fibres=individual_fibres, scrunch=scrunch, synthetic_template=synthetic_template, norm_cont=norm_cont, debug_level=debug_level, timit=timit)
     else:
         xcs = old_make_ccfs(f, wl, f0, wl0, bc=bc, bc0=bc0, mask=mask, smoothed_flat=smoothed_flat, delta_log_wl=delta_log_wl, relgrid=False,
                             flipped=flipped, individual_fibres=individual_fibres, synthetic_template=synthetic_template, debug_level=debug_level, timit=timit)
@@ -388,7 +391,11 @@ def get_RV_from_xcorr_2(f, wl, f0, wl0, bc=0, bc0=0, mask=None, smoothed_flat=No
                 peaks[:5] = False
                 peaks[-5:] = False
                 guessloc = np.argmax(xc*peaks)
-                xrange = np.arange(guessloc - fitrange, guessloc + fitrange + 1, 1)
+                if guessloc >= len(xc)//2:
+                    xrange = np.arange(np.minimum(len(xc) - 2*fitrange-1, guessloc - fitrange), np.minimum(guessloc + fitrange + 1, len(xc)), 1)
+                else:
+                    xrange = np.arange(np.maximum(0, guessloc - fitrange), np.maximum(guessloc + fitrange + 1, 2*fitrange+1), 1)
+#                 xrange = np.arange(guessloc - fitrange, guessloc + fitrange + 1, 1)
 #                 xrange = np.arange(np.argmax(xc) - fitrange, np.argmax(xc) + fitrange + 1, 1)
                 
                 # make sure we have a dynamic range
@@ -457,6 +464,8 @@ def get_RV_from_xcorr_2(f, wl, f0, wl0, bc=0, bc0=0, mask=None, smoothed_flat=No
         rv = np.zeros(xcarr.shape[0])
         rverr = np.zeros(xcarr.shape[0])
         for o in range(xcarr.shape[0]):
+            if debug_level >= 2:
+                print('order ' + str(o+1))
             xc = xcarr[o, :]
             # want to fit a symmetric region around the peak, not around the "centre" of the xc
             
@@ -466,10 +475,16 @@ def get_RV_from_xcorr_2(f, wl, f0, wl0, bc=0, bc0=0, mask=None, smoothed_flat=No
             peaks[:5] = False
             peaks[-5:] = False
             guessloc = np.argmax(xc*peaks)
-            xrange = np.arange(guessloc - fitrange, guessloc + fitrange + 1, 1)
+            if guessloc >= len(xc)//2:
+                xrange = np.arange(np.minimum(len(xc) - 2*fitrange-1, guessloc - fitrange), np.minimum(guessloc + fitrange + 1, len(xc)), 1)
+            else:
+                xrange = np.arange(np.maximum(0, guessloc - fitrange), np.maximum(guessloc + fitrange + 1, 2*fitrange+1), 1)
+#             xrange = np.arange(guessloc - fitrange, guessloc + fitrange + 1, 1)
 #           xrange = np.arange(np.argmax(xc) - fitrange, np.argmax(xc) + fitrange + 1, 1)
             
             # make sure we have a dynamic range
+            if debug_level >= 3:
+                print(xrange)
             xc -= np.min(xc[xrange])
             # "normalize" it
             xc /= np.max(xc)
@@ -515,10 +530,10 @@ def get_RV_from_xcorr_2(f, wl, f0, wl0, bc=0, bc0=0, mask=None, smoothed_flat=No
 #             # # plot a single fit for debugging
 #             plot_osf = 10
 #             plot_os_grid = np.linspace(xrange[0], xrange[-1], plot_osf * (len(xrange)-1) + 1)
-#             plt.plot(c * (xrange - (len(xc) // 2)) * delta_log_wl, xc[xrange], 'x', label='data')
+#             plt.plot(c * (xrange - (len(xc) // 2)) * delta_log_wl, xc[xrange], 'bx', label='data')
 # #             plt.plot(c * (plot_os_grid - (len(xc) // 2)) * delta_log_wl, gausslike_with_amp_and_offset(plot_os_grid, *guess),'r--', label='initial guess')
 # #             plt.plot(c * (plot_os_grid - (len(xc) // 2)) * delta_log_wl, gausslike_with_amp_and_offset(plot_os_grid, *popt),'g-', label='best fit')
-#             plt.plot(c * (plot_os_grid - (len(xc) // 2)) * delta_log_wl, gausslike_with_amp_and_offset_and_slope(plot_os_grid, *popt), label='best fit')
+#             plt.plot(c * (plot_os_grid - (len(xc) // 2)) * delta_log_wl, gausslike_with_amp_and_offset_and_slope(plot_os_grid, *popt), 'g-', label='best fit')
 #             plt.plot(c * (plot_os_grid - (len(xc) // 2)) * delta_log_wl, gausslike_with_amp_and_offset_and_slope(plot_os_grid, *guess),'r--', label='initial guess')
 #             plt.axvline(c * (mu - (len(xc) // 2)) * delta_log_wl, color='g', linestyle=':')
 #             plt.legend()
@@ -545,8 +560,8 @@ def get_RV_from_xcorr_2(f, wl, f0, wl0, bc=0, bc0=0, mask=None, smoothed_flat=No
 
 
 
-def make_ccfs(f, wl, f0, wl0, bc=0., bc0=0., smoothed_flat=None, delta_log_wl=1e-6, deg_interp=1, flipped=False, individual_fibres=True, 
-              norm_cont=True, use_orders=None, synthetic_template=False, debug_level=0, timit=False):
+def make_ccfs(f, wl, f0, wl0, bc=0., bc0=0., smoothed_flat=None, delta_log_wl=1e-6, deg_interp=1, flipped=False, individual_fibres=True, scrunch=False, 
+              norm_cont=True, taper=True, taper_width=0.05, use_orders=None, synthetic_template=False, n_stellar_fibs=19, debug_level=0, timit=False):
     """
     This routine calculates the CCFs of an observed spectrum and a template spectrum for each order.
     Note that input spectra should be de-blazed for the cross-correlation, so can do that either externally, or internally
@@ -564,9 +579,13 @@ def make_ccfs(f, wl, f0, wl0, bc=0., bc0=0., smoothed_flat=None, delta_log_wl=1e
     'deg_interp'         : the degree of the interpolation (1 = linear, 3 = cubic)
     'flipped'            : boolean - reverse order of inputs to xcorr routine?
     'individual_fibres'  : boolean - do you want to return the CCFs for individual fibres? (if FALSE, then the sum of the ind. fib. CCFs is returned)
+    'scrunch'            : boolean - do you want to scrunch the spectra or simply interpolate them when rebinning?
     'norm_cont'          : boolean - do you want to normalise the continuum?
+    'taper'              : boolean - do you want to taper off the edges for the inputs to the xcorr-routine?
+    'taper_width'        : fractional width/length of the input arrays to the xcorr-routine that will be tapered to zero at both ends
     'use_orders'         : which orders do you want to use for the xcorr?
     'synthetic_template' : boolean - are you using a synthetic template?
+    'n_stellar_fibs'     : number of stellar fibres - sholud always be 19, except for testing purposes
     'debug_level'        : for debugging...
     'timit'              : boolean - do you want to measure execution run time?
 
@@ -583,7 +602,6 @@ def make_ccfs(f, wl, f0, wl0, bc=0., bc0=0., smoothed_flat=None, delta_log_wl=1e
     # speed of light in m/s
     c = 2.99792458e8
     
-    n_stellar_fibs = 19
     
     # make sure that f and f0 have the same shape
     assert f.shape == f0.shape, 'ERROR: observation and template do not have the same shape!!!'
@@ -604,15 +622,13 @@ def make_ccfs(f, wl, f0, wl0, bc=0., bc0=0., smoothed_flat=None, delta_log_wl=1e
         f0 = f0[:,3:22,:]
         wl = wl[:,3:22,:]
         wl0 = wl0[:,3:22,:]
-        if blaze_provided:
-            smoothed_flat = smoothed_flat[:,3:22,:]
+        smoothed_flat = smoothed_flat[:,3:22,:]
     elif n_fib == 24:
         f = f[:,2:21,:]
         f0 = f0[:,2:21,:]
         wl = wl[:,2:21,:]
         wl0 = wl0[:,2:21,:]
-        if blaze_provided:
-            smoothed_flat = smoothed_flat[:,2:21,:]
+        smoothed_flat = smoothed_flat[:,2:21,:]
     
     # the dummy wavelengths for orders 'order_01' and 'order_40' cannot be zero as we're taking a log!!!
     if wl.shape[0] == 40:
@@ -638,8 +654,8 @@ def make_ccfs(f, wl, f0, wl0, bc=0., bc0=0., smoothed_flat=None, delta_log_wl=1e
     dumord, min_wl_arr, max_wl_arr = readcol('/Users/christoph/OneDrive - UNSW/dispsol/veloce_xcorr_wlrange.txt', twod=False, verbose=False)
     # index -723 is the last non-NaN one for order_38 (WTF???), which is ~5956.2 A, so allow enough room
     min_wl_arr[37] = 5958.5
-    
-    #TESTING ONLY
+
+    # TESTING ONLY
     min_wl_arr[5] = 8650.
     max_wl_arr[5] = 8810.
     min_wl_arr[6] = 8530.
@@ -676,10 +692,14 @@ def make_ccfs(f, wl, f0, wl0, bc=0., bc0=0., smoothed_flat=None, delta_log_wl=1e
 #         use_orders = np.arange(1,39)
 #     if use_orders is None:
 #         use_orders = [5, 6, 17, 25, 26, 27, 31, 34, 35, 36]         # at the moment 17 and 34 give the lowest scatter
-    use_orders = [5, 6, 17, 25, 26, 27, 31, 34, 35, 36]
-    # use_orders = np.arange(1, 39)
+#     use_orders = [5, 6, 17, 25, 26, 27, 31, 34, 35, 36]
+#     use_orders = [5, 6, 17, 25, 27, 31, 36]
+    use_orders = [17]
+#     use_orders = np.arange(1,39)
+#     use_orders = np.arange(n_ord)
 
     print('Using ' + str(len(use_orders)) + ' orders for CCF...')
+    print("haehaehae_20191108")
 
     for o in use_orders:         # at the moment 17 and 34 give the lowest scatter
 
@@ -688,16 +708,20 @@ def make_ccfs(f, wl, f0, wl0, bc=0., bc0=0., smoothed_flat=None, delta_log_wl=1e
 
         ord = 'order_' + str(o + 1).zfill(2)
 
-        # define parts of the spectrum to use 
+        # define parts of the spectrum to use (in wl space)
         min_wl = min_wl_arr[o]
         max_wl = max_wl_arr[o]
 
         # now apply barycentric correction to wl and wl0 so that we can ALWAYS USE THE SAME PARTS OF THE SPECTRUM for X-CORR!!!!!
-        wl_bcc = (1 + bc / c) * wl
+#         wl_bcc = (1 + bc / c) * wl   # NO! That would be for frequencies!
+#         wl_bcc = wl / (1 - bc / c)
+        wl_bcc = wl * np.sqrt((1 + bc / c) / (1 - bc / c))
         # create logarithmic wavelength grid
         logwl = np.log(wl_bcc[o, :, :])
         if not synthetic_template:
-            wl0_bcc = (1 + bc0 / c) * wl0
+#             wl0_bcc = (1 + bc0 / c) * wl0   # NO! That would be for frequencies!
+#             wl0_bcc = wl0 / (1 - bc0 / c) 
+            wl0_bcc = wl0 * np.sqrt((1 + bc0 / c) / (1 - bc0 / c))
             logwl0 = np.log(wl0_bcc[o, :, :])
         else:
             # create logarithmic wavelength grid for the synthetic template (first trim, then go to log space)
@@ -707,7 +731,9 @@ def make_ccfs(f, wl, f0, wl0, bc=0., bc0=0., smoothed_flat=None, delta_log_wl=1e
             f0_ord = f0[ordix_0]
 
         # use range as defined above, and SAME range for all observations!!!
-        logwlgrid = np.arange(np.log(min_wl), np.log(max_wl), delta_log_wl)
+        # logwlgrid = np.arange(np.log(min_wl), np.log(max_wl), delta_log_wl)
+        logwlgrid = np.arange(np.log(min_wl) + delta_log_wl, np.log(max_wl) - delta_log_wl, delta_log_wl)
+#         logwlgrid = np.arange(np.log(min_wl) + 5*delta_log_wl, np.log(max_wl) - 5*delta_log_wl, delta_log_wl)
 
         # wavelength array must be increasing for "InterpolatedUnivariateSpline" to work --> turn arrays around if necessary!!!
         if (np.diff(logwl) < 0).any():
@@ -738,17 +764,36 @@ def make_ccfs(f, wl, f0, wl0, bc=0., bc0=0., smoothed_flat=None, delta_log_wl=1e
         # make sure we don't have any NaNs (which throw off the interpolation routine)
         ord_f0_sorted[np.isnan(ord_f0_sorted)] = 0.
         ord_f_sorted[np.isnan(ord_f_sorted)] = 0.
+        ord_blaze_sorted[np.isnan(ord_blaze_sorted)] = 0.
 
         # only use stellar fibres now
         for i in range(n_stellar_fibs):   
-            spl_ref_f0 = interp.InterpolatedUnivariateSpline(logwl0_sorted[i, :], ord_f0_sorted[i, :], k=deg_interp)  
-            rebinned_f0[i, :] = spl_ref_f0(logwlgrid)
-            spl_ref_f = interp.InterpolatedUnivariateSpline(logwl_sorted[i, :], ord_f_sorted[i, :], k=deg_interp)  
-            rebinned_f[i, :] = spl_ref_f(logwlgrid)
+            # (i) using SpectRes
+#             rebinned_f0[i, :] = spectres(logwlgrid, logwl0_sorted[i, :], ord_f0_sorted[i, :])
+#             rebinned_f[i, :] = spectres(logwlgrid, logwl_sorted[i, :], ord_f_sorted[i, :])
+            if scrunch:
+                # (ii) using cmb_scrunch
+                rebinned_f0[i, :] = cmb_scrunch(logwlgrid, logwl0_sorted[i, :], ord_f0_sorted[i, :])
+                rebinned_f[i, :] = cmb_scrunch(logwlgrid, logwl_sorted[i, :], ord_f_sorted[i, :])
+            else:
+                # (iii) using interpolation (using pixel centres)
+                spl_ref_f0 = interp.InterpolatedUnivariateSpline(logwl0_sorted[i, :], ord_f0_sorted[i, :], k=deg_interp)
+                # if k=1, then that is equivalent to spl_ref_f0 = interp.interp1d(logwl0_sorted[i, :], ord_f0_sorted[i, :])
+                # if k=3, then that is equivalent to spl_ref_f0 = interp.interp1d(logwl0_sorted[i, :], ord_f0_sorted[i, :], kind='cubic')
+                rebinned_f0[i, :] = spl_ref_f0(logwlgrid)
+                spl_ref_f = interp.InterpolatedUnivariateSpline(logwl_sorted[i, :], ord_f_sorted[i, :], k=deg_interp)  
+                rebinned_f[i, :] = spl_ref_f(logwlgrid)
             if blaze_provided:
-                spl_ref_blaze = interp.InterpolatedUnivariateSpline(logwl_sorted[i, :], ord_blaze_sorted[i, :], k=deg_interp)  
-                rebinned_blaze[i, :] = spl_ref_blaze(logwlgrid)
-        
+                # (i) using SpectRes
+#                 rebinned_blaze[i, :] = spectres(logwlgrid, logwl_sorted[i, :], ord_blaze_sorted[i, :])
+                if scrunch:
+                    # (ii) using cmb_scrunch
+                    rebinned_blaze[i, :] = cmb_scrunch(logwlgrid, logwl_sorted[i, :], ord_blaze_sorted[i, :])
+                else:
+                    # (iii) using interpolation (using pixel centres)
+                    spl_ref_blaze = interp.InterpolatedUnivariateSpline(logwl_sorted[i, :], ord_blaze_sorted[i, :], k=deg_interp)  
+                    rebinned_blaze[i, :] = spl_ref_blaze(logwlgrid)
+         
         
         # actually perform the cross-correlation        
         if individual_fibres:
@@ -777,10 +822,28 @@ def make_ccfs(f, wl, f0, wl0, bc=0., bc0=0., smoothed_flat=None, delta_log_wl=1e
                 if blaze_provided:
                     rebinned_blaze[fib,:] /= np.nanmax(rebinned_blaze[fib,:])       
                 
+                if taper:
+                    assert (taper_width >= 0.001) & (taper_width <=0.5), 'ERROR: taper_width must be within [0.001...0.5]'
+                    taper_range = int(np.ceil(len(rebinned_f0[fib,:]) * taper_width))
+                    taper_start = np.linspace(-np.pi, 0, taper_range)
+                    taper_end = np.linspace(0, np.pi, taper_range)
+                    taper_func = np.ones(len(rebinned_f0[fib,:]))
+                    taper_func[:taper_range] = (np.cos(taper_start) / 2.) + 0.5
+                    taper_func[-taper_range:] = (np.cos(taper_end) / 2.) + 0.5
+                
                 if not flipped:
-                    xc = xcorr((rebinned_f0[fib,:] - 1.)*rebinned_blaze[fib,:], rebinned_f[fib,:] - 1., scale='unbiased')
+#                     xc = xcorr((rebinned_f0[fib,:] - 1.)*rebinned_blaze[fib,:], rebinned_f[fib,:] - 1., scale='unbiased')
+#                     xc = xcorr((rebinned_f0[fib,:] - 1.)*taper_func, (rebinned_f[fib,:] - 1.)*taper_func, scale='unbiased')      # xc4b for tests on 22/10/2019
+#                     xc = xcorr((rebinned_f0[fib,:] - 1.)*rebinned_blaze[fib,:]*taper_func, (rebinned_f[fib,:] - 1.)*rebinned_blaze[fib,:]*taper_func, scale='unbiased')      # xc8 for tests on 22/10/2019
+#                     xc = xcorr((rebinned_f0[fib,:] - 1.)*rebinned_blaze[fib,:]*taper_func, (rebinned_f[fib,:] - 1.)*taper_func, scale='unbiased')      # xc7 for tests on 22/10/2019
 #                     xc = xcorr(((rebinned_f0[fib,:]/np.max(rebinned_f0[fib,:])) - 1.)*(rebinned_blaze[fib,:]/np.max(rebinned_blaze[fib,:])), (rebinned_f[fib,:]/np.max(rebinned_f[fib,:])) - 1., scale='unbiased')
 #                     xc = np.correlate(rebinned_f0[fib, :], rebinned_f[fib, :], mode='full')
+                    print('xc4b')
+                    f0_in = (rebinned_f0[fib,:] - 1.)*taper_func
+                    f_in = (rebinned_f[fib,:] - 1.)*taper_func
+                    f0_in -= np.mean(f0_in)
+                    f_in -= np.mean(f_in)
+                    xc = xcorr(f0_in, f_in, scale='unbiased')
                 else:
                     xc = xcorr(rebinned_f[fib,:] - 1., (rebinned_f0[fib,:] - 1.)*rebinned_blaze[fib,:], scale='unbiased')
 #                     xc = xcorr((rebinned_f[fib,:]/np.max(rebinned_f[fib,:])) - 1., ((rebinned_f0[fib,:]/np.max(rebinned_f0[fib,:])) - 1.)*(rebinned_blaze[fib,:]/np.max(rebinned_blaze[fib,:])), scale='unbiased')
@@ -815,9 +878,33 @@ def make_ccfs(f, wl, f0, wl0, bc=0., bc0=0., smoothed_flat=None, delta_log_wl=1e
             if blaze_provided:
                 rebinned_blaze /= np.nanmax(rebinned_blaze)           
             
+            if taper:
+                assert (taper_width >= 0.001) & (taper_width <=0.5), 'ERROR: taper_width must be within [0.001...0.5]' 
+                taper_range = int(np.ceil(len(rebinned_f0) * taper_width))
+                taper_start = np.linspace(-np.pi, 0, taper_range)
+                taper_end = np.linspace(0, np.pi, taper_range)
+                taper_func = np.ones(len(rebinned_f0))
+                taper_func[:taper_range] = (np.cos(taper_start) / 2.) + 0.5
+                taper_func[-taper_range:] = (np.cos(taper_end) / 2.) + 0.5
+                
             if not flipped:
-                xc = xcorr((rebinned_f0 - 1.)*rebinned_blaze, rebinned_f - 1., scale='unbiased')
-#                 xc = np.correlate(rebinned_f0, rebinned_f, mode='full')
+#                 xc = xcorr((rebinned_f0 - 1.)*rebinned_blaze, rebinned_f - 1., scale='unbiased')                                # xc0 for tests on 22/10/2019
+#                 xc = xcorr((rebinned_f0 - 1.), rebinned_f - 1., scale='unbiased')                                             # xc1 for tests on 22/10/2019
+#                 xc = xcorr(rebinned_f0, rebinned_f, scale='unbiased')                                                       # xc2 for tests on 22/10/2019
+#                 xc = xcorr((rebinned_f0 - 1.)*rebinned_blaze, (rebinned_f - 1.)*rebinned_blaze, scale='unbiased')             # xc3 for tests on 22/10/2019
+#                 xc = xcorr((rebinned_f0 - 1.)*taper_func+1., (rebinned_f - 1.)*taper_func+1., scale='unbiased')                   # xc4a for tests on 22/10/2019
+#                 xc = xcorr((rebinned_f0 - 1.)*taper_func, (rebinned_f - 1.)*taper_func, scale='unbiased')                         # xc4b for tests on 22/10/2019
+#                 xc = xcorr((rebinned_f0 - 1.)*rebinned_blaze + 1, rebinned_f, scale='unbiased')                               # xc5 for tests on 22/10/2019
+#                 xc = xcorr((rebinned_f0 - 1.)*rebinned_blaze + 1, (rebinned_f - 1.)*rebinned_blaze + 1, scale='unbiased')     # xc6 for tests on 22/10/2019
+#                 xc = xcorr((rebinned_f0 - 1.)*rebinned_blaze*taper_func, (rebinned_f - 1.)*taper_func, scale='unbiased')      # xc7 for tests on 22/10/2019
+#                 xc = xcorr((rebinned_f0 - 1.)*rebinned_blaze*taper_func, (rebinned_f - 1.)*rebinned_blaze*taper_func, scale='unbiased')      # xc8 for tests on 22/10/2019
+#                 xc = xcorr((rebinned_f0 - 1.)*rebinned_blaze*taper_func, (rebinned_f - 1.)*rebinned_blaze*taper_func, scale='unbiased')      # xc9 for tests on 22/10/2019
+                print('xc4b')
+                f0_in = (rebinned_f0 - 1.)*taper_func
+                f_in = (rebinned_f - 1.)*taper_func
+                f0_in -= np.mean(f0_in)
+                f_in -= np.mean(f_in)
+                xc = xcorr(f0_in, f_in, scale='unbiased')
             else:
                 xc = xcorr(rebinned_f - 1., (rebinned_f0 - 1.)*rebinned_blaze, scale='unbiased')
 #                 xc = np.correlate(rebinned_f, rebinned_f0, mode='full')

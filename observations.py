@@ -490,10 +490,11 @@ class star(object):
 def update_redobs(starname, starpath=None, pattern=None, overwrite=False):
     
     redpath = '/Volumes/BERGRAID/data/veloce/reduced/'
+    working_redpath = '/Volumes/WORKING/data/veloce/reduced/'
     
     # create target directory if not provided
     if starpath is None:
-        starpath = redpath + starname + '/'
+        starpath = working_redpath + starname + '/'
     lfc_path = starpath + 'with_lfc/'
     thxe_path = starpath + 'with_thxe/'
     neither_path = starpath + 'neither/'
@@ -573,8 +574,10 @@ def update_redobs(starname, starpath=None, pattern=None, overwrite=False):
 
 
 
-
-
+update_redobs('TOI375')
+update_redobs('TOI274')
+update_redobs('GJ674', pattern='674')
+update_redobs('HD212301')
 
 
 

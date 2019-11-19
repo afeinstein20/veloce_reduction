@@ -1,11 +1,12 @@
 import glob
+import os
 import time
 import numpy as np
 import astropy.io.fits as pyfits
 import matplotlib.pyplot as plt
 from readcol import readcol
 
-from veloce_reduction.veloce_reduction.wavelength_solution import get_dispsol_for_all_fibs, get_dispsol_for_all_fibs_2
+from veloce_reduction.veloce_reduction.wavelength_solution import get_dispsol_for_all_fibs, get_dispsol_for_all_fibs_2, get_dispsol_for_all_fibs_3
 from veloce_reduction.veloce_reduction.get_radial_velocity import get_RV_from_xcorr, get_RV_from_xcorr_2, make_ccfs, \
     old_make_ccfs
 from veloce_reduction.veloce_reduction.helper_functions import get_snr, short_filenames, wm_and_wsv
@@ -14,15 +15,20 @@ from veloce_reduction.veloce_reduction.barycentric_correction import get_barycen
 from veloce_reduction.veloce_reduction.cosmic_ray_removal import onedim_medfilt_cosmic_ray_removal
 
 ########################################################################################################################
+
+starname = 'delpav'   # 'tauceti', 'delpav', 'GJXXX', TOIXXX', 'HDXXX'
+
 # HOUSEKEEPING
-# path = '/Users/christoph/data/reduced/tauceti/tauceti_with_LFC/'
-path = '/Volumes/BERGRAID/data/veloce/reduced/tauceti/tauceti_with_LFC/'
-# path = '/Volumes/BERGRAID/data/veloce/reduced/TOI375/with_lfc/'
-# path = '/Volumes/BERGRAID/data/veloce/reduced/delpav/with_lfc/'
-# path = '/Volumes/BERGRAID/data/veloce/reduced/GJ674/with_lfc/'
+if starname.lower() == 'tauceti':
+    path = '/Volumes/WORKING/data/veloce/reduced/tauceti/tauceti_with_LFC/'
+else:
+    path = '/Volumes/WORKING/data/veloce/reduced/' + starname + '/with_lfc/'
+
 
 file_list = glob.glob(path + '*optimal3a_extracted.fits')
-wl_list = glob.glob(path + '*wl*')
+file_list.sort()  # this is not a proper sort, but see two lines below
+wl_list = glob.glob(path + '*wl.fits*')
+wl_list.sort()   # this is not a proper sort, but consistent with file_list; proper sort is done below
 assert len(file_list) == len(wl_list), 'ERROR: number of wl-solution files does not match the number of reduced spectra!!!'
 
 obsname_list = [fn.split('_')[-3] for fn in file_list]
@@ -47,7 +53,7 @@ unique_dates = set(all_dates)
 ########################################################################################################################
 ########################################################################################################################
 
-all_snr = readcol(path + 'tauceti_all_snr.dat', twod=False)[0]
+all_snr = readcol(path + starname + '_all_snr.dat', twod=False)[0]
 
 # # get mean SNR per collapsed pixel
 # all_snr = []
@@ -108,7 +114,7 @@ norm_relints = np.load(path + 'norm_relints.npy')   # sum = 1
 # calculating the CCFs for one order / 11 orders
 # (either with or without the LFC shifts applied, comment out the 'wl' and 'wl0' you don't want)
 
-vers = 'v2d'
+# vers = 'v2d'
 
 all_xc = []
 all_rv = np.zeros((len(files), 19))
@@ -117,8 +123,9 @@ all_rv = np.zeros((len(files), 19))
 all_sumrv = []
 # all_sumrv = np.zeros(len(files))
 # all_sumrv_2 = np.zeros(len(files))
-# xcsums = np.zeros((len(files), 301))
-xcsums = np.zeros((len(files), 19, 301))
+xcsums = np.zeros((len(files), 301))
+# xcsums = np.zeros((len(files), 19, 301))
+# xcsums = np.zeros((len(files), 38, 301))
 
 # TEMPLATE:
 # # tau Ceti
@@ -144,7 +151,7 @@ smoothed_flat, pix_sens = onedim_pixtopix_variations(mw_flux, filt='gaussian', f
 f0_clean = pyfits.getdata(path + '190248_' + obsname_0 + '_optimal3a_extracted_cleaned.fits')
 
 # f0_clean = f0.copy()
-# # loop over orders
+# loop over orders
 # for o in range(f0.shape[0]):
 #     print('Order ', o + 1)
 #     # loop over fibres (but exclude the simThXe and LFC fibres for obvious reasons!!!)
@@ -175,27 +182,11 @@ f0_dblz, err0_dblz = deblaze_orders(f0_clean, mw_flux, mask=maskdict, err=err0, 
 # loop over all observations
 for i,filename in enumerate(files):
     print('Processing RV for observation ' + str(i + 1) + '/' + str(len(files)))
-#     # get obsname and date
-#     obsname = all_obsnames[i]
+    # get obsname and date
     obsname = filename.split('_')[-3]
     utdate = pyfits.getval(filename, 'UTDATE')
     date = utdate[:4] + utdate[5:7] + utdate[8:]
-#     dum = filename.split('/')
-#     dum2 = dum[-1].split('.')
-#     dum3 = dum2[0].split('_')
-#     obsname = dum3[1]
-#     day = obsname[:2]
-#     mon = obsname[2:5]
-#     if mon == 'jan':
-#         year = '2019'
-#         mondig = '01'
-#     elif mon == 'sep':
-#         year = '2018'
-#         mondig = '09'
-#     elif mon == 'nov':
-#         year = '2018'
-#         mondig = '11'
-#     date = year + mondig + day
+
     # read in spectrum
 #     f = pyfits.getdata(filename, 0)
     err = pyfits.getdata(filename, 1)
@@ -212,11 +203,11 @@ for i,filename in enumerate(files):
     #     wl = pyfits.getdata('/Users/christoph/OneDrive - UNSW/dispsol/individual_fibres_dispsol_poly7_21sep30019.fits')
     #     wldict,wl = get_dispsol_for_all_fibs(obsname, date=date, fibs='stellar', refit=False, fibtofib=True, nightly_coeffs=True)
 #     wldict, wl = get_dispsol_for_all_fibs_2(obsname, refit=True, eps=2)
-    f_dblz, err_dblz = deblaze_orders(f_clean, mw_flux, mask=maskdict, err=err, combine_fibres=True, degpol=5, gauss_filter_sigma=3., maxfilter_size=100)
+#     f_dblz, err_dblz = deblaze_orders(f_clean, mw_flux, mask=maskdict, err=err, combine_fibres=True, degpol=5, gauss_filter_sigma=3., maxfilter_size=100)
     #     all_xc.append(old_make_ccfs(f, wl, f0, wl0, bc=all_bc[i], bc0=all_bc[6], mask=None, smoothed_flat=None, delta_log_wl=1e-6, relgrid=False,
     #                             flipped=False, individual_fibres=False, debug_level=1, timit=False))
     #     rv,rverr,xcsum = get_RV_from_xcorr_2(f, wl, f0, wl0, bc=all_bc[i], bc0=all_bc[6], individual_fibres=True, individual_orders=True, old_ccf=True, debug_level=1)
-    sumrv, sumrverr, xcsum = get_RV_from_xcorr_2(f_dblz, wl, f0_dblz, wl0, bc=bc, bc0=bc0, smoothed_flat=None, fitrange=35, individual_fibres=False,
+    sumrv, sumrverr, xcsum = get_RV_from_xcorr_2(f_clean, wl, f0_clean, wl0, bc=bc, bc0=bc0, smoothed_flat=smoothed_flat, fitrange=35, individual_fibres=False,
                                                  individual_orders=False, deg_interp=1, norm_cont=True, fit_slope=True, old_ccf=False, debug_level=1)
     #     sumrv,sumrverr,xcsum = get_RV_from_xcorr_2(f_dblz, wl, f0_dblz, wl0, bc=all_bc[i], bc0=all_bc[6], individual_fibres=False, individual_orders=False, old_ccf=True, debug_level=1)
     #     all_rv[i,:,:] = rv
@@ -273,9 +264,269 @@ plt.xlabel('JD - 2458000.0')
 
 
 
+########################################################################################################################
+########################################################################################################################
+########################################################################################################################
+
+# CROSS-CORRELATION TESTS NOVEMBER 2019
 
 
+# testing if I can recover correct RV shifts using real data and different CCFs (should also try different SNRs)
 
+path = '/Volumes/WORKING/data/veloce/reduced/delpav/with_lfc/'
+date = '20190518'
+
+f = pyfits.getdata(path + '190248_18may30144_optimal3a_extracted_cleaned.fits')
+err = pyfits.getdata(path + '190248_18may30144_optimal3a_extracted_cleaned.fits', 1)
+wl = pyfits.getdata(path + '190248_18may30144_vac_wl.fits')
+wl_lfc = pyfits.getdata(path + '190248_18may30144_vac_lfc_wl.fits')
+bc = pyfits.getval(path + '190248_18may30144_optimal3a_extracted.fits', 'BARYCORR')
+
+maskdict = np.load('/Volumes/BERGRAID/data/veloce/reduced/' + date + '/mask.npy').item()
+mw_flux = pyfits.getdata('/Volumes/BERGRAID/data/veloce/reduced/' + date + '/master_white_optimal3a_extracted.fits')
+smoothed_flat, pix_sens = onedim_pixtopix_variations(mw_flux, filt='gaussian', filter_width=25)
+
+# shifts = [0, 10, 100, 1000, 10000]   # positive = REDshift
+shifts = np.linspace(-30e3,30e3,720)
+shifts_fine = np.arange(300)
+shifts = np.arange(-300,301,10)
+
+all_xc = []
+all_xc2 = []
+all_sumrv = []
+all_sumrv2 = []
+all_sumrv3 = []
+all_sumrv4 = []
+xcsums = np.zeros((len(shifts), 301))
+xcsums2 = np.zeros((len(shifts), 301))
+xcsums3 = np.zeros((len(shifts), 301))
+xcsums4 = np.zeros((len(shifts), 301))
+# xcsums = np.zeros((len(shifts), 19, 301))
+# xcsums2 = np.zeros((len(shifts), 19, 301))
+
+# speed of light in m/s
+c = 2.99792458e8
+
+for i,shift in enumerate(shifts):
+    print('Running test observation ' + str(i+1) + '/' + str(len(shifts)) + '...')
+#     wl_shifted = wl * np.sqrt((1 + shift / c) / (1 - shift / c)) 
+    wl_shifted = wl * np.sqrt((1 - shift / c) / (1 + shift / c)) 
+#     all_xc.append(make_ccfs(f, wl, f, wl_shifted, bc=shift, bc0=0, smoothed_flat=smoothed_flat, deg_interp=3, individual_fibres=True, norm_cont=True, debug_level=1))
+    sumrv, sumrverr, xcsum = get_RV_from_xcorr_2(f, wl_shifted, f, wl, bc=0, bc0=0, smoothed_flat=smoothed_flat, fitrange=35, individual_fibres=True,
+                                                 individual_orders=False, scrunch=False, deg_interp=3, norm_cont=True, fit_slope=False, old_ccf=False, debug_level=1)
+    all_sumrv.append(sumrv)
+    xcsums[i, :] = xcsum
+#     wl_lfc_shifted = wl_lfc * np.sqrt((1 + shift / c) / (1 - shift / c)) 
+    wl_lfc_shifted = wl_lfc * np.sqrt((1 - shift / c) / (1 + shift / c)) 
+    sumrv2, sumrverr2, xcsum2 = get_RV_from_xcorr_2(f, wl_lfc_shifted, f, wl_lfc, bc=0, bc0=0, smoothed_flat=smoothed_flat, fitrange=35, individual_fibres=True,
+                                                    individual_orders=False, scrunch=False, deg_interp=3, norm_cont=True, fit_slope=False, old_ccf=False, debug_level=1)
+    all_sumrv2.append(sumrv2)
+    xcsums2[i, :] = xcsum2
+#     all_xc2.append(make_ccfs(f, wl, f, wl_shifted, bc=shift, bc0=0, smoothed_flat=smoothed_flat, deg_interp=3, individual_fibres=True, norm_cont=False, debug_level=1))
+#     sumrv3, sumrverr3, xcsum3 = get_RV_from_xcorr_2(f, wl, f, wl_shifted, bc=shift, bc0=0, smoothed_flat=smoothed_flat, fitrange=35, individual_fibres=False,
+#                                                  individual_orders=False, deg_interp=3, norm_cont=False, fit_slope=True, old_ccf=False, debug_level=1)
+#     all_sumrv3.append(sumrv3)
+#     xcsums3[i, :] = xcsum3
+#     sumrv4, sumrverr4, xcsum4 = get_RV_from_xcorr_2(f, wl, f, wl_shifted, bc=shift, bc0=0, smoothed_flat=smoothed_flat, fitrange=35, individual_fibres=False,
+#                                                     individual_orders=False, deg_interp=3, norm_cont=False, fit_slope=False, old_ccf=False, debug_level=1)
+#     all_sumrv4.append(sumrv4)
+#     xcsums4[i, :] = xcsum4
+
+plt.plot(shifts, np.squeeze(all_sumrv) - shifts, 'x')
+plt.xlabel('input RV [m/s]')
+plt.ylabel('output RV - input RV [m/s]')
+plt.title('v4b')
+plt.axvline(0, color='gray', linestyle=':')
+plt.savefig(path + 'xc_tests/v4b_order_06.eps')
+
+plt.xlim(-350,350)
+plt.ylim(-2.,2.)
+plt.savefig(path + 'xc_tests/v4b_order_06_zoom.eps')
+
+# diffs = np.squeeze(all_sumrv) - shifts
+# diffs2 = np.squeeze(all_sumrv2) - shifts
+# diffs3 = np.squeeze(all_sumrv3) - shifts_fine
+# 
+# print(np.std(diffs), diffs[0])
+# print(np.std(diffs2), diffs2[0])
+# print(np.std(diffs3), diffs3[0])
+#     
+# plt.plot(diffs, 'x-')
+# plt.plot(diffs2, 'x-')
+# plt.plot(diffs3, 'x-')
+    
+    
+
+# going back one level and testing things on one 1-D spectrum only 
+# (either Veloce, or synthetic spectrum (which is thus known to have perfectly flat continuum), or even single (perfect-Gaussian) absorption line     
+    
+    
+# make CCfs by shifting the continuum-normalized and rebinned_f0, to subsequently check if I can recover RVs for that
+# speed of light in m/s
+c = 2.99792458e8
+
+all_xc = []
+
+logwlgrid = np.load('/Volumes/WORKING/data/veloce/reduced/delpav/with_lfc/xc_tests/logwlgrid_o17.npy')
+# taper_func = np.load('/Volumes/WORKING/data/veloce/reduced/delpav/with_lfc/xc_tests/taper_func.npy')
+# the continuum-normalized and rebinned_f0
+# (1) using real Veloce data
+# rebinned_f0 = np.load('/Volumes/WORKING/data/veloce/reduced/delpav/with_lfc/xc_tests/rebinned_f0.npy')
+# (2) using a synthetic spectrum
+wl0, f0 = readcol('/Users/christoph/OneDrive - UNSW/synthetic_templates/' + 'synth_teff5250_logg45.txt', twod=False)
+# wl0 = pyfits.getdata('/Users/christoph/OneDrive - UNSW/synthetic_templates/phoenix/WAVE_PHOENIX-ACES-AGSS-COND-2011.fits')
+# f0 = pyfits.getdata('/Users/christoph/OneDrive - UNSW/synthetic_templates/phoenix/lte05400-4.50-0.0.PHOENIX-ACES-AGSS-COND-2011-HiRes.fits')
+logwlgrid = np.load('/Volumes/WORKING/data/veloce/reduced/delpav/with_lfc/xc_tests/logwlgrid_o36.npy')
+dum_spline_rep = interp.InterpolatedUnivariateSpline(np.log(wl0), f0, k=deg_interp)
+rebinned_f0 = dum_spline_rep(logwlgrid)
+# (3) using a single absorption line
+# test_f0 = np.ones(len(rebinned_f0)) - CMB_pure_gaussian(np.arange(len(rebinned_f0)), len(rebinned_f0)/2., 10, 0.5)
+# rebinned_f0 = test_f0.copy()
+
+taper_width = 0.05
+
+taper_range = int(np.ceil(len(rebinned_f0) * taper_width))
+taper_start = np.linspace(-np.pi, 0, taper_range)
+taper_end = np.linspace(0, np.pi, taper_range)
+taper_func = np.ones(len(rebinned_f0))
+taper_func[:taper_range] = (np.cos(taper_start) / 2.) + 0.5
+taper_func[-taper_range:] = (np.cos(taper_end) / 2.) + 0.5
+
+deg_interp = 3
+
+for i,shift in enumerate(shifts):
+    print('Running test observation ' + str(i+1) + '/' + str(len(shifts)) + '...')
+#     logwlgrid_shifted = logwlgrid + np.log(np.sqrt((1 + shift / c) / (1 - shift / c)))
+# flipped should be set to TRUE, but can't be bothered to fix that now
+    padded_logwlgrid = np.r_[np.arange(np.min(logwlgrid) - 151*delta_log_wl, np.min(logwlgrid) - 0.1*delta_log_wl, delta_log_wl), logwlgrid, 
+                             np.arange(np.max(logwlgrid) + delta_log_wl, np.max(logwlgrid) + 151*delta_log_wl, delta_log_wl)]
+    padded_rebinned_f0 = np.r_[np.ones(151), rebinned_f0, np.ones(151)]
+#     logwlgrid_shifted = logwlgrid - np.log(np.sqrt((1 + shift / c) / (1 - shift / c)))
+#     spline_rep = interp.InterpolatedUnivariateSpline(logwlgrid_shifted, rebinned_f0, k=deg_interp)
+    logwlgrid_shifted = padded_logwlgrid - np.log(np.sqrt((1 + shift / c) / (1 - shift / c)))
+    spline_rep = interp.InterpolatedUnivariateSpline(logwlgrid_shifted, padded_rebinned_f0, k=deg_interp)
+    rebreb_f0 = spline_rep(logwlgrid)
+#     rebreb_f0 = cmb_scrunch(logwlgrid, logwlgrid_shifted, padded_rebinned_f0)
+    f0_in = (rebinned_f0 - 1.)*taper_func
+    f_in = (rebreb_f0 - 1.)*taper_func
+    f0_in -= np.mean(f0_in)
+    f_in -= np.mean(f_in)
+    all_xc.append(xcorr(f0_in, f_in, scale='unbiased'))
+#     all_xc.append(xcorr(f0_in, f_in, scale='none'))
+#     all_xc.append(xcorr(f0_in, f_in, scale='biased'))
+#     all_xc.append(xcorr(f0_in, f_in, scale='unbiased'))
+#     all_xc.append(xcorr(f0_in, f_in, scale='coeff'))
+    
+    
+    
+# speed of light in m/s
+c = 2.99792458e8
+delta_log_wl = 1e-6
+fit_slope = False
+addrange = 300
+fitrange = 35
+    
+rv = np.zeros(len(shifts))
+rverr = np.zeros(len(shifts))
+fitparms = []
+
+# for i in range(61):
+for i in range(len(shifts)):
+    
+#     xc = xcsums[i,:]
+#     xc = cen_xcarr[i,:]
+    xc = all_xc[i]
+    xc_cen = xc[len(xc) // 2 - addrange: len(xc) // 2 + addrange + 1]
+    
+    # want to fit a symmetric region around the peak, not around the "centre" of the xc
+    
+    # find peaks (the highest of which we assume is the real one we want) in case the delta-rvabs is non-zero
+    peaks = np.r_[True, xc_cen[1:] > xc_cen[:-1]] & np.r_[xc_cen[:-1] > xc_cen[1:], True]
+    # filter out maxima too close to the edges to avoid problems
+    peaks[:5] = False
+    peaks[-5:] = False
+#     guessloc = np.argmax(xc*peaks)
+    guessloc = np.argmax(xc_cen*peaks) + len(xc) // 2 - addrange
+    if guessloc >= len(xc)//2:
+        xrange = np.arange(np.minimum(len(xc) - 2*fitrange-1, guessloc - fitrange), np.minimum(guessloc + fitrange + 1, len(xc)), 1)
+    else:
+        xrange = np.arange(np.maximum(0, guessloc - fitrange), np.maximum(guessloc + fitrange + 1, 2*fitrange+1), 1)
+    #             xrange = np.arange(guessloc - fitrange, guessloc + fitrange + 1, 1)
+    #           xrange = np.arange(np.argmax(xc) - fitrange, np.argmax(xc) + fitrange + 1, 1)
+    
+    # make sure we have a dynamic range
+    if debug_level >= 3:
+        print(xrange)
+    xc -= np.min(xc[xrange])
+#   or???  xc -= np.min(xc) # doesn't make a difference at all if we are fitting an offset anyway
+    # "normalize" it
+    xc /= np.max(xc)
+    xc *= 0.9
+    xc += 0.1
+    
+#     plt.plot(xc)
+    
+#     # parameters: mu, sigma, amp, beta
+#     guess = np.array([guessloc, fitrange//3, 0.9, 2.])
+#     print('slope = FALSE')
+#     print('offset = FALSE')
+#     try:
+#         # subtract the minimum of the fitrange so as to have a "dynamic range"
+#         popt, pcov = op.curve_fit(fibmodel_with_amp, xrange, xc[xrange], p0=guess, maxfev=1000000)
+#         mu = popt[0]
+#         mu_err = np.sqrt(pcov[0, 0])
+#         if debug_level >= 1:
+#             print('Fit successful...')
+#     except:
+#         popt, pcov = (np.nan, np.nan)
+#         mu = np.nan
+#         mu_err = np.nan
+    
+    if fit_slope:
+        print('slope = TRUE')
+        print('offset = TRUE')
+        # parameters: mu, sigma, amp, beta, offset, slope
+        guess = np.array([guessloc, fitrange//3, 0.9, 2., np.min(xc[xrange]), 0.])
+         
+        try:
+            # subtract the minimum of the fitrange so as to have a "dynamic range"
+            popt, pcov = op.curve_fit(gausslike_with_amp_and_offset_and_slope, xrange, xc[xrange], p0=guess, maxfev=1000000)
+            mu = popt[0]
+            mu_err = np.sqrt(pcov[0, 0])
+            if debug_level >= 1:
+                print('Fit successful...')
+        except:
+            popt, pcov = (np.nan, np.nan)
+            mu = np.nan
+            mu_err = np.nan
+    else:
+        print('slope = FALSE')
+        print('offset = TRUE')
+        # parameters: mu, sigma, amp, beta, offset
+        guess = np.array([guessloc, fitrange//3, 0.9, 2., np.min(xc[xrange])])
+     
+        try:
+            # subtract the minimum of the fitrange so as to have a "dynamic range"
+            popt, pcov = op.curve_fit(gausslike_with_amp_and_offset, xrange, xc[xrange], p0=guess, maxfev=1000000)
+            mu = popt[0]
+            mu_err = np.sqrt(pcov[0, 0])
+            if debug_level >= 1:
+                print('Fit successful...')
+        except:
+            popt, pcov = (np.nan, np.nan)
+            mu = np.nan
+            mu_err = np.nan
+    
+    # convert to RV in m/s
+    rv[i] = c * (mu - (len(xc) // 2)) * delta_log_wl
+    rverr[i] = c * mu_err * delta_log_wl
+    fitparms.append(popt)
+    
+    
+mu_list = [fp[0] for fp in fitparms]
+phi = [mu - np.floor(mu) for mu in mu_list]
+plt.plot(phi, rv-shifts,'rx', label='linear interp.')
+plt.plot(phi, rv-shifts,'b+', label='cubic spline interp.')
 
 
 

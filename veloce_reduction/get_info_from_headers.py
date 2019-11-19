@@ -197,7 +197,7 @@ def get_obstype_lists(path, pattern=None, weeding=True, quick=False):
                 elif thxe:
                     simth_only_list.append(file)
     else:
-        # since May 2019 the header keywords are correct, so check for LFC / ThXe in header, as that is MUCH faster    
+        # since May 2019 the header keywords are (mostly) correct, so could check for LFC / ThXe in header, as that is MUCH faster    
         for file in calib_list:
             lc = 0
             thxe = 0

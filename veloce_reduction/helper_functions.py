@@ -5,6 +5,7 @@ Created on 11 Aug. 2017
 """
 
 import astropy.io.fits as pyfits
+import matplotlib.pyplot as plt
 import os
 import glob
 import numpy as np
@@ -1282,7 +1283,7 @@ def wm_and_wsv(values, weights):
 
 
 
-def xcorr(x, y, scale='none'):
+def xcorr(x, y, xerr=None, yerr=None, scale='none'):
     # Pad shorter array if signals are different lengths
     if x.size > y.size:
         pad_amount = x.size - y.size
@@ -1304,6 +1305,50 @@ def xcorr(x, y, scale='none'):
     return corr
 
 
+def cmb_ccf(x, y, xerr=None, yerr=None, scale='none'):
+    
+    """ INCOMPLETE!!!"""
+    
+#     # Pad shorter array if signals are different lengths
+#     if x.size > y.size:
+#         pad_amount = x.size - y.size
+#         y = np.append(y, np.repeat(0, pad_amount))
+#     elif y.size > x.size:
+#         pad_amount = y.size - x.size
+#         x = np.append(x, np.repeat(0, pad_amount))
+
+    x_padded = np.r_[np.zeros(len(x)-1), x, np.zeros(len(x)-1)]
+#     y_padded = np.r_[np.zeros(len(y)-1), y, np.zeros(len(y)-1)]
+    if (xerr is not None) and (yerr is not None):
+        assert len(x) == len(xerr), 'ERROR: x and xerr are not the same size!!!'
+        assert len(y) == len(yerr), 'ERROR: y and yerr are not the same size!!!'
+        xerr_padded = np.r_[np.zeros(len(x)-1), xerr, np.zeros(len(x)-1)]
+        yerr_padded = np.r_[np.zeros(len(y)-1), yerr, np.zeros(len(y)-1)]
+    
+    # calculate discrete CCF
+    ccf = np.zeros(len(x) + len(y) - 1)
+    for k in range(len(ccf)):
+#         ccf[k] = 0
+        for i in range(len(x)):
+            ccf[k] += y[i] * x_padded[i+k]
+
+    # calculate errors in discrete CCF via naive error propagation
+    ccf_var = np.zeros(len(x) + len(y) - 1)
+    for k in range(len(ccf_var)):
+        for i in range(len(x)):
+            ccf_var[k] += y[i] * y[i] * x_padded[i+k] * x_padded[i+k] * ( (yerr[i]/y[i])**2 + (xerr_padded[i+k]/x_padded[i+k])**2 )
+    ccf_err = np.sqrt(ccf_var)
+
+    if scale == 'biased':
+        ccf = ccf / x.size
+    elif scale == 'unbiased':
+        lags = np.arange(-(x.size - 1), x.size)
+        ccf /= (x.size - abs(lags))
+    elif scale == 'coeff':
+        ccf /= np.sqrt(np.dot(x, x) * np.dot(y, y))
+
+    return ccf
+
 
 def jdnow():
     """get current JD"""
@@ -1324,6 +1369,337 @@ def thxe_on(img, chipmask, thresh=1000, count=1500):
     n_high = np.sum(img[chipmask['thxe']] > thresh)
     ison = n_high >= count
     return ison
+
+
+
+def spectres(new_spec_wavs, old_spec_wavs, spec_fluxes, spec_errs=None):
+
+    """
+    Function for resampling spectra (and optionally associated
+    uncertainties) onto a new wavelength basis.
+
+    from Adam Carnall;   https://arxiv.org/abs/1705.05165
+
+    Parameters
+    ----------
+
+    new_spec_wavs : numpy.ndarray
+        Array containing the new wavelength sampling desired for the
+        spectrum or spectra.
+
+    old_spec_wavs : numpy.ndarray
+        1D array containing the current wavelength sampling of the
+        spectrum or spectra.
+
+    spec_fluxes : numpy.ndarray
+        Array containing spectral fluxes at the wavelengths specified in
+        old_spec_wavs, last dimension must correspond to the shape of
+        old_spec_wavs. Extra dimensions before this may be used to
+        include multiple spectra.
+
+    spec_errs : numpy.ndarray (optional)
+        Array of the same shape as spec_fluxes containing uncertainties
+        associated with each spectral flux value.
+
+    Returns
+    -------
+
+    res_fluxes : numpy.ndarray
+        Array of resampled flux values, first dimension is the same
+        length as new_spec_wavs, other dimensions are the same as
+        spec_fluxes.
+
+    resampled_errs : numpy.ndarray
+        Array of uncertainties associated with fluxes in
+        res_fluxes. Only returned if spec_errs was specified.
+    """
+
+    # Arrays of left-hand sides and widths for the old and new bins
+    spec_lhs = np.zeros(old_spec_wavs.shape[0])
+    spec_widths = np.zeros(old_spec_wavs.shape[0])
+    spec_lhs = np.zeros(old_spec_wavs.shape[0])
+    spec_lhs[0] = old_spec_wavs[0]
+    spec_lhs[0] -= (old_spec_wavs[1] - old_spec_wavs[0])/2
+    spec_widths[-1] = (old_spec_wavs[-1] - old_spec_wavs[-2])
+    spec_lhs[1:] = (old_spec_wavs[1:] + old_spec_wavs[:-1])/2
+    spec_widths[:-1] = spec_lhs[1:] - spec_lhs[:-1]
+
+    filter_lhs = np.zeros(new_spec_wavs.shape[0]+1)
+    filter_widths = np.zeros(new_spec_wavs.shape[0])
+    filter_lhs[0] = new_spec_wavs[0]
+    filter_lhs[0] -= (new_spec_wavs[1] - new_spec_wavs[0])/2
+    filter_widths[-1] = (new_spec_wavs[-1] - new_spec_wavs[-2])
+    filter_lhs[-1] = new_spec_wavs[-1]
+    filter_lhs[-1] += (new_spec_wavs[-1] - new_spec_wavs[-2])/2
+    filter_lhs[1:-1] = (new_spec_wavs[1:] + new_spec_wavs[:-1])/2
+    filter_widths[:-1] = filter_lhs[1:-1] - filter_lhs[:-2]
+
+    if filter_lhs[0] < spec_lhs[0] or filter_lhs[-1] > spec_lhs[-1]:
+        raise ValueError("spectres: The new wavelengths specified must fall"
+                         "within the range of the old wavelength values.")
+
+    # Generate output arrays to be populated
+    res_fluxes = np.zeros(spec_fluxes[..., 0].shape + new_spec_wavs.shape)
+
+    if spec_errs is not None:
+        if spec_errs.shape != spec_fluxes.shape:
+            raise ValueError("If specified, spec_errs must be the same shape"
+                             "as spec_fluxes.")
+        else:
+            res_fluxerrs = np.copy(res_fluxes)
+
+    start = 0
+    stop = 0
+
+    # Calculate new flux and uncertainty values, loop over new bins
+    for j in range(new_spec_wavs.shape[0]):
+
+        # Find first old bin which is partially covered by the new bin
+        while spec_lhs[start+1] <= filter_lhs[j]:
+            start += 1
+
+        # Find last old bin which is partially covered by the new bin
+        while spec_lhs[stop+1] < filter_lhs[j+1]:
+            stop += 1
+
+        # If new bin is fully within one old bin these are the same
+        if stop == start:
+
+            res_fluxes[..., j] = spec_fluxes[..., start]
+            if spec_errs is not None:
+                res_fluxerrs[..., j] = spec_errs[..., start]
+
+        # Otherwise multiply the first and last old bin widths by P_ij
+        else:
+
+            start_factor = ((spec_lhs[start+1] - filter_lhs[j])
+                            / (spec_lhs[start+1] - spec_lhs[start]))
+
+            end_factor = ((filter_lhs[j+1] - spec_lhs[stop])
+                          / (spec_lhs[stop+1] - spec_lhs[stop]))
+
+            spec_widths[start] *= start_factor
+            spec_widths[stop] *= end_factor
+
+            # Populate res_fluxes spectrum and uncertainty arrays
+            f_widths = spec_widths[start:stop+1]*spec_fluxes[..., start:stop+1]
+            res_fluxes[..., j] = np.sum(f_widths, axis=-1)
+            res_fluxes[..., j] /= np.sum(spec_widths[start:stop+1])
+
+            if spec_errs is not None:
+                e_wid = spec_widths[start:stop+1]*spec_errs[..., start:stop+1]
+
+                res_fluxerrs[..., j] = np.sqrt(np.sum(e_wid**2, axis=-1))
+                res_fluxerrs[..., j] /= np.sum(spec_widths[start:stop+1])
+
+            # Put back the old bin widths to their initial values for later use
+            spec_widths[start] /= start_factor
+            spec_widths[stop] /= end_factor
+
+    # If errors were supplied return the res_fluxes spectrum and error arrays
+    if spec_errs is not None:
+        return res_fluxes, res_fluxerrs
+
+    # Otherwise just return the res_fluxes spectrum array
+    else:
+        return res_fluxes
+
+
+
+def cmb_scrunch(new_wls, old_wls, f, conserve_flux=True, err=None):
+
+    """
+    Function for resampling spectra (and optionally associated
+    uncertainties) onto a new wavelength basis.
+
+    concoction of 
+    SpectRes (from Adam Carnall;   https://arxiv.org/abs/1705.05165)
+    and
+    Figaro FIG_FREBIN
+    
+    Parameters
+    ----------
+
+    new_wls : numpy.ndarray
+        Array containing the new wavelength sampling desired for the
+        spectrum or spectra.
+
+    old_wls : numpy.ndarray
+        1D array containing the current wavelength sampling of the
+        spectrum or spectra.
+
+    f : numpy.ndarray
+        Array containing spectral fluxes at the wavelengths specified in
+        old_wls, last dimension must correspond to the shape of
+        old_wls. Extra dimensions before this may be used to
+        include multiple spectra.
+
+    err : numpy.ndarray (optional)
+        Array of the same shape as f containing uncertainties
+        associated with each spectral flux value.
+
+    Returns
+    -------
+
+    res_f : numpy.ndarray
+        Array of resampled flux values, first dimension is the same
+        length as new_spec_wavs, other dimensions are the same as
+        spec_fluxes.
+
+    res_err : numpy.ndarray
+        Array of uncertainties associated with fluxes in
+        res_fluxes. Only returned if spec_errs was specified.
+    """
+
+    # make sure wls are increasing
+    assert np.sum(np.diff(old_wls) < 0) == 0, 'ERROR: old wavelength array must be increasing'
+    assert np.sum(np.diff(new_wls) < 0) == 0, 'ERROR: new wavelength array must be increasing'
+
+    # arrays of left-hand sides and widths for the old and new bins
+    old_lhs = np.zeros(old_wls.shape[0])
+    old_widths = np.zeros(old_wls.shape[0])
+    old_lhs[0] = old_wls[0] - (old_wls[1] - old_wls[0])/2.
+    old_lhs[1:] = (old_wls[1:] + old_wls[:-1])/2
+    old_widths[-1] = (old_wls[-1] - old_wls[-2])
+    old_widths[:-1] = old_lhs[1:] - old_lhs[:-1]
+    old_rhs = old_lhs + old_widths
+
+#     new_lhs = np.zeros(new_wls.shape[0] + 1)   # why the plus 1 ?????
+    new_lhs = np.zeros(new_wls.shape[0])   # why the plus 1 ?????
+    new_widths = np.zeros(new_wls.shape[0])
+    new_lhs[0] = new_wls[0] - (new_wls[1] - new_wls[0])/2.
+#     new_lhs[-1] = new_wls[-1] + (new_wls[-1] - new_wls[-2])/2.   # WHY???
+#     new_lhs[1:-1] = (new_wls[1:] + new_wls[:-1])/2
+    new_lhs[1:] = (new_wls[1:] + new_wls[:-1])/2
+    new_widths[-1] = (new_wls[-1] - new_wls[-2])
+#     new_widths[:-1] = new_lhs[1:-1] - new_lhs[:-2]
+    new_widths[:-1] = new_lhs[1:] - new_lhs[:-1]
+    new_rhs = new_lhs + new_widths
+
+
+    if (new_lhs[0] < old_lhs[0]) or (new_lhs[-1] + new_widths[-1] > old_lhs[-1] + old_widths[-1]):
+        raise ValueError("ERROR: The new wavelengths specified must fall"
+                         "within the range of the old wavelength values.")
+
+    # generate output arrays to be populated
+    res_f = np.zeros(f[..., 0].shape + new_wls.shape)
+
+    if err is not None:
+        if err.shape != f.shape:
+            raise ValueError("If specified, err-array must be the same shape as flux-array!!!")
+        else:
+            res_err = np.copy(res_f)
+
+    
+    # calculate new flux and uncertainty values, loop over NEW bins
+    for i in range(new_wls.shape[0]):
+
+        # find first old bin which partially covers the new bin
+        old_ix_start = np.argmax(old_lhs[old_lhs < new_lhs[i]])    
+
+        # find last old bin which is partially covered by the new bin
+        old_ix_stop = np.argwhere(old_rhs > new_rhs[i])[0][0] 
+        
+        # if new bin is fully within one old bin (that must mean the new bins are smaller than the old bins)
+        if old_ix_start == old_ix_stop:
+
+            # get the fraction of the old bin that the new bin covers
+            if conserve_flux:
+                frac = (new_rhs[i] - new_lhs[i]) / (old_rhs[old_ix_start] - old_lhs[old_ix_start]) 
+            else:
+                frac = 1
+            # fill flux and error for new bin
+            res_f[..., i] = f[..., old_ix_start] * frac
+            if err is not None:
+                res_err[..., i] = err[..., old_ix_start] * frac
+                
+        # otherwise multiply the first and last old bin widths by their respective overlap fraction (and count others in full in case the new bins are larger than the old bins)
+        else:
+
+            frac_start = (old_rhs[old_ix_start] - new_lhs[i]) / (old_rhs[old_ix_start] - old_lhs[old_ix_start]) 
+            frac_stop = (new_rhs[i] - old_lhs[old_ix_stop]) / (old_rhs[old_ix_stop] - old_lhs[old_ix_stop]) 
+
+            fracs = np.ones(old_ix_stop - old_ix_start + 1)
+            fracs[0] = frac_start
+            fracs[-1] = frac_stop
+            
+#             start_factor = ((spec_lhs[start+1] - filter_lhs[j]) / (spec_lhs[start+1] - spec_lhs[start]))
+#             end_factor = ((filter_lhs[j+1] - spec_lhs[stop]) / (spec_lhs[stop+1] - spec_lhs[stop]))
+#             spec_widths[start] *= start_factor
+#             spec_widths[stop] *= end_factor
+
+            # populate resampled flux array (and uncertainty array)
+            if conserve_flux:
+                res_f[..., i] = np.sum(f[..., old_ix_start:old_ix_stop+1] * fracs, axis=-1)
+            else:
+                # use weighted mean instead (as in SpectRes)
+                res_f[..., i] = np.sum(old_widths[old_ix_start:old_ix_stop+1] * f[..., old_ix_start:old_ix_stop+1] * fracs, axis=-1)
+                res_f[..., i] /= np.sum(old_widths[old_ix_start:old_ix_stop+1] * fracs)
+#             f_widths = old_widths[old_ix_start:old_ix_stop+1] * f[..., old_ix_start:old_ix_stop+1] * fracs
+#             res_f[..., i] = np.sum(f_widths, axis=-1)
+#             res_f[..., i] /= np.sum(old_widths[old_ix_start:old_ix_stop+1] * fracs)
+
+            if err is not None:
+                if conserve_flux:
+                    res_err[..., i] = np.sqrt(np.sum((err[..., old_ix_start:old_ix_stop+1] * fracs)**2, axis=-1))
+                else:
+                    res_err[..., i] = np.sqrt(np.sum((old_widths[old_ix_start:old_ix_stop+1] * err[..., old_ix_start:old_ix_stop+1] * fracs)**2, axis=-1))
+                    res_err[..., i] /= np.sum(old_widths[old_ix_start:old_ix_stop+1] * fracs)
+#                 e_wid = old_widths[old_ix_start:old_ix_stop+1] * err[..., old_ix_start:old_ix_stop+1] * fracs
+#                 res_err[..., i] = np.sqrt(np.sum(e_wid**2, axis=-1))
+#                 res_err[..., i] /= np.sum(old_widths[old_ix_start:old_ix_stop+1])
+
+#             # Put back the old bin widths to their initial values for later use
+#             spec_widths[start] /= start_factor
+#             spec_widths[stop] /= end_factor
+
+    # if errors were supplied return the resampled flux spectrum and error arrays
+    if err is not None:
+        return res_f, res_err
+    # otherwise just return the resampled flux spectrum array
+    else:
+        return res_f
+
+
+
+def specplothist(data, wl, err=None, lhs=None, widths=None, dots=True, errorbars=True, colbars=False, color='b'):
+    
+    if (lhs is None) or (widths is None):
+        # make array of left-hand sides (if non-uniform wl-steps, then this is only approximate)
+        lhs = np.zeros(wl.shape[0])
+        lhs[0] = wl[0] - (wl[1] - wl[0])/2.
+        lhs[1:] = (wl[1:] + wl[:-1])/2
+        # make array of pixel widths (if non-uniform wl-steps, then this is only approximate)
+        widths = np.zeros(wl.shape[0])
+        widths[-1] = (wl[-1] - wl[-2])
+        widths[:-1] = lhs[1:] - lhs[:-1]
+        
+    if errorbars:
+        assert err is not None, 'error bars not provided!!!'
+        
+    # plot horizontal lines
+    plt.hlines(data, lhs, lhs + widths, color=color)
+    # plot vertical lines
+    if colbars:
+        plt.vlines(lhs, np.zeros(len(data)), data, color=color)
+        plt.vlines(lhs + widths, np.zeros(len(data)), data, color=color)
+    else:
+        plt.vlines(lhs[:-1] + widths[:-1], data[:-1], data[1:], color=color)
+    
+    if dots:
+        if errorbars:
+            plt.errorbar(wl, data, yerr=err, marker='o', ls='', color=color)
+        else:
+            plt.plot(wl, data, 'o', color=color)
+    else:
+        if errorbars:
+            plt.errorbar(wl, data, yerr=err, marker=',', ls='', color=color)
+        
+    # scale the plot
+    plt.ylim(np.min(data) - 0.5*(np.max(data)-np.min(data)), np.max(data) + 0.5*(np.max(data)-np.min(data)))
+    
+    return
+
 
 
 
