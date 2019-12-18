@@ -65,22 +65,25 @@ def process_whites(white_list, MB=None, ronmask=None, MD=None, gain=None, P_id=N
         print('Using same directory as input file...')
         dum = white_list[0].split('/')
         path = white_list[0][0:-len(dum[-1])]
+    
+    date = path.split('/')[-2]
+        
     if MB is None:
         # no need to fix orientation, this is already a processed file [ADU]
 #         MB = pyfits.getdata(path+'master_bias.fits')
-        MB = pyfits.getdata(path + 'median_bias.fits')
+        MB = pyfits.getdata(path + date + '_median_bias.fits')
     if ronmask is None:
         # no need to fix orientation, this is already a processed file [e-]
-        ronmask = pyfits.getdata(path + 'read_noise_mask.fits')
+        ronmask = pyfits.getdata(path + date + '_read_noise_mask.fits')
     if MD is None:
         if scalable:
             # no need to fix orientation, this is already a processed file [e-]
-            MD = pyfits.getdata(path + 'master_dark_scalable.fits', 0)
+            MD = pyfits.getdata(path + date + '_master_dark_scalable.fits', 0)
 #             err_MD = pyfits.getdata(path+'master_dark_scalable.fits', 1)
         else:
             # no need to fix orientation, this is already a processed file [e-]
             texp = pyfits.getval(white_list[0])
-            MD = pyfits.getdata(path + 'master_dark_t' + str(int(np.round(texp,0))) + '.fits', 0)
+            MD = pyfits.getdata(path + date + '_master_dark_t' + str(int(np.round(texp,0))) + '.fits', 0)
 #             err_MD = pyfits.getdata(path+'master_dark_t'+str(int(np.round(texp,0)))+'.fits', 1)
 
 
@@ -189,7 +192,7 @@ def process_whites(white_list, MB=None, ronmask=None, MD=None, gain=None, P_id=N
 
     # now save master white to file
     if savefile:
-        outfn = path+'master_white.fits'
+        outfn = path + date + '_master_white.fits'
         pyfits.writeto(outfn, master, clobber=True)
         pyfits.setval(outfn, 'HISTORY', value='   MASTER WHITE frame - created '+time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())+' (GMT)')
         # pyfits.setval(outfn, 'EXPTIME', value=texp, comment='exposure time [s]')
@@ -207,7 +210,7 @@ def process_whites(white_list, MB=None, ronmask=None, MD=None, gain=None, P_id=N
     if diffimg:
         hdiff = h.copy()
         hdiff['HISTORY'] = '   MASTER WHITE DIFFERENCE IMAGE - created '+time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())+' (GMT)'
-        pyfits.writeto(path+'master_white_diffimg.fits', diff, hdiff, clobber=True)
+        pyfits.writeto(path + date + '_master_white_diffimg.fits', diff, hdiff, clobber=True)
 
     if timit:
         print('Total time elapsed: '+str(np.round(time.time() - start_time,1))+' seconds')
@@ -218,8 +221,8 @@ def process_whites(white_list, MB=None, ronmask=None, MD=None, gain=None, P_id=N
 
 
 
-def process_science_images(imglist, P_id, chipmask, mask=None, stripe_indices=None, quick_indices=None, sampling_size=25, slit_height=32, qsh=23, gain=[1.,1.,1.,1.], MB=None, ronmask=None, MD=None, scalable=False, saveall=False, path=None, ext_method='optimal',
-                           from_indices=True, slope=True, offset=True, fibs='all', date=None, timit=False):
+def process_science_images(imglist, P_id, chipmask, mask=None, stripe_indices=None, quick_indices=None, sampling_size=25, slit_height=32, qsh=23, gain=[1.,1.,1.,1.], MB=None, ronmask=None, 
+                           MD=None, scalable=False, saveall=False, path=None, ext_method='optimal', from_indices=True, slope=True, offset=True, fibs='all', date=None, timit=False):
     """
     Process all science / calibration lamp images. This includes:
     
@@ -278,6 +281,8 @@ def process_science_images(imglist, P_id, chipmask, mask=None, stripe_indices=No
         print('Using same directory as input file...')
         dum = imglist[0].split('/')
         path = imglist[0][0: -len(dum[-1])]
+    if date is None:
+        date = path.split('/')[-2]
     if MB is None:
         # no need to fix orientation, this is already a processed file [ADU]
 #         MB = pyfits.getdata(path + 'master_bias.fits')
@@ -313,6 +318,13 @@ def process_science_images(imglist, P_id, chipmask, mask=None, stripe_indices=No
         texp = pyfits.getval(filename, 'ELAPSED')
         # check if this exposure belongs to the same epoch as the previous one
         if obstype in ['stellar', 'ARC']:
+            
+            # list of all the observations belonging to this epoch
+            epoch_ix = [sublist for sublist in all_epoch_list if i in sublist]   # different from object_indices, as epoch_ix contains only indices for this particular epoch if there are multiple epochs of a target in a given night
+            epoch_list = list(np.array(imglist)[epoch_ix])
+            # make sublists according to the four possible calibration lamp configurations
+            epoch_sublists = {'lfc':[], 'thxe':[], 'both':[], 'neither':[]}
+            
             if i > 0:
                 if filename in epoch_list:
                     new_epoch = False
@@ -347,11 +359,6 @@ def process_science_images(imglist, P_id, chipmask, mask=None, stripe_indices=No
         print('Extracting ' + obstype + ' spectrum ' + str(i + 1) + '/' + str(len(imglist)) + ': ' + obsname)
         
         if obstype in ['stellar', 'ARC']:
-            # list of all the observations belonging to this epoch
-            epoch_ix = [sublist for sublist in all_epoch_list if i in sublist]   # different from object_indices, as epoch_ix contains only indices for this particular epoch if there are multiple epochs of a target in a given night
-            epoch_list = list(np.array(imglist)[epoch_ix])
-            # make sublists according to the four possible calibration lamp configurations
-            epoch_sublists = {'lfc':[], 'thxe':[], 'both':[], 'neither':[]}
             
             # nasty temp fix to make sure we are always looking at the 2D images until the header keywords are reliable
             checkdate = '1' + date[1:]
@@ -432,8 +439,7 @@ def process_science_images(imglist, P_id, chipmask, mask=None, stripe_indices=No
                     lamp_config = 'both'
         else:
             # for sim. calibration images we don't need to check for the calibration lamp configuration for all exposures (done external to this function)!
-            # just for the file in question and then create a dummy copy of the image list so that it is in the same format that ix expected for stellar
-            # observations
+            # just for the file in question and then create a dummy copy of the image list so that it is in the same format that is expected for stellar observations
             if int(date) < 20190503:
                 # now check the calibration lamp configuration for the main observation in question
                 img = correct_for_bias_and_dark_from_filename(filename, MB, MD, gain=gain, scalable=scalable, savefile=saveall, path=path)

@@ -692,14 +692,14 @@ def make_ccfs(f, wl, f0, wl0, bc=0., bc0=0., smoothed_flat=None, delta_log_wl=1e
 #         use_orders = np.arange(1,39)
 #     if use_orders is None:
 #         use_orders = [5, 6, 17, 25, 26, 27, 31, 34, 35, 36]         # at the moment 17 and 34 give the lowest scatter
-#     use_orders = [5, 6, 17, 25, 26, 27, 31, 34, 35, 36]
+    use_orders = [5, 6, 17, 25, 26, 27, 31, 34, 35, 36]
 #     use_orders = [5, 6, 17, 25, 27, 31, 36]
-    use_orders = [17]
+#     use_orders = [17]
 #     use_orders = np.arange(1,39)
 #     use_orders = np.arange(n_ord)
 
     print('Using ' + str(len(use_orders)) + ' orders for CCF...')
-    print("haehaehae_20191108")
+    print("haehaehae_20191206")
 
     for o in use_orders:         # at the moment 17 and 34 give the lowest scatter
 
@@ -1507,7 +1507,8 @@ def make_self_indfib_ccfs(f, wl, relto=9, mask=None, smoothed_flat=None, delta_l
 ### The following functions are based on the RV parts from Mike Ireland's "pymfe"      ###
 ### I also made them stand-alone routines rather than part of an object-oriented class ###
 ##########################################################################################    
-def rv_shift_resid(parms, wave, spect, spect_sdev, spline_ref, return_spect=False):
+
+def rv_shift_resid(parms, wl, f, err, spline_ref, return_spect=False):
     """Find the residuals to a fit of a (subsampled) reference spectrum to an 
     observed spectrum. 
     
@@ -1521,12 +1522,12 @@ def rv_shift_resid(parms, wave, spect, spect_sdev, spline_ref, return_spect=Fals
     Parameters
     ----------        
     params: array-like
-    wave: float array
+    wl: float array
         Wavelengths for the observed spectrum.        
-    spect: float array
-        The observed spectra     
-    spect_sdev: float array
-        standard deviation of the input spectra.        
+    f: float array
+       The observed spectra     
+    err: float array
+        standard deviation of the input spectra 
     spline_ref: InterpolatedUnivariateSpline instance
         For interpolating the reference spectrum
     return_spect: boolean
@@ -1545,28 +1546,27 @@ def rv_shift_resid(parms, wave, spect, spect_sdev, spline_ref, return_spect=Fals
     # speed of light in m/s
     c = 2.99792458e8
     
-    ny = len(spect)
+    ny = len(f)
+    
     # CMB change: necessary to make xx go smoothly from -0.5 to 0.5, rather than a step function (step at ny//2) from -1.0 to 0.0      
     #xx = (np.arange(ny)-ny//2)/ny
-    xx = (np.arange(ny)-ny//2)/float(ny)
-    norm = np.exp(parms[1]*xx*xx + parms[2]*xx + parms[3])     #CMB change for speed (was *xx**2)
-    # Lets get this sign correct. A redshift (positive velocity) means that
-    # a given wavelength for the reference corresponds to a longer  
-    # wavelength for the target, which in turn means that the target 
-    # wavelength has to be interpolated onto shorter wavelengths for the 
-    # reference.
-    #fitted_spect = spline_ref(wave*(1.0 - parms[0]/const.c.si.value))*norm
-    # CMB change: just declared c above
-    fitted_spect = spline_ref(wave * (1.0 - parms[0]/c)) * norm
+    xx = (np.arange(ny) - ny//2) / float(ny)
+    norm = np.exp(parms[1]*xx*xx + parms[2]*xx + parms[3])     
+    
+    # Lets get this sign correct. A redshift (positive radial velocity) means that a given wavelength for the reference corresponds to a longer  
+    # wavelength for the target, which in turn means that the target wavelength has to be interpolated onto shorter wavelengths for the reference.
+#     fitted_spect = spline_ref(wl * (1.0 - parms[0]/c)) * norm
+#     fitted_spect = spline_ref(wl * np.sqrt((1 + parms[0] / c) / (1 - parms[0] / c))) * norm   # NOPE! that's the wrong way around...
+    fitted_spect = spline_ref(wl * np.sqrt((1 - parms[0] / c) / (1 + parms[0] / c))) * norm
     
     if return_spect:
         return fitted_spect
     else:
-        return (fitted_spect - spect)/spect_sdev
+        return (fitted_spect - f)/err
 
 
 
-def rv_shift_chi2(parms, wave, spect, spect_sdev, spline_ref):
+def rv_shift_chi2(parms, wl, f, err, spline_ref):
     """Find the chi-squared for an RV fit. Just a wrapper for rv_shift_resid,
     so the docstring is cut and paste!
     
@@ -1582,32 +1582,25 @@ def rv_shift_chi2(parms, wave, spect, spect_sdev, spline_ref):
     
     params: 
         ...
-    wave: float array
+    wl: float array
         Wavelengths for the observed spectrum.
-    spect: float array
+    f: float array
         The observed spectrum
-    spect_sdev: 
+    err: 
         ...
     spline_ref: 
         ...
-    return_spect: boolean
-        Whether to return the fitted spectrum or the 
         
-    wave_ref: float array
-        The wavelengths of the reference spectrum
-    ref: float array
-        The reference spectrum
-    
     Returns
     -------
     chi2:
         The fit chi-squared
     """
-    return np.sum(rv_shift_resid(parms, wave, spect, spect_sdev, spline_ref)**2)
+    return np.sum(rv_shift_resid(parms, wl, f, err, spline_ref)**2)
 
 
 
-def rv_shift_jac(parms, wave, spect, spect_sdev, spline_ref):
+def rv_shift_jac(parms, wl, f, err, spline_ref):
     """Explicit Jacobian function for rv_shift_resid. 
     
     This is not a completely analytic solution, but without it there seems to be 
@@ -1631,11 +1624,11 @@ def rv_shift_jac(parms, wave, spect, spect_sdev, spline_ref):
     ----------
     
     params: float array
-    wave: float array
+    wl: float array
         Wavelengths for the observed spectrum.
-    spect: float array
+    f: float array
         The observed spectrum
-    spect_sdev: float array
+    err: float array
         Error in the observed spectrum
     spline_ref: 
         ...
@@ -1648,28 +1641,32 @@ def rv_shift_jac(parms, wave, spect, spect_sdev, spline_ref):
     # speed of light in m/s
     c = 2.99792458e8
     
-    ny = len(spect)
+    ny = len(f)
+    
     # CMB change: necessary to make xx go smoothly from -0.5 to 0.5, rather than a step function (step at ny//2) from -1.0 to 0.0      
     #xx = (np.arange(ny)-ny//2)/ny
-    xx = (np.arange(ny)-ny//2)/float(ny)
-    norm = np.exp(parms[1]*xx*xx + parms[2]*xx + parms[3])     #CMB change for speed (was *xx**2)
-    #fitted_spect = spline_ref(wave*(1.0 - parms[0]/const.c.si.value))*norm
-    fitted_spect = spline_ref(wave * (1.0 - parms[0]/c)) * norm
+    xx = (np.arange(ny) - ny//2) / float(ny)
+    norm = np.exp(parms[1]*xx*xx + parms[2]*xx + parms[3])     
     
-    #The Jacobian is the derivative of fitted_spect/spect_sdev with respect to p[0] through p[3]
+    # Lets get this sign correct. A redshift (positive radial velocity) means that a given wavelength for the reference corresponds to a longer  
+    # wavelength for the target, which in turn means that the target wavelength has to be interpolated onto shorter wavelengths for the reference.
+    fitted_spect = spline_ref(wl * (1.0 - parms[0]/c)) * norm
+#     fitted_spect = spline_ref(wave * np.sqrt((1 + parms[0] / c) / (1 - parms[0] / c))) * norm
+#     fitted_spect = spline_ref(wave * np.sqrt((1 - parms[0] / c) / (1 + parms[0] / c))) * norm
+    
+    #The Jacobian is the derivative of fitted_spect/err with respect to p[0] through p[3]
     jac = np.empty((ny,4))
-    jac[:,3] = fitted_spect / spect_sdev
-    jac[:,2] = fitted_spect*xx / spect_sdev
-    jac[:,1] = fitted_spect*xx*xx / spect_sdev     #CMB change for speed (was *xx**2)
-    #jac[:,0] = (spline_ref(wave*(1.0 - (parms[0] + 1.0)/const.c.si.value))*
-    #            norm - fitted_spect)/spect_sdev
-    jac[:,0] = ((spline_ref(wave * (1.0 - (parms[0] + 1.0)/c)) * norm) - fitted_spect) / spect_sdev
+    jac[:,3] = fitted_spect / err
+    jac[:,2] = fitted_spect*xx / err
+    jac[:,1] = fitted_spect*xx*xx / err     
+#     jac[:,0] = (spline_ref(wave*(1.0 - (parms[0] + 1.0)/const.c.si.value))*norm - fitted_spect)/spect_sdev
+    jac[:,0] = ((spline_ref(wl * (1.0 - (parms[0] + 1.0)/c)) * norm) - fitted_spect) / err
     
     return jac
 
 
 
-def calculate_rv_shift(ref_spect, wave_ref, flux, wave, err, bc=0, bc0=0, return_fitted_spects=False, bad_threshold=10):
+def calculate_rv_shift(f0, wl0, f, wl, err, bc=0, bc0=0, return_fitted_spects=False, rvguess=None, edge=20, bad_threshold=10):
     """Calculates the Radial Velocity of each spectrum
     
     The radial velocity shift of the reference spectrum required
@@ -1695,18 +1692,19 @@ def calculate_rv_shift(ref_spect, wave_ref, flux, wave, err, bc=0, bc0=0, return
     
     Parameters
     ----------
-    wave_ref: 3D np.array(float)
+    wl0: 3D np.array(float)
         Wavelength coordinate map of form (Order, Wavelength/pixel*2+2), 
         where the wavelength scale has been interpolated.
-    ref_spect: 3D np.array(float)
+    f0: 3D np.array(float)
         Reference spectrum of form (Order, Flux/pixel*2+2), 
         where the flux scale has been interpolated.
-    flux: 3D np.array(float)
+    f: 3D np.array(float)
         Fluxes of form (Order, Fibre, Flux/pixel)
+    wl: 3D np.array(float)
+        Wavelength coordinate map of form (Order, Fibre, Wavelength/pixel)   
     err: 3D np.array(float)
         Variance of form (Order, Fibre, Error/pixel)    
-    wave: 3D np.array(float)
-        Wavelength coordinate map of form (Order, Fibre, Wavelength/pixel)    
+     
 
     Returns
     -------
@@ -1719,9 +1717,10 @@ def calculate_rv_shift(ref_spect, wave_ref, flux, wave, err, bc=0, bc0=0, return
     oversample the template spectrum before regridding onto bc-shifted wl-grid of observation
     """
     
-    nm = flux.shape[0]
-    nf = flux.shape[1]
-    npix = flux.shape[2]
+#     nm = f.shape[0]
+#     nf = f.shape[1]
+#     npix = f.shape[2]
+    (nm, nf, npix) = f.shape
     
     # speed of light in m/s
     c = 2.99792458e8
@@ -1732,43 +1731,80 @@ def calculate_rv_shift(ref_spect, wave_ref, flux, wave, err, bc=0, bc0=0, return
     redchi2_arr = np.zeros( (nm,nf) )
 #     thefit_100 = np.zeros( (nm,nf) )
 
+    # initial fit parameters
     initp = np.zeros(4)
-#     spect_sdev = np.sqrt(var) #now I'm inputting err directly instead of var
+#     initp[3] = 0.5
+    if rvguess is not None:
+        initp[0] = rvguess
+
     if return_fitted_spects:
-        fitted_spects = np.empty(flux.shape)
+        fitted_spects = np.empty(f.shape)
     
     # shift wavelength arrays by the respective barycentric corrections
-    wl_bcc = (1 + bc / c) * wave
-    wl0_bcc = (1 + bc0 / c) * wave_ref
+#     wl_bcc = (1 + bc / c) * wave
+    wl_bcc = wl * np.sqrt((1 + bc / c) / (1 - bc / c))
+#     wl0_bcc = (1 + bc0 / c) * wave_ref
+    wl0_bcc = wl0 * np.sqrt((1 + bc0 / c) / (1 - bc0 / c))
     
-    print "Order "
+    print("Order ")
     
     # loop over all orders (skipping first order, as wl-solution is crap!)
-    for o in range(1,nm):
+#     for o in range(1,nm):
+    for o in range(nm):
 
-        print str(o+1),
-        # Start with initial guess of no intrinsic RV for the target.
+        print(str(o+1)),
+        
+        ord_wl = wl_bcc[o,:,:]
+        ord_f = f[o,:,:]
+        ord_err = err[o,:,:]
+        ord_wl0 = wl0_bcc[o,:,:]
+        ord_f0 = f0[o,:,:]
+        
+        # wavelength array must be increasing for "InterpolatedUnivariateSpline" to work --> turn arrays around if necessary!!!
+        if (np.diff(ord_wl) < 0).any():
+            ord_wl_sorted = ord_wl[:,::-1].copy()
+            ord_f_sorted = ord_f[:,::-1].copy()
+            ord_err_sorted = ord_err[:,::-1].copy()
+            ord_wl0_sorted = ord_wl0[:,::-1].copy()
+            ord_f0_sorted = ord_f0[:,::-1].copy()
+        else:
+            ord_wl_sorted = ord_wl.copy()
+            ord_f_sorted = ord_f.copy()
+            ord_err_sorted = ord_err.copy()
+            ord_wl0_sorted = ord_wl0.copy()
+            ord_f0_sorted = ord_f0.copy()
+        
         nbad = 0
         
         # loop over all fibres
         for fib in range(nf):
             
-            spl_ref = interp.InterpolatedUnivariateSpline(wl0_bcc[o,fib,::-1], ref_spect[o,fib,::-1], k=3)
-            args = (wl_bcc[o,fib,:], flux[o,fib,:], err[o,fib,:], spl_ref)
+            # deal with NaNs (exclude any pixels that are NaNs in any of the five arrays)
+            nanpix = np.isnan(ord_wl0_sorted[fib,:]) | np.isnan(ord_wl_sorted[fib,:]) | np.isnan(ord_f0_sorted[fib,:]) | np.isnan(ord_f_sorted[fib,:]) | np.isnan(ord_err_sorted[fib,:])
             
-            # Remove edge effects in a slightly dodgy way (20 pixels is about 30km/s) 
-            args[2][:20] = np.inf
-            args[2][-20:] = np.inf
-
-            the_fit = op.leastsq(rv_shift_resid, initp, args=args, diag=[1e3,1,1,1], Dfun=rv_shift_jac, full_output=True, xtol=1e-6)
+            spl_ref = interp.InterpolatedUnivariateSpline(ord_wl0_sorted[fib,~nanpix], ord_f0_sorted[fib,~nanpix], k=3)
+            args = (ord_wl_sorted[fib,~nanpix], ord_f_sorted[fib,~nanpix], ord_err_sorted[fib,~nanpix], spl_ref)
+            
+#             # need to turn arrays around as my wl-solution is decreasing within the order
+#             spl_ref = interp.InterpolatedUnivariateSpline(wl0_bcc[o,fib,::-1], f0[o,fib,::-1], k=3)
+#             args = (wl_bcc[o,fib,:], f[o,fib,:], err[o,fib,:], spl_ref)
+            
+            # Remove edge effects in a slightly dodgy way by making their error bars infinity and hence giving them zero weights (20 pixels is about 30km/s) 
+            args[2][:edge] = np.inf
+            args[2][-edge:] = np.inf
+            
+            # calculate the model and residuals starting with initial parameters
+#             the_fit = op.leastsq(rv_shift_resid, initp, args=args, diag=[1e3,1,1,1], Dfun=rv_shift_jac, full_output=True, xtol=1e-6)
+            the_fit = op.leastsq(rv_shift_resid, initp, args=args, diag=[1e3,1,1,1], Dfun=None, full_output=True, epsfcn=1e-3)   
             # the_fit[0] are the best-fit parms
             # the_fit[1] is the covariance matrix
             # the_fit[2] is auxiliary information on the fit (in form of a dictionary)
             # the_fit[3] is a string message giving information about the cause of failure.
             # the_fit[4] is an integer flag 
             # (if it is equal to 1, 2, 3 or 4, the solution was found. Otherwise, the solution was not found -- see op.leastsq documentation for more info)
-            residBefore = rv_shift_resid(the_fit[0], *args)
-            wbad = np.where(np.abs(residBefore) > bad_threshold)[0]
+            model_before = rv_shift_resid(the_fit[0], *args, return_spect=True)
+            resid_before = rv_shift_resid(the_fit[0], *args)
+            wbad = np.where(np.abs(resid_before) > bad_threshold)[0]   # I should probably return the abs residuals and then divide them by the error outside "rv_shift_resid"
             nbad += len(wbad)
             
             chi2 = rv_shift_chi2(the_fit[0], *args)
@@ -1778,13 +1814,14 @@ def calculate_rv_shift(ref_spect, wave_ref, flux, wave, err, bc=0, bc0=0, return
 #                 errorSigma = np.sqrt(chi2 * the_fit[1][0,0])
 ##                 normalisedValsBefore = normalised(residBefore, errorSigma)
                 
-                fittedSpec = rv_shift_resid(the_fit[0], *args, return_spect=True)
+#                 fitted_spec = rv_shift_resid(the_fit[0], *args, return_spect=True)
                 
                 # make the errors for the "bad" pixels infinity (so as to make the weights zero)
-                args[2][np.where(np.abs(residBefore) > bad_threshold)] = np.inf
+                args[2][np.where(np.abs(resid_before) > bad_threshold)] = np.inf
 
-                the_fit = op.leastsq(rv_shift_resid, initp, args=args, diag=[1e3,1,1,1], Dfun=rv_shift_jac, full_output=True, xtol=1e-6)
-#                 residAfter = rv_shift_resid( the_fit[0], *args)
+#                 the_fit = op.leastsq(rv_shift_resid, initp, args=args, diag=[1e3,1,1,1], Dfun=rv_shift_jac, full_output=True, xtol=1e-6)
+                the_fit = op.leastsq(rv_shift_resid, initp, args=args, diag=[1e3,1,1,1], Dfun=None, full_output=True, epsfcn=1e-3)   
+#                 residAfter = rv_shift_resid(the_fit[0], *args)
                 chi2 = rv_shift_chi2(the_fit[0], *args)
                 redchi2 = chi2 / (npix - len(initp))
                 
@@ -1801,15 +1838,16 @@ def calculate_rv_shift(ref_spect, wave_ref, flux, wave, err, bc=0, bc0=0, return
             if return_fitted_spects:
                 fitted_spects[o,fib,:] = rv_shift_resid(the_fit[0], *args, return_spect=True)
             
-            #Save the fit and the uncertainty (the_fit[0][0] is the RV shift)
+            # Save the fit and the uncertainty (the_fit[0][0] is the RV shift)
             rvs[o,fib] = the_fit[0][0]
 
             try:
-                rv_sigs[o,fib] = np.sqrt(redchi2 * the_fit[1][0,0])
+#                 rv_sigs[o,fib] = np.sqrt(redchi2 * the_fit[1][0,0])
+                rv_sigs[o,fib] = np.sqrt(the_fit[1][0,0])
             except:
-                rv_sigs[o,fib] = np.NaN
+                rv_sigs[o,fib] = np.nan
                 
-#             # the_fit[1] is the covariance matrix)
+#             # the_fit[1] is the covariance matrix
 #             try:
 #                 thefit_100[o,fib] = the_fit[1][0,0]
 #             except:

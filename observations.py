@@ -336,16 +336,64 @@ def plot_toi_phase(toi, vo=None, saveplot=False, outpath=None):
 
 
 
-def plot_all_toi_phases(src='raw', path='/Users/christoph/OneDrive - UNSW/observations/', saveplots=True):
+def plot_toi_phase_lin(toi, vo=None, saveplot=False, outpath=None, no_xlabel=False, no_title=False):
+    if vo is None:
+        vo = np.load('/Users/christoph/OneDrive - UNSW/observations/velobs_raw.npy').item()
+    # representative plot of a normalized circular orbit with the orbital phases of the obstimes indicated
+#     plt.figure()
+    if not no_xlabel:
+        plt.figure(figsize=(10,1.2))
+    else:
+        plt.figure(figsize=(10,0.9))
+    x = np.linspace(0, 1, 1000)
+    plt.plot(x, np.zeros(len(x)), 'k')
+    phi = np.squeeze(vo[toi]['phase'])
+    plt.plot(phi, np.zeros(len(phi)), 'ro', markersize=3)
+    plt.ylabel(toi, rotation='horizontal', ha='right', va='center', fontsize='large', fontweight='bold')
+    plt.yticks([])
+    plt.xlim(-0.05,1.25)
+    plt.text(1.225, 0.025, '   #obs: ' + str(vo[toi]['nobs']), size='large', horizontalalignment='right', va='center')
+    plt.text(1.225, -0.025, '#epochs: ' + str(vo[toi]['nepochs']), size='large', horizontalalignment='right', va='center')
+    if not no_xlabel:
+        plt.xticks([0,0.25,0.5,0.75,1])
+        plt.xlabel('orbital phase')
+    else:
+        plt.xticks([0,0.25,0.5,0.75,1], [])
+    if not no_title:
+        plt.title(toi + '  -  orbital phase coverage')
+    plt.tight_layout()
+    
+    if saveplot:
+        try:
+            plt.savefig(outpath + toi + '_orbital_phase_coverage_lin.eps')
+        except:
+            print('ERROR: output directory not provided...')
+    plt.close()
+    return
+
+
+
+
+def plot_all_toi_phases(src='raw', path='/Users/christoph/OneDrive - UNSW/observations/', saveplots=True, lin=False, per_page=16):
     if src.lower() == 'raw':
         vo = np.load(path + 'velobs_raw.npy').item()
     elif src.lower() in ['red', 'reduced']:
         vo = np.load(path + 'velobs_reduced.npy').item()
     else:
         return -1
-    for targ in sorted(vo.keys()):
-        if targ[:3] == 'TOI': 
-            plot_toi_phase(targ, vo=vo, saveplot=True, outpath = path + 'plots/')
+    
+    toi_list = np.array([targ for targ in vo.keys() if targ[:3] == 'TOI'])
+    toi_nums = np.array([int(targ[3:]) for targ in vo.keys() if targ[:3] == 'TOI'])
+    sortix = np.argsort(toi_nums)
+    
+    for n,targ in enumerate(toi_list[sortix]):
+        if lin:
+            nox = True
+            if ((n+1) % per_page == 0) or (n == len(toi_list)-1): 
+                nox = False
+            plot_toi_phase_lin(targ, vo=vo, saveplot=saveplots, outpath = path + 'plots/', no_xlabel=nox, no_title=True)
+        else:
+            plot_toi_phase(targ, vo=vo, saveplot=saveplots, outpath = path + 'plots/')
     return
 
 
@@ -425,8 +473,6 @@ def get_raw_obslist(return_targets=False, laptop=False, verbose=True):
 
 
 
-
-
 def make_text_file_for_latex(vo):
     outfile = open('/Users/christoph/OneDrive - UNSW/observations/plots/dumdum.txt', 'w')
     n=1
@@ -439,6 +485,27 @@ def make_text_file_for_latex(vo):
             if np.mod(n,2) != 0:
                 outfile.write(r'\end{figure}' + '\n')
                 outfile.write(r'\newpage' + '\n')
+    outfile.close()
+    return
+
+
+
+
+def make_text_file_for_latex_lin(vo, per_page=16):
+    outfile = open('/Users/christoph/OneDrive - UNSW/observations/plots/dumdum_lin.txt', 'w')
+    
+    toi_list = np.array([targ for targ in vo.keys() if targ[:3] == 'TOI'])
+    toi_nums = np.array([int(targ[3:]) for targ in vo.keys() if targ[:3] == 'TOI'])
+    sortix = np.argsort(toi_nums)
+    
+    for n,toi in enumerate(toi_list[sortix]):
+        if n % per_page == 0:
+            outfile.write(r'\begin{figure}[H]' + '\n')
+        outfile.write(r'\includegraphics[width=0.99\linewidth]{' + toi + '_orbital_phase_coverage_lin.eps}' + '\n')
+        if (n+1) % per_page == 0:
+            outfile.write(r'\end{figure}' + '\n')
+            outfile.write(r'\newpage' + '\n')
+    outfile.write(r'\end{figure}' + '\n')
     outfile.close()
     return
 
@@ -520,11 +587,11 @@ def update_redobs(starname, starpath=None, pattern=None, overwrite=False):
         os.system("mkdir " + neither_path)
         
     # copy all reduced files of the target to the target folder
-    os.system("find " + redpath + "20* -name '" + pattern + "*optimal*' -exec cp '{}' " + starpath + " \;")
+    os.system("find " + redpath + "20* -name '" + "*" + pattern + "*optimal*' -exec cp '{}' " + starpath + " \;")
     
     # some more housekeeping...
     chipmask_path = '/Users/christoph/OneDrive - UNSW/chipmasks/archive/'
-    all_files = glob.glob(starpath + pattern + '*.fits')
+    all_files = glob.glob(starpath + "*" + pattern + '*.fits')
 
     for i,file in enumerate(all_files):
         short_filename = file.split('/')[-1]
@@ -574,10 +641,10 @@ def update_redobs(starname, starpath=None, pattern=None, overwrite=False):
 
 
 
-update_redobs('TOI375')
-update_redobs('TOI274')
-update_redobs('GJ674', pattern='674')
-update_redobs('HD212301')
+# update_redobs('TOI375')
+# update_redobs('TOI274')
+# update_redobs('GJ674', pattern='674')
+# update_redobs('HD212301')
 
 
 

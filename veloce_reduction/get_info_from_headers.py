@@ -4,7 +4,7 @@ Created on 7 May 2018
 @author: christoph
 '''
 
-
+import os
 import glob
 import astropy.io.fits as pyfits
 import numpy as np
@@ -151,7 +151,7 @@ def get_obstype_lists(path, pattern=None, weeding=True, quick=False):
             laser_and_thxe_list.append(file)
         elif obj_type.lower().startswith(("wasp","proxima","kelt","toi","tic","hd","hr","hip","gj","gl","ast","alpha","beta","gamma",
                                           "delta","tau","ksi","ach","zeta","ek",'1', '2', '3', '4', '5', '6', '7', '8', '9',
-                                          'bd', 'bps', 'cd', 'he', 'g', 'cs')):
+                                          'bd', 'bps', 'cd', 'he', 'g', 'cs', 'bkt', 'meingast', 'spangap', 'sarah', 'rm')):
             stellar_list.append(file)
         else:
             unknown_list.append(file)

@@ -5,14 +5,16 @@ import numpy as np
 import astropy.io.fits as pyfits
 import matplotlib.pyplot as plt
 from readcol import readcol
+import scipy.interpolate as interp
+import scipy.optimize as op
 
 from veloce_reduction.veloce_reduction.wavelength_solution import get_dispsol_for_all_fibs, get_dispsol_for_all_fibs_2, get_dispsol_for_all_fibs_3
-from veloce_reduction.veloce_reduction.get_radial_velocity import get_RV_from_xcorr, get_RV_from_xcorr_2, make_ccfs, \
-    old_make_ccfs
+from veloce_reduction.veloce_reduction.get_radial_velocity import *
 from veloce_reduction.veloce_reduction.helper_functions import get_snr, short_filenames, wm_and_wsv
 from veloce_reduction.veloce_reduction.flat_fielding import onedim_pixtopix_variations, deblaze_orders
 from veloce_reduction.veloce_reduction.barycentric_correction import get_barycentric_correction
 from veloce_reduction.veloce_reduction.cosmic_ray_removal import onedim_medfilt_cosmic_ray_removal
+
 
 ########################################################################################################################
 
@@ -27,8 +29,10 @@ else:
 
 file_list = glob.glob(path + '*optimal3a_extracted.fits')
 file_list.sort()  # this is not a proper sort, but see two lines below
-wl_list = glob.glob(path + '*wl.fits*')
+wl_list = glob.glob(path + '*vac_wl.fits*')
 wl_list.sort()   # this is not a proper sort, but consistent with file_list; proper sort is done below
+lfc_wl_list = glob.glob(path + '*vac_wl_lfc.fits*')
+lfc_wl_list.sort()   # this is not a proper sort, but consistent with file_list; proper sort is done below
 assert len(file_list) == len(wl_list), 'ERROR: number of wl-solution files does not match the number of reduced spectra!!!'
 
 obsname_list = [fn.split('_')[-3] for fn in file_list]
@@ -42,6 +46,7 @@ sortix = np.argsort(utmjd)
 all_obsnames = np.array(obsname_list)[sortix]
 files = np.array(file_list)[sortix]
 wls = np.array(wl_list)[sortix]
+lfc_wls = np.array(lfc_wl_list)[sortix]
 all_bc = np.array(bc_list)[sortix]
 all_jd = utmjd[sortix]
 
@@ -110,6 +115,9 @@ norm_relints = np.load(path + 'norm_relints.npy')   # sum = 1
 ########################################################################################################################
 ########################################################################################################################
 
+#################################################################################################################    
+### OK, now let's Cross-Correlation RVs on real observations
+#################################################################################################################
 
 # calculating the CCFs for one order / 11 orders
 # (either with or without the LFC shifts applied, comment out the 'wl' and 'wl0' you don't want)
@@ -138,14 +146,15 @@ date_0 = '20190518'
 f0 = pyfits.getdata(files[ix0], 0)
 err0 = pyfits.getdata(files[ix0], 1)
 obsname_0 = all_obsnames[ix0]
-wl0 = pyfits.getdata(wls[ix0])
+# wl0 = pyfits.getdata(wls[ix0])
+wl0 = pyfits.getdata(lfc_wls[ix0])
 bc0 = pyfits.getval(files[ix0], 'BARYCORR')
 
-maskdict = np.load('/Volumes/BERGRAID/data/veloce/reduced/' + date_0 + '/mask.npy').item()
+maskdict = np.load('/Volumes/BERGRAID/data/veloce/reduced/' + date_0 + '/' + date_0 + '_mask.npy').item()
 
 # wl0 = pyfits.getdata('/Users/christoph/OneDrive - UNSW/dispsol/individual_fibres_dispsol_poly7_21sep30019.fits')
 
-mw_flux = pyfits.getdata('/Volumes/BERGRAID/data/veloce/reduced/' + date_0 + '/master_white_optimal3a_extracted.fits')
+mw_flux = pyfits.getdata('/Volumes/BERGRAID/data/veloce/reduced/' + date_0 + '/' + date_0 + '_master_white_optimal3a_extracted.fits')
 smoothed_flat, pix_sens = onedim_pixtopix_variations(mw_flux, filt='gaussian', filter_width=25)
 
 f0_clean = pyfits.getdata(path + '190248_' + obsname_0 + '_optimal3a_extracted_cleaned.fits')
@@ -190,7 +199,8 @@ for i,filename in enumerate(files):
     # read in spectrum
 #     f = pyfits.getdata(filename, 0)
     err = pyfits.getdata(filename, 1)
-    wl = pyfits.getdata(wls[i])
+#     wl = pyfits.getdata(wls[i])
+    wl = pyfits.getdata(lfc_wls[i])
     bc = pyfits.getval(filename, 'BARYCORR')
     f_clean = pyfits.getdata(path + '190248_' + obsname + '_optimal3a_extracted_cleaned.fits')
 #     f_clean = f.copy()
@@ -207,8 +217,8 @@ for i,filename in enumerate(files):
     #     all_xc.append(old_make_ccfs(f, wl, f0, wl0, bc=all_bc[i], bc0=all_bc[6], mask=None, smoothed_flat=None, delta_log_wl=1e-6, relgrid=False,
     #                             flipped=False, individual_fibres=False, debug_level=1, timit=False))
     #     rv,rverr,xcsum = get_RV_from_xcorr_2(f, wl, f0, wl0, bc=all_bc[i], bc0=all_bc[6], individual_fibres=True, individual_orders=True, old_ccf=True, debug_level=1)
-    sumrv, sumrverr, xcsum = get_RV_from_xcorr_2(f_clean, wl, f0_clean, wl0, bc=bc, bc0=bc0, smoothed_flat=smoothed_flat, fitrange=35, individual_fibres=False,
-                                                 individual_orders=False, deg_interp=1, norm_cont=True, fit_slope=True, old_ccf=False, debug_level=1)
+    sumrv, sumrverr, xcsum = get_RV_from_xcorr_2(f_clean, wl, f0_clean, wl0, bc=bc, bc0=bc0, smoothed_flat=smoothed_flat, fitrange=35, individual_fibres=True,
+                                                 individual_orders=False, deg_interp=3, norm_cont=True, fit_slope=False, old_ccf=False, debug_level=1)
     #     sumrv,sumrverr,xcsum = get_RV_from_xcorr_2(f_dblz, wl, f0_dblz, wl0, bc=all_bc[i], bc0=all_bc[6], individual_fibres=False, individual_orders=False, old_ccf=True, debug_level=1)
     #     all_rv[i,:,:] = rv
     all_sumrv.append(sumrv)
@@ -290,6 +300,7 @@ smoothed_flat, pix_sens = onedim_pixtopix_variations(mw_flux, filt='gaussian', f
 shifts = np.linspace(-30e3,30e3,720)
 shifts_fine = np.arange(300)
 shifts = np.arange(-300,301,10)
+shifts = np.sort(np.r_[np.linspace(-30e3,30e3,720), np.arange(-300,301,10)])
 
 all_xc = []
 all_xc2 = []
@@ -359,29 +370,43 @@ plt.savefig(path + 'xc_tests/v4b_order_06_zoom.eps')
 
 # going back one level and testing things on one 1-D spectrum only 
 # (either Veloce, or synthetic spectrum (which is thus known to have perfectly flat continuum), or even single (perfect-Gaussian) absorption line     
-    
+
+#################################################################################################################    
+### using cross-correlation
+#################################################################################################################
     
 # make CCfs by shifting the continuum-normalized and rebinned_f0, to subsequently check if I can recover RVs for that
 # speed of light in m/s
 c = 2.99792458e8
+
+# conversion factor between FWHM and sigma for pure Gaussian (FWHM = 2.355 * sigma)
+fac = 2.*np.sqrt(2*np.log(2))
 
 all_xc = []
 
 logwlgrid = np.load('/Volumes/WORKING/data/veloce/reduced/delpav/with_lfc/xc_tests/logwlgrid_o17.npy')
 # taper_func = np.load('/Volumes/WORKING/data/veloce/reduced/delpav/with_lfc/xc_tests/taper_func.npy')
 # the continuum-normalized and rebinned_f0
-# (1) using real Veloce data
+### (1) using real Veloce data
 # rebinned_f0 = np.load('/Volumes/WORKING/data/veloce/reduced/delpav/with_lfc/xc_tests/rebinned_f0.npy')
-# (2) using a synthetic spectrum
-wl0, f0 = readcol('/Users/christoph/OneDrive - UNSW/synthetic_templates/' + 'synth_teff5250_logg45.txt', twod=False)
-# wl0 = pyfits.getdata('/Users/christoph/OneDrive - UNSW/synthetic_templates/phoenix/WAVE_PHOENIX-ACES-AGSS-COND-2011.fits')
-# f0 = pyfits.getdata('/Users/christoph/OneDrive - UNSW/synthetic_templates/phoenix/lte05400-4.50-0.0.PHOENIX-ACES-AGSS-COND-2011-HiRes.fits')
-logwlgrid = np.load('/Volumes/WORKING/data/veloce/reduced/delpav/with_lfc/xc_tests/logwlgrid_o36.npy')
-dum_spline_rep = interp.InterpolatedUnivariateSpline(np.log(wl0), f0, k=deg_interp)
-rebinned_f0 = dum_spline_rep(logwlgrid)
-# (3) using a single absorption line
-# test_f0 = np.ones(len(rebinned_f0)) - CMB_pure_gaussian(np.arange(len(rebinned_f0)), len(rebinned_f0)/2., 10, 0.5)
-# rebinned_f0 = test_f0.copy()
+### (2) using a synthetic spectrum
+# wl0, f0 = readcol('/Users/christoph/OneDrive - UNSW/synthetic_templates/' + 'synth_teff5250_logg45.txt', twod=False)
+# # wl0 = pyfits.getdata('/Users/christoph/OneDrive - UNSW/synthetic_templates/phoenix/WAVE_PHOENIX-ACES-AGSS-COND-2011.fits')
+# # f0 = pyfits.getdata('/Users/christoph/OneDrive - UNSW/synthetic_templates/phoenix/lte05400-4.50-0.0.PHOENIX-ACES-AGSS-COND-2011-HiRes.fits')
+# logwlgrid = np.load('/Volumes/WORKING/data/veloce/reduced/delpav/with_lfc/xc_tests/logwlgrid_o36.npy')
+# dum_spline_rep = interp.InterpolatedUnivariateSpline(np.log(wl0), f0, k=deg_interp)
+# rebinned_f0 = dum_spline_rep(logwlgrid)
+### (3) using a single absorption line
+# test_f0 = np.ones(len(logwlgrid)) - CMB_pure_gaussian(np.arange(len(logwlgrid)), len(logwlgrid)/2., 10, 0.5)
+test_f0 = np.ones(len(logwlgrid))
+line_offsets = np.arange(-9000,9001,1000)
+# line_offsets = np.array([-500,0, 1500])
+line_pos = len(logwlgrid)/2. + line_offsets
+# line_depths = [0.5,0.5,0.5]
+line_depths = np.ones(len(line_offsets)) * 0.5
+for pos,dep in zip(line_pos, line_depths):
+    test_f0 -= CMB_pure_gaussian(np.arange(len(logwlgrid)), pos, 30./fac, dep)
+rebinned_f0 = test_f0.copy()
 
 taper_width = 0.05
 
@@ -411,8 +436,8 @@ for i,shift in enumerate(shifts):
     f_in = (rebreb_f0 - 1.)*taper_func
     f0_in -= np.mean(f0_in)
     f_in -= np.mean(f_in)
-    all_xc.append(xcorr(f0_in, f_in, scale='unbiased'))
-#     all_xc.append(xcorr(f0_in, f_in, scale='none'))
+#     all_xc.append(xcorr(f0_in, f_in, scale='unbiased'))
+    all_xc.append(xcorr(f0_in, f_in, scale='none'))
 #     all_xc.append(xcorr(f0_in, f_in, scale='biased'))
 #     all_xc.append(xcorr(f0_in, f_in, scale='unbiased'))
 #     all_xc.append(xcorr(f0_in, f_in, scale='coeff'))
@@ -523,10 +548,240 @@ for i in range(len(shifts)):
     fitparms.append(popt)
     
     
-mu_list = [fp[0] for fp in fitparms]
-phi = [mu - np.floor(mu) for mu in mu_list]
-plt.plot(phi, rv-shifts,'rx', label='linear interp.')
-plt.plot(phi, rv-shifts,'b+', label='cubic spline interp.')
+# mu_list = [fp[0] for fp in fitparms]
+# phi = [mu - np.floor(mu) for mu in mu_list]
+# plt.plot(phi, rv-shifts,'rx', label='linear interp.')
+# plt.plot(phi, rv-shifts,'b+', label='cubic spline interp.')
+
+################################################################################################################################################################
+################################################################################################################################################################
+################################################################################################################################################################
+
+#################################################################################################################    
+### using template matching / shift-and_fit
+#################################################################################################################
+
+shifts = np.sort(np.r_[np.linspace(-30e3,30e3,720), np.arange(-300,301,10)])
+
+# make CCfs by shifting the continuum-normalized and rebinned_f0, to subsequently check if I can recover RVs for that
+# speed of light in m/s
+c = 2.99792458e8
+
+# conversion factor between FWHM and sigma for pure Gaussian (FWHM = 2.355 * sigma)
+fac = 2.*np.sqrt(2*np.log(2))
+
+all_xc = []
+
+logwlgrid = np.load('/Volumes/WORKING/data/veloce/reduced/delpav/with_lfc/xc_tests/logwlgrid_o17.npy')
+wl0 = np.exp(logwlgrid)
+
+### (1) using real Veloce data
+f0 = np.load('/Volumes/WORKING/data/veloce/reduced/delpav/with_lfc/xc_tests/rebinned_f0.npy')
+### (2) using a synthetic spectrum
+# wl0, f0 = readcol('/Users/christoph/OneDrive - UNSW/synthetic_templates/' + 'synth_teff5250_logg45.txt', twod=False)
+### (3) using a single absorption line
+# # test_f0 = np.ones(len(logwlgrid)) - CMB_pure_gaussian(np.arange(len(logwlgrid)), len(logwlgrid)/2., 10, 0.5)
+# test_f0 = np.ones(len(logwlgrid))
+# line_offsets = np.arange(-9000,9001,1000)
+# # line_offsets = np.array([-500,0, 1500])
+# line_pos = len(logwlgrid)/2. + line_offsets
+# # line_depths = [0.5,0.5,0.5]
+# line_depths = np.ones(len(line_offsets)) * 0.5
+# for pos,dep in zip(line_pos, line_depths):
+#     test_f0 -= CMB_pure_gaussian(np.arange(len(logwlgrid)), pos, 30./fac, dep)
+# f0 = test_f0.copy()
+
+f = f0.copy()
+err = np.sqrt(f)
+bad_threshold = 10
+
+# initialise output arrays
+# npix = len(f0)
+# rv = np.zeros(len(shifts))
+# rverr = np.zeros(len(shifts))
+(nord, nfib, npix) = f.shape
+rvs = np.zeros((nord,nfib))
+rv_sigs = np.zeros((nord,nfib))
+redchi2_arr = np.zeros((nord,nfib))
+fitparms = []
+
+for i,shift in enumerate(shifts):
+    print('Running test observation ' + str(i+1) + '/' + str(len(shifts)) + '...')
+    
+    wl = wl0 * np.sqrt((1 + shift / c) / (1 - shift / c))
+    
+    # initial fit parameters
+    initp = np.zeros(4)
+    initp[0] = np.random.normal(shift, 1000)
+#     initp[3] = 0.5
+#     print('initp = ', initp)
+
+    print("Order ")
+    use_orders = np.arange(nord)
+#     use_orders = [5, 6, 17, 25, 27, 31, 36]
+#     use_orders = [17]
+    
+    # loop over all orders
+    for o in use_orders:         # at the moment 17 and 34 give the lowest scatter
+
+        print(str(o+1)),
+        
+        ord_wl = wl[o,:,:]
+        ord_f = f[o,:,:]
+        ord_err = err[o,:,:]
+        ord_wl0 = wl0[o,:,:]
+        ord_f0 = f0[o,:,:]
+        
+        nbad = 0
+        
+        # wavelength array must be increasing for "InterpolatedUnivariateSpline" to work --> turn arrays around if necessary!!!
+        if (np.diff(ord_wl) < 0).any():
+            ord_wl_sorted = ord_wl[:,::-1].copy()
+            ord_f_sorted = ord_f[:,::-1].copy()
+            ord_err_sorted = ord_err[:,::-1].copy()
+            ord_wl0_sorted = ord_wl0[:,::-1].copy()
+            ord_f0_sorted = ord_f0[:,::-1].copy()
+        else:
+            ord_wl_sorted = ord_wl.copy()
+            ord_f_sorted = ord_f.copy()
+            ord_err_sorted = ord_err.copy()
+            ord_wl0_sorted = ord_wl0.copy()
+            ord_f0_sorted = ord_f0.copy()
+        
+        
+        # loop over all fibres
+#         for fib in range(nfib):
+        for fib in range(3,22):
+            
+            spl_ref = interp.InterpolatedUnivariateSpline(ord_wl0_sorted[fib,:], ord_f0_sorted[fib,:], k=3)
+            args = (ord_wl_sorted[fib,:], ord_f_sorted[fib,:], ord_err_sorted[fib,:], spl_ref)
+        
+            # Remove edge effects in a slightly dodgy way by making their error bars infinity and hence giving them zero weights (20 pixels is about 30km/s) 
+            args[2][:50] = np.inf
+            args[2][-50:] = np.inf
+            
+#             model_init = rv_shift_resid(initp, *args, return_spect=True)
+    
+            # calculate the model and residuals starting with initial parameters
+            # I don't have the Jacobian yet when I am using the proper relativistic Doppler shift, so using Dfun=None for now (still seems to work fine)
+#             the_fit = op.leastsq(rv_shift_resid, initp, args=args, diag=[1e3,1,1,1], Dfun=rv_shift_jac, full_output=True, xtol=1e-6)
+            the_fit = op.leastsq(rv_shift_resid, initp, args=args, diag=[1e3,1,1,1], Dfun=None, full_output=True, epsfcn=1e-3)   
+#             the_fit[0] are the best-fit parms
+#             the_fit[1] is the covariance matrix
+#             the_fit[2] is auxiliary information on the fit (in form of a dictionary)
+#             the_fit[3] is a string message giving information about the cause of failure.
+#             the_fit[4] is an integer flag 
+            # (if it is equal to 1, 2, 3 or 4, the solution was found. Otherwise, the solution was not found -- see op.leastsq documentation for more info)
+#             model_before = rv_shift_resid(the_fit[0], *args, return_spect=True)
+            resid_before = rv_shift_resid(the_fit[0], *args)
+            wbad = np.where(np.abs(resid_before) > bad_threshold)[0]   # I should probably return the abs residuals and then divide them by the error outside "rv_shift_resid"
+            nbad += len(wbad)
+            
+            chi2 = rv_shift_chi2(the_fit[0], *args)
+            redchi2 = chi2 / (npix - len(initp))
+    
+#             fitted_spec = rv_shift_resid(the_fit[0], *args, return_spect=True)
+            
+            #################################################################
+            # now repeat after removing outliers
+            #################################################################
+                        
+            # make the errors for the "bad" pixels infinity (so as to make the weights zero)
+            args[2][np.where(np.abs(resid_before) > bad_threshold)] = np.inf
+        
+#             the_fit = op.leastsq(rv_shift_resid, initp, args=args, diag=[1e3,1,1,1], Dfun=rv_shift_jac, full_output=True, xtol=1e-6)
+            the_fit = op.leastsq(rv_shift_resid, initp, args=args, diag=[1e3,1,1,1], Dfun=None, full_output=True, epsfcn=1e-3)
+#             residAfter = rv_shift_resid( the_fit[0], *args)
+            chi2 = rv_shift_chi2(the_fit[0], *args)
+            redchi2 = chi2 / (npix - len(initp))
+            redchi2_arr[o,fib] = redchi2
+            
+            # Save the fit and the uncertainty (the_fit[0][0] is the RV shift)
+#             fitparms.append(the_fit[0])
+#             rv[i] = the_fit[0][0]
+            rvs[o,fib] = the_fit[0][0]
+#             rverr[i] = np.sqrt(the_fit[1][0,0])
+            try:
+                rv_sigs[o,fib] = np.sqrt(the_fit[1][0,0])
+#                 rv_sigs[o,fib] = np.sqrt(redchi2 * the_fit[1][0,0])
+            except:
+                rv_sigs[o,fib] = np.nan
+
+
+    
+    
+plt.plot(shifts, rv-shifts, 'x')
+    
+
+#################################################################################################################    
+### OK, now let's try using template matching / shift-and-fit on real observations
+#################################################################################################################
+
+# TEMPLATE:
+# # tau Ceti
+# ix0 = 7   # tau Ceti
+# date_0 = '20180919'
+# del Pav
+ix0 = 36
+date_0 = '20190518'
+
+f0 = pyfits.getdata(files[ix0], 0)
+err0 = pyfits.getdata(files[ix0], 1)
+obsname_0 = all_obsnames[ix0]
+wl0 = pyfits.getdata(wls[ix0])
+bc0 = pyfits.getval(files[ix0], 'BARYCORR')
+
+maskdict = np.load('/Volumes/BERGRAID/data/veloce/reduced/' + date_0 + '/mask.npy').item()
+
+# wl0 = pyfits.getdata('/Users/christoph/OneDrive - UNSW/dispsol/individual_fibres_dispsol_poly7_21sep30019.fits')
+
+mw_flux = pyfits.getdata('/Volumes/BERGRAID/data/veloce/reduced/' + date_0 + '/master_white_optimal3a_extracted.fits')
+smoothed_flat, pix_sens = onedim_pixtopix_variations(mw_flux, filt='gaussian', filter_width=25)
+
+f0_clean = pyfits.getdata(path + '190248_' + obsname_0 + '_optimal3a_extracted_cleaned.fits')
+
+
+all_rv = []
+all_rverr = []
+all_redchi2 = []
+
+# loop over all observations
+for i,filename in enumerate(files[:9]):
+    print('Processing RV for observation ' + str(i + 1) + '/' + str(len(files)))
+    # get obsname and date
+    obsname = filename.split('_')[-3]
+    utdate = pyfits.getval(filename, 'UTDATE')
+    date = utdate[:4] + utdate[5:7] + utdate[8:]
+
+    # read in spectrum
+#     f = pyfits.getdata(filename, 0)
+    err = pyfits.getdata(filename, 1)
+    wl = pyfits.getdata(wls[i])
+    bc = pyfits.getval(filename, 'BARYCORR')
+    f_clean = pyfits.getdata(path + '190248_' + obsname + '_optimal3a_extracted_cleaned.fits')
+    
+    # call shift-and-fit RV routine (output format of rvs is (n_ord, n_fib) = (38,19)
+    use_orders = [5,6,7,17,26,27,28,30,31,34,35,36]   # these give the best RVs (ie least affected by tellurics) when doing shit-and-fit RVs
+    rvs, rv_errs, redchi2 = calculate_rv_shift(f0_clean[:,3:22,:], wl0[:,3:22,:], f_clean[:,3:22,:], wl[:,3:22,:], err[:,3:22,:], bc=bc, bc0=bc0, edge=50)
+#     rvs, rv_errs, redchi2 = calculate_rv_shift(f0_clean[17:18,3:22,:], wl0[17:18,3:22,:], f_clean[17:18,3:22,:], wl[17:18,3:22,:], err[17:18,3:22,:], bc=bc, bc0=bc0, edge=50)
+    
+    all_rv.append(rvs)
+    all_rverr.append(rv_errs)
+    all_redchi2.append(redchi2)
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

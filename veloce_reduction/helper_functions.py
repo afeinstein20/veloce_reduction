@@ -1701,7 +1701,18 @@ def specplothist(data, wl, err=None, lhs=None, widths=None, dots=True, errorbars
     return
 
 
-
+def add_date_to_reduced_filenames(date):
+    path = '/Volumes/BERGRAID/data/veloce/reduced/' + date + '/'
+    all_files = glob.glob(path + '*')
+    short_fns = [fn.split('/')[-1] for fn in all_files]
+    first_eight = [x[:8] for x in short_fns]
+    assert date not in first_eight,"ERROR: At least one filename already begins with the date!!! Check manually what's going on!!!"
+    print('Adding date to reduced filenames for ' + str(len(all_files)) + ' files for ' + date)
+    for old_fn,short_fn in zip(all_files,short_fns):
+        new_fn = path + date + '_' + short_fn
+        os.rename(old_fn, new_fn)
+    print('Done!')
+    return
 
 
 

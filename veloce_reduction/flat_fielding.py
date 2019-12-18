@@ -30,6 +30,121 @@ from scipy import ndimage
 
 
 
+def onedim_pixtopix_variations_spline(flat, knots=9, guess=13, savefits=True, path=None, debug_level=0):
+    """
+    This routine fits a smoothing spline to an observed flat field in order to determine the pixel-to-pixel sensitivity variations
+    as well as the fringing pattern in the red orders. This is done in 1D, ie for the already extracted spectrum.
+    
+    INPUT:
+    'flat'          : dictionary / np.array containing the extracted flux from the flat field (master white) (keys = orders)
+    'knots'         : the desired number of knots for the smoothing spline
+    'guess'         : starting guess for the "smoothing factor" that determines the number of knots:  s = 10^guess  (see online documentation for scipy.interpolate.UnivariateSpline)
+    
+    OUTPUT:
+    'pix_sens'      : dictionary / np.array of the pixel-to-pixel sensitivities (keys = orders)
+    'smoothed_flat' : dictionary / np.array of the smoothed (ie filtered) whites (keys = orders)
+    
+    MODHIST:
+    13/12/2019 - CMB create (clone of onedim_pixtopix_variations)
+    """
+    
+    if savefits:
+        assert path is not None, 'ERROR: path variable is not set!'
+    
+    # check whether it's a numpy array (eg from FITS file), or a python dictionary
+    if flat.__class__ == np.ndarray:
+        
+        # make sure that they are either quick-extracted spectra (order, pixel), or optimal-extracted spectra (order, fibre, pixel)
+        assert len(flat.shape) in [2,3], 'ERROR: shape of flat not recognized!!!'
+        assert flat.shape[-1] == 4112, 'ERROR: there are NOT exactly 4112 pixels in dispersion direction'
+        
+        if debug_level >= 1:
+            print('Fitting smoothing spline with ' + str(knots) + ' knots to...')
+        
+        xx = np.arange(flat.shape[-1])
+        pix_sens = np.zeros(flat.shape) - 1.
+        smoothed_flat = np.zeros(flat.shape) - 1.
+        
+        # loop over all orders
+        for o in range(flat.shape[0]):
+            if debug_level >= 1:
+                print('Order_'+str(o+1).zfill(2))
+            # are they optimal 3a extracted spectra?
+            if len(flat.shape) == 3:
+                # loop over all fibres
+                for fib in range(flat.shape[1]): 
+                    if debug_level >= 2:
+                        print('Fibre '+str(fib+1).zfill(2))
+                    # determine smoothing parameter to get desired number of knots
+                    spl = UnivariateSpline(xx, flat[o,fib,:], s=10**guess)
+                    nk = len(spl.get_knots())
+                    if nk < knots:
+                        add = 0
+                        while nk < knots:
+                            add -= 0.01
+                            spl = UnivariateSpline(xx, flat[o,fib,:], s=10**(guess + add))
+                            nk = len(spl.get_knots())
+#                             print(add, nk)
+                    elif nk > knots:
+                        add = 0
+                        while nk > knots:
+                            add += 0.01
+                            spl = UnivariateSpline(xx, flat[o,fib,:], s=10**(guess + add))
+                            nk = len(spl.get_knots())
+#                             print(add, nk)
+                    smoothed_flat[o,fib,:] = spl(xx)
+                    pix_sens[o,fib,:] = flat[o,fib,:] / smoothed_flat[o,fib,:]
+            # or are they just quick-extracted spectra
+            else:
+                # determine smoothing parameter to get desired number of knots
+                spl = UnivariateSpline(xx, flat[o,:], s=10**guess)
+                nk = len(spl.get_knots())
+                if nk < knots:
+                    add = 0
+                    while nk < knots:
+                        add -= 0.01
+                        spl = UnivariateSpline(xx, flat[o,:], s=10**(guess + add))
+                        nk = len(spl.get_knots())
+#                         print(add, nk)
+                elif nk > knots:
+                    add = 0
+                    while nk > knots:
+                        add += 0.01
+                        spl = UnivariateSpline(xx, flat[o,:], s=10**(guess + add))
+                        nk = len(spl.get_knots())
+#                         print(add, nk)
+                smoothed_flat[o,:] = spl(xx)
+                pix_sens[o,:] = flat[o,:] / smoothed_flat[o,:]
+        
+        if savefits:
+            date = path.split('/')[-2]
+            # get header from master white
+            h = pyfits.getheader(path + date + '_master_white.fits')
+            # add requested number of knots to header
+            h['N_KNOTS'] = (knots, 'number of knots used in smoothing spline')
+            pyfits.writeto(path + date + '_smoothed_flat.fits', smoothed_flat, h)
+            pyfits.writeto(path + date + '_pixel_sensitivity.fits', pix_sens, h)
+                
+    elif flat.__class__ == dict:
+        print('This has not been implemented yet for dictionaries...')
+        return
+#         pix_sens = {}
+#         smoothed_flat = {}
+#         # loop over all orders
+#         for ord in sorted(flat.keys()): 
+            
+    else:
+        print('ERROR: data type / variable class not recognized')
+        return   
+    
+    if debug_level >= 1:
+        print('DONE!!!')
+        
+    return smoothed_flat, pix_sens
+
+
+
+
 
 def onedim_pixtopix_variations(flat, filt='gaussian', filter_width=25):
     """

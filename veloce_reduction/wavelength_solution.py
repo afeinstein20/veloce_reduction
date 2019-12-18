@@ -2519,7 +2519,7 @@ def get_dispsol_for_all_fibs_3(obsname, date=None, relto='LFC', degpol=7, nx=411
         lamptype = 'thxe'
         
     # read master ARC dispsol for that night
-    assert (os.path.isfile(red_path + lamptype + '_dispsol_' + date + '.fits')) or (os.path.isfile(raw_path + lamptype + '_dispsol_' + date + '.fits')), 'ERROR: master ARC wl-solution does not exist for ' + str(date) + ' !!!'
+    assert (os.path.isfile(red_path + date + '_' + lamptype + '_dispsol_' + '.fits')) or (os.path.isfile(raw_path + lamptype + '_dispsol_' + date + '.fits')), 'ERROR: master ARC wl-solution does not exist for ' + str(date) + ' !!!'
     try:
         # air_wl = pyfits.getdata(red_path + lamptype + '_dispsol_' + date + '.fits', 0)
         vac_wl = pyfits.getdata(red_path + lamptype + '_dispsol_' + date + '.fits', 1)
@@ -2694,7 +2694,7 @@ def make_master_fibth(date=None, savefile=True, overwrite=False, laptop=False):
         path = "/Volumes/BERGRAID/data/veloce/reduced/" + date + "/"
                 
     # list of all Fibre Thoriums (ThAr for 20180917; ThXe for all later nights)
-    arc_list = glob.glob(path + 'ARC*optimal*')
+    arc_list = glob.glob(path + '*ARC*optimal*')
     if len(arc_list) == 0:
         print('WARNING: no Fibre Thorium (ARC) exposures found for '+date+' !!!')
         return (-1,-1)
@@ -2707,7 +2707,7 @@ def make_master_fibth(date=None, savefile=True, overwrite=False, laptop=False):
         allspec.append(pyfits.getdata(fn,0))
         allerr.append(pyfits.getdata(fn,1))
             
-    # list of individual exposure times for all whites (should all be the same, but just in case...)
+    # list of individual exposure times (should all be the same, but just in case...)
     texp_list = [pyfits.getval(fn, 'ELAPSED') for fn in arc_list]
     # scale to the median exposure time
     tscale = np.array(texp_list) / np.median(texp_list)
@@ -2718,8 +2718,8 @@ def make_master_fibth(date=None, savefile=True, overwrite=False, laptop=False):
     err_medspec = 1.253 * np.std(allspec, axis=0) / np.sqrt(n_arc-1)     # normally it would be sigma/sqrt(n), but np.std is dividing by sqrt(n), not by sqrt(n-1)
     
     if savefile:
-        pyfits.writeto(path + 'master_ARC_' + date + '.fits', medspec, clobber=overwrite)
-        pyfits.append(path + 'master_ARC_' + date + '.fits', err_medspec, clobber=overwrite)
+        pyfits.writeto(path + date + '_master_ARC_' + date + '.fits', medspec, clobber=overwrite)
+        pyfits.append(path + date + '_master_ARC_' + date + '.fits', err_medspec, clobber=overwrite)
     
     return medspec, err_medspec
 
@@ -2748,8 +2748,8 @@ def make_arc_dispsols(date, deg_spectral=7, deg_spatial=7, polytype='chebyshev',
     else:
         path = "/Volumes/BERGRAID/data/veloce/reduced/" + date + "/"
     
-    # check if wl-solution file already exists
-    if os.path.isfile(path + 'master_ARC_' + date + '.fits'):
+    # check if master arc file already exists
+    if os.path.isfile(path + date + '_master_ARC_' + date + '.fits'):
         master_arc = pyfits.getdata((path + 'master_ARC_' + date + '.fits'))
     else:
         # make master arc for that night
@@ -2793,8 +2793,8 @@ def make_arc_dispsols(date, deg_spectral=7, deg_spatial=7, polytype='chebyshev',
 
     # save to all-fibres-combined fits file
     if savefits:
-        pyfits.writeto(path + lamptype + '_dispsol_' + date + '.fits', all_air_wl, clobber=overwrite)
-        pyfits.append(path + lamptype + '_dispsol_' + date + '.fits', all_vac_wl)
+        pyfits.writeto(path + date + '_' + lamptype + '_dispsol_' + '.fits', all_air_wl, clobber=overwrite)
+        pyfits.append(path + date + '_' + lamptype + '_dispsol_' + '.fits', all_vac_wl)
 
     if timit:
         delta_t = time.time() - start_time
@@ -2937,6 +2937,29 @@ def get_dispsol_for_all_fibs_from_fibth(fn, date=None, path=None, deg_spectral=7
         print('Time taken for creating ARC dispsol for all fibres: ' + str(np.round(delta_t,1)) + ' seconds')
     
     return all_air_wl, all_vac_wl
+
+
+
+
+def make_lfc_only_wl_files_for_all_fibs(wlfile, savefile=True, return_full=False):
+    # read in FITS file contanining the wl-solution for all fibres
+    wl = pyfits.getdata(wlfile)
+    # prepare output wl-array
+    lfc_wl = np.ones(wl.shape)
+    # loop over all orders and fibres
+    for o in range(wl.shape[0]):
+        for fib in range(wl.shape[1]):
+            lfc_wl[o,fib,:] = wl[o,-1,:]
+    if savefile:
+        short_fn = wlfile.split('/')[-1]
+        path = wlfile[:-len(short_fn)]
+        new_fn = path + short_fn.split('.fits')[0] + '_lfc.fits'
+        pyfits.writeto(new_fn, lfc_wl)
+    
+    if return_full:
+        return lfc_wl
+    else:
+        return
 
 
 

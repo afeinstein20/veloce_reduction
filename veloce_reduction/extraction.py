@@ -976,7 +976,8 @@ def optimal_extraction_from_indices(img, stripe_indices, err_img=None, ronmask=N
 
 
 def extract_spectrum(stripes, err_stripes, ron_stripes, method='optimal', individual_fibres=True, combined_profiles=False, integrate_profiles=False, slope=False,
-                     offset=False, fibs='all', slit_height=30, savefile=False, filetype='fits', obsname=None, date=None, path=None, skip_first_order=False, simu=False, verbose=False, timit=False, debug_level=0):
+                     offset=False, fibs='all', slit_height=30, savefile=False, filetype='fits', obsname=None, date=None, path=None, skip_first_order=False, 
+                     simu=False, verbose=False, timit=False, debug_level=0):
     """
     This routine is simply a wrapper code for the different extraction methods. There are a total FIVE (1,2,3a,3b,3c) different extraction methods implemented, 
     which can be selected by a combination of the 'method', individual_fibres', and 'combined_profile' keyword arguments.
@@ -1040,6 +1041,9 @@ def extract_spectrum(stripes, err_stripes, ron_stripes, method='optimal', indivi
     02/08/18 - added 'savefile', 'path', and 'obsname' keywords - save output as FITS file
     """
     
+    if date is None:
+        date = raw_input("Please enter date of observations 'YYYYMMDD': ")
+    
     while method not in ["quick", "tramline", "optimal"]:
         print('ERROR: extraction method not recognized!')
         method = raw_input('Which method do you want to use (valid options are ["quick" / "tramline" / "optimal"] )?')
@@ -1053,7 +1057,8 @@ def extract_spectrum(stripes, err_stripes, ron_stripes, method='optimal', indivi
         #pix,flux,err = collapse_extract(stripes, err_stripes, tramlines, slit_height=slit_height, verbose=verbose, timit=timit, debug_level=debug_level)
     elif method.lower() == 'optimal':
         pix,flux,err = optimal_extraction(stripes, err_stripes=err_stripes, ron_stripes=ron_stripes, slit_height=slit_height, individual_fibres=individual_fibres,
-                                          skip_first_order=skip_first_order, combined_profiles=combined_profiles, integrate_profiles=integrate_profiles, slope=slope, offset=offset, fibs=fibs, date=date, simu=simu, timit=timit, debug_level=debug_level)
+                                          skip_first_order=skip_first_order, combined_profiles=combined_profiles, integrate_profiles=integrate_profiles, slope=slope, 
+                                          offset=offset, fibs=fibs, date=date, simu=simu, timit=timit, debug_level=debug_level)
     else:
         print('ERROR: Nightmare! That should never happen  --  must be an error in the Matrix...')
         return    
@@ -1095,16 +1100,16 @@ def extract_spectrum(stripes, err_stripes, ron_stripes, method='optimal', indivi
                     fluxarr[i,:] = flux[o]
                     errarr[i,:] = err[o]
                 # try and get header from previously saved files
-                if os.path.exists(path+obsname+'_BD_CR_BG_FF.fits'):
-                    h = pyfits.getheader(path+obsname+'_BD_CR_BG_FF.fits')
-                elif os.path.exists(path+obsname+'_BD_CR_BG.fits'):
-                    h = pyfits.getheader(path+obsname+'_BD_CR_BG.fits')
-                elif os.path.exists(path+obsname+'_BD_CR.fits'):
-                    h = pyfits.getheader(path+obsname+'_BD_CR.fits')
-                elif os.path.exists(path+obsname+'_BD.fits'):
-                    h = pyfits.getheader(path+obsname+'_BD.fits')
+                if os.path.exists(path + date + '_' + obsname + '_BD_CR_BG_FF.fits'):
+                    h = pyfits.getheader(path + date + '_' + obsname + '_BD_CR_BG_FF.fits')
+                elif os.path.exists(path + date + '_' + obsname + '_BD_CR_BG.fits'):
+                    h = pyfits.getheader(path + date + '_' + obsname + '_BD_CR_BG.fits')
+                elif os.path.exists(path + date + '_' + obsname + '_BD_CR.fits'):
+                    h = pyfits.getheader(path + date + '_' + obsname + '_BD_CR.fits')
+                elif os.path.exists(path + date + '_' + obsname + '_BD.fits'):
+                    h = pyfits.getheader(path + date + '_' + obsname + '_BD.fits')
                 else:
-                    h = pyfits.getheader(path+obsname+'.fits')   
+                    h = pyfits.getheader(path + obsname + '.fits')   
                 # update the header and write to file
                 h['HISTORY'] = '   EXTRACTED SPECTRUM - created ' + time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()) + ' (GMT)'
                 h['EXMETH'] = (method, 'extraction method used')
@@ -1120,9 +1125,9 @@ def extract_spectrum(stripes, err_stripes, ron_stripes, method='optimal', indivi
                     h['OFFSET'] = (offset,)
                 # write to FITS file
                 if starname == '':
-                    outfn = path + starname + obsname + '_' + method.lower() + submethod + '_extracted.fits'
+                    outfn = path + date + '_' + starname + obsname + '_' + method.lower() + submethod + '_extracted.fits'
                 else:
-                    outfn = path + starname + '_' + obsname + '_' + method.lower() + submethod + '_extracted.fits'
+                    outfn = path + date + '_' + starname + '_' + obsname + '_' + method.lower() + submethod + '_extracted.fits'
                 pyfits.writeto(outfn, fluxarr, h, clobber=True)    
                 # now append the corresponding error array
                 h_err = h.copy()
@@ -1136,7 +1141,7 @@ def extract_spectrum(stripes, err_stripes, ron_stripes, method='optimal', indivi
                 extracted['pix'] = pix
                 extracted['flux'] = flux
                 extracted['err'] = err
-                np.save(path + starname + '_' + obsname + '_' + method.lower() + submethod + '_extracted.npy', extracted)
+                np.save(path + date + '_' + starname + '_' + obsname + '_' + method.lower() + submethod + '_extracted.npy', extracted)
         
     return pix,flux,err
 
@@ -1145,7 +1150,8 @@ def extract_spectrum(stripes, err_stripes, ron_stripes, method='optimal', indivi
 
 
 def extract_spectrum_from_indices(img, err_img, stripe_indices, ronmask=None, method='optimal', individual_fibres=True, combined_profiles=False, integrate_profiles=False, slope=False,
-                                  offset=False, fibs='all', slit_height=30, savefile=False, filetype='fits', obsname=None, date=None, path=None, skip_first_order=False, simu=False, verbose=False, timit=False, debug_level=0):
+                                  offset=False, fibs='all', slit_height=30, savefile=False, filetype='fits', obsname=None, date=None, path=None, skip_first_order=False, 
+                                  simu=False, verbose=False, timit=False, debug_level=0):
     """
     CLONE OF 'extract_spectrum'! 
     This routine is simply a wrapper code for the different extraction methods. There are a total FIVE (1,2,3a,3b,3c) different extraction methods implemented, 
@@ -1208,6 +1214,9 @@ def extract_spectrum_from_indices(img, err_img, stripe_indices, ronmask=None, me
     MODHIST:
     17/07/18 - CMB create
     """
+
+    if date is None:
+        date = raw_input("Please enter date of observations 'YYYYMMDD': ")        
 
     while method not in ["quick", "tramline", "optimal"]:
         print('ERROR: extraction method not recognized!')
@@ -1273,16 +1282,16 @@ def extract_spectrum_from_indices(img, err_img, stripe_indices, ronmask=None, me
                         fluxarr[i,:] = flux[o]
                         errarr[i,:] = err[o]
                 # try and get header from previously saved files
-                if os.path.exists(path+obsname+'_BD_CR_BG_FF.fits'):
-                    h = pyfits.getheader(path+obsname+'_BD_CR_BG_FF.fits')
-                elif os.path.exists(path+obsname+'_BD_CR_BG.fits'):
-                    h = pyfits.getheader(path+obsname+'_BD_CR_BG.fits')
-                elif os.path.exists(path+obsname+'_BD_CR.fits'):
-                    h = pyfits.getheader(path+obsname+'_BD_CR.fits')
-                elif os.path.exists(path+obsname+'_BD.fits'):
-                    h = pyfits.getheader(path+obsname+'_BD.fits')
+                if os.path.exists(path + date + '_' + obsname + '_BD_CR_BG_FF.fits'):
+                    h = pyfits.getheader(path + date + '_' + obsname + '_BD_CR_BG_FF.fits')
+                elif os.path.exists(path + date + '_' + obsname + '_BD_CR_BG.fits'):
+                    h = pyfits.getheader(path + date + '_' + obsname + '_BD_CR_BG.fits')
+                elif os.path.exists(path + date + '_' + obsname + '_BD_CR.fits'):
+                    h = pyfits.getheader(path + date + '_' + obsname + '_BD_CR.fits')
+                elif os.path.exists(path + date + '_' + obsname + '_BD.fits'):
+                    h = pyfits.getheader(path + date + '_' + obsname + '_BD.fits')
                 else:
-                    h = pyfits.getheader(path+obsname+'.fits')   
+                    h = pyfits.getheader(path + obsname + '.fits')   
                 # update the header and write to file
                 h['HISTORY'] = '   EXTRACTED SPECTRUM - created ' + time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()) + ' (GMT)'
                 h['EXMETH'] = (method, 'extraction method used')
@@ -1298,9 +1307,9 @@ def extract_spectrum_from_indices(img, err_img, stripe_indices, ronmask=None, me
                     h['OFFSET'] = (offset,)
                 # write to FITS file    
                 if starname == '':
-                    outfn = path + starname + obsname + '_' + method.lower() + submethod + '_extracted.fits'
+                    outfn = path + date + '_' + starname + obsname + '_' + method.lower() + submethod + '_extracted.fits'
                 else:
-                    outfn = path + starname + '_' + obsname + '_' + method.lower() + submethod + '_extracted.fits'
+                    outfn = path + date + '_' + starname + '_' + obsname + '_' + method.lower() + submethod + '_extracted.fits'
                 pyfits.writeto(outfn, fluxarr, h, clobber=True)    
                 # now append the corresponding error array
                 h_err = h.copy()
@@ -1314,7 +1323,7 @@ def extract_spectrum_from_indices(img, err_img, stripe_indices, ronmask=None, me
                 extracted['pix'] = pix
                 extracted['flux'] = flux
                 extracted['err'] = err
-                np.save(path + starname + '_' + obsname + '_' + method.lower() + submethod + '_extracted.npy', extracted)
+                np.save(path + date + '_' + starname + '_' + obsname + '_' + method.lower() + submethod + '_extracted.npy', extracted)
         
     return pix,flux,err
 

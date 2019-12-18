@@ -19,66 +19,67 @@ from veloce_reduction.veloce_reduction.background import extract_background, fit
 
 
 
-def make_median_image(imglist, MB=None, correct_OS=True, scalable=False, raw=False):
+def make_median_image(imglist, MB=None, ronmask=None, scale=False, gain=[1,1,1,1], debug_level=0):
     """
     Make a median image from a given list of images.
 
     INPUT:
     'imglist'     : list of files (incl. directories)
     'MB'          : master bias frame - if provided, it will be subtracted from every image before median image is computed
-    'correct_OS'  : boolean - do you want to subtract the overscan levels?
-    'scalable'    : boolean - do you want to scale this to an exposure time of 1s (AFTER the bias and overscan are subtracted!!!!!)
-    'raw'         : boolean - set to TRUE if you want to retain the original size and orientation;
-                    otherwise the image will be brought to the 'correct' orientation and the overscan regions will be cropped
+    'ronmask'     : the read-noise mask (or frame) [e-]
+    'scale'       : boolean - do you want to scale this to the median exposure time?
+    'debug_level' : for debugging...
 
     OUTPUT:
-    'medimg'   : median image (bias- & overscan-corrected) [still in ADU]
+    'medimg'   : median image (bias- & overscan-corrected) [e-]
+    'err_medimg' : corresponding uncertainties [e-]
     """
 
     # from veloce_reduction.calibration import crop_overscan_region
 
-    # prepare array
+    # prepare arrays
     allimg = []
-
+    allerr = []
+    
+    if MB is None:
+        dumimg = crop_overscan_region(correct_orientation(pyfits.getdata(imglist[0])))
+        MB = np.zeros(dumimg.shape)
+        del dumimg
+    
+    if ronmask is None:
+        dumimg = crop_overscan_region(correct_orientation(pyfits.getdata(imglist[0])))
+        MB = np.ones(dumimg.shape) * 4.
+        del dumimg
+    
     # loop over all files in "dark_list"
-    for file in imglist:
+    for n,file in enumerate(imglist):
         
-        # read in dark image
-        img = pyfits.getdata(file)
+        if debug_level >=1:
+            print('Now processing file ' + str(n+1) + '/' + str(len(imglist)) + '   (' + file + ')')
         
-        if correct_OS:
-            # get the overscan levels so we can subtract them later
-#             os_levels = get_bias_and_readnoise_from_overscan_polyfit(img, gain=[1,1,1,1], return_oslevels_only=True)
-            os_levels = get_bias_and_readnoise_from_overscan_collapse(img, gain=[1,1,1,1], return_oslevels_only=True)
-        if not raw:
-            # bring to "correct" orientation
-            img = correct_orientation(img)
-            # remove the overscan region
-            img = crop_overscan_region(img)
-        if correct_OS:
-            # make (4k x 4k) frame of the offsets
-            ny,nx = img.shape
-            offmask = np.ones((ny,nx))
-            # define four quadrants via masks
-            q1,q2,q3,q4 = make_quadrant_masks(nx,ny)
-            for q,osl in zip([q1,q2,q3,q4], os_levels):
-                offmask[q] = offmask[q] * osl
-            # subtract overscan levels
-            img = img - offmask           
-        if MB is not None:
-            # subtract master bias (if provided)
-            img = img - MB
-        if scalable:
-            texp = pyfits.getval(file, 'ELAPSED')
-            img /= texp
-
-        # add image to list
+        # read in dark image (and perform OS correction, cropping and rotation on the fly)
+        img = correct_for_bias_and_dark_from_filename(file, MB, MD=np.zeros(MB.shape), gain=gain)   # [e-]
         allimg.append(img)
+        err_img = np.sqrt(np.clip(img,0,None) + ronmask*ronmask)   # [e-]
+        allerr.append(err_img)
+        
+    if scale:
+        # list of individual exposure times for all whites (should all be the same, but just in case...)
+        texp_list = [pyfits.getval(file, 'ELAPSED') for file in imglist]
+        # scale to the median exposure time
+        tscale = np.array(texp_list) / np.median(texp_list)
 
     # get median image
-    medimg = np.median(np.array(allimg), axis=0)
+    N = len(imglist)     # number of images 
+    if scale:
+        # take median after scaling to median exposure time 
+        medimg = np.median(np.array(allimg) / tscale.reshape(len(allimg), 1, 1), axis=0)
+        err_medimg = 1.253 * np.std(np.array(allimg) / tscale.reshape(len(allimg), 1, 1), axis=0) / np.sqrt(N-1)     # normally it would be sigma/sqrt(n), but np.std is dividing by sqrt(n), not by sqrt(n-1)
+    else:
+        medimg = np.median(np.array(allimg), axis=0)
+        err_medimg = 1.253 * np.std(np.array(allimg), axis=0) / np.sqrt(N-1)     # normally it would be sigma/sqrt(n), but np.std is dividing by sqrt(n), not by sqrt(n-1)
 
-    return medimg
+    return medimg, err_medimg
 
 
 
@@ -546,7 +547,8 @@ def get_bias_and_readnoise_from_overscan_collapse(img, gain=None, ramps=[35, 35,
 
     # for quadrant 1
     dispdir_avg = np.average(os1[10:52,:], axis=1)
-    os1_flat = os1[10:52,:] - np.reshape(np.repeat(dispdir_avg, nxq), (42,nxq))
+#     os1_flat = os1[10:52,:] - np.reshape(np.repeat(dispdir_avg, nxq), (42,nxq))
+    os1_flat = os1[10:52,:] - np.reshape(np.repeat(dispdir_avg - np.average(dispdir_avg), nxq), (42,nxq))
     dispdir_shape = np.average(os1_flat, axis=0)
     os1_flatflat = os1_flat - np.reshape(np.repeat(dispdir_shape, 42), (nxq,42)).T
     ron1 = np.nanstd(sigma_clip(os1_flatflat.flatten(), clip))
@@ -554,7 +556,8 @@ def get_bias_and_readnoise_from_overscan_collapse(img, gain=None, ramps=[35, 35,
     
     # for quadrant 2
     dispdir_avg = np.average(os2[10:52,:], axis=1)
-    os2_flat = os2[10:52,:] - np.reshape(np.repeat(dispdir_avg, nxq), (42,nxq))
+#     os2_flat = os2[10:52,:] - np.reshape(np.repeat(dispdir_avg, nxq), (42,nxq))
+    os2_flat = os2[10:52,:] - np.reshape(np.repeat(dispdir_avg - np.average(dispdir_avg), nxq), (42,nxq))
     dispdir_shape = np.average(os2_flat, axis=0)
     os2_flatflat = os2_flat - np.reshape(np.repeat(dispdir_shape, 42), (nxq,42)).T
     ron2 = np.nanstd(sigma_clip(os2_flatflat.flatten(), clip))
@@ -562,7 +565,8 @@ def get_bias_and_readnoise_from_overscan_collapse(img, gain=None, ramps=[35, 35,
     
     # for quadrant 3
     dispdir_avg = np.average(os3[-52:-10,:], axis=1)
-    os3_flat = os3[-52:-10,:] - np.reshape(np.repeat(dispdir_avg, nxq), (42,nxq))
+#     os3_flat = os3[-52:-10,:] - np.reshape(np.repeat(dispdir_avg, nxq), (42,nxq))
+    os3_flat = os3[-52:-10,:] - np.reshape(np.repeat(dispdir_avg - np.average(dispdir_avg), nxq), (42,nxq))
     dispdir_shape = np.average(os3_flat, axis=0)
     os3_flatflat = os3_flat - np.reshape(np.repeat(dispdir_shape, 42), (nxq,42)).T
     ron3 = np.nanstd(sigma_clip(os3_flatflat.flatten(), clip))
@@ -570,7 +574,8 @@ def get_bias_and_readnoise_from_overscan_collapse(img, gain=None, ramps=[35, 35,
     
     # for quadrant 4
     dispdir_avg = np.average(os4[-52:-10,:], axis=1)
-    os4_flat = os4[-52:-10,:] - np.reshape(np.repeat(dispdir_avg, nxq), (42,nxq))
+#     os4_flat = os4[-52:-10,:] - np.reshape(np.repeat(dispdir_avg, nxq), (42,nxq))
+    os4_flat = os4[-52:-10,:] - np.reshape(np.repeat(dispdir_avg - np.average(dispdir_avg), nxq), (42,nxq))
     dispdir_shape = np.average(os4_flat, axis=0)
     os4_flatflat = os4_flat - np.reshape(np.repeat(dispdir_shape, 42), (nxq,42)).T
     ron4 = np.nanstd(sigma_clip(os4_flatflat.flatten(), clip))
@@ -604,10 +609,12 @@ def get_bias_and_readnoise_from_overscan_collapse(img, gain=None, ramps=[35, 35,
         offmask[q] = offmask[q] * offset
   
     # create "master bias" (4k x 4k) frame (incl. OS levels) from that (note the order is important, following the definition of the quadrants)
-    bias_only = np.vstack([np.hstack([model_os1, model_os2]), np.hstack([model_os4, model_os3])]) + add
+#     bias_only = np.vstack([np.hstack([model_os1, model_os2]), np.hstack([model_os4, model_os3])]) + add
+    bias = np.vstack([np.hstack([model_os1, model_os2]), np.hstack([model_os4, model_os3])]) + add
       
     # add overscan levels
-    bias = bias_only + offmask
+#     bias = bias_only + offmask
+    bias_only = bias - offmask
       
     if timit:
         print('Time elapsed: '+str(np.round(time.time() - start_time, 1))+' seconds')
@@ -788,10 +795,11 @@ def get_bias_and_readnoise_from_bias_frames(bias_list, degpol=5, clip=5, gain=No
         # save median bias image
         dum = bias_list[0].split('/')
         path = bias_list[0][0:-len(dum[-1])]
+        date = path.split('/')[-2]
         # write median bias image to file
-        pyfits.writeto(path+'median_bias.fits', medimg, clobber=True)
-        pyfits.setval(path+'median_bias.fits', 'UNITS', value='ADU')
-        pyfits.setval(path+'median_bias.fits', 'HISTORY', value='   median BIAS frame - created '+time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())+' (GMT)')
+        pyfits.writeto(path + date + '_median_bias.fits', medimg, clobber=True)
+        pyfits.setval(path + date + '_median_bias.fits', 'UNITS', value='ADU')
+        pyfits.setval(path + date + '_median_bias.fits', 'HISTORY', value='   median BIAS frame - created ' + time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()) + ' (GMT)')
 
     return medimg, coeffs, offsets, rons
 
@@ -1024,23 +1032,28 @@ def make_ronmask(rons, nx, ny, nq=4, gain=None, savefile=False, path=None, timit
             print('ERROR: output file directory not provided!!!')
             return
         else:
-
+            
+            try:
+                date = path.split('/')[-2]
+            except:
+                date = ''
+                
             # make read-out noise mask and save to fits file
-            pyfits.writeto(path+'read_noise_mask.fits', ronmask, clobber=True)
-            pyfits.setval(path+'read_noise_mask.fits', 'UNITS', value='ELECTRONS')
-            pyfits.setval(path+'read_noise_mask.fits', 'HISTORY', value='   read-noise frame - created '+time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())+' (GMT)')
+            pyfits.writeto(path + date + '_read_noise_mask.fits', ronmask, clobber=True)
+            pyfits.setval(path + date + '_read_noise_mask.fits', 'UNITS', value='ELECTRONS')
+            pyfits.setval(path + date + '_read_noise_mask.fits', 'HISTORY', value='   read-noise frame - created ' + time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()) + ' (GMT)')
             if nq == 1:
-                pyfits.setval(path+'read_noise_mask.fits', 'GAIN', value=gain, comment='in e-/ADU')
-                pyfits.setval(path+'read_noise_mask.fits', 'RNOISE', value=rons, comment='in ELECTRONS')
+                pyfits.setval(path + date + '_read_noise_mask.fits', 'GAIN', value=gain, comment='in e-/ADU')
+                pyfits.setval(path + date + '_read_noise_mask.fits', 'RNOISE', value=rons, comment='in ELECTRONS')
             elif nq == 4:
-                pyfits.setval(path+'read_noise_mask.fits', 'RNOISE_1', value=rons[0], comment='in ELECTRONS')
-                pyfits.setval(path+'read_noise_mask.fits', 'RNOISE_2', value=rons[1], comment='in ELECTRONS')
-                pyfits.setval(path+'read_noise_mask.fits', 'RNOISE_3', value=rons[2], comment='in ELECTRONS')
-                pyfits.setval(path+'read_noise_mask.fits', 'RNOISE_4', value=rons[3], comment='in ELECTRONS')
-                pyfits.setval(path+'read_noise_mask.fits', 'GAIN_1', value=gain[0], comment='in e-/ADU')
-                pyfits.setval(path+'read_noise_mask.fits', 'GAIN_2', value=gain[1], comment='in e-/ADU')
-                pyfits.setval(path+'read_noise_mask.fits', 'GAIN_3', value=gain[2], comment='in e-/ADU')
-                pyfits.setval(path+'read_noise_mask.fits', 'GAIN_4', value=gain[3], comment='in e-/ADU')
+                pyfits.setval(path + date + '_read_noise_mask.fits', 'RNOISE_1', value=rons[0], comment='in ELECTRONS')
+                pyfits.setval(path + date + '_read_noise_mask.fits', 'RNOISE_2', value=rons[1], comment='in ELECTRONS')
+                pyfits.setval(path + date + '_read_noise_mask.fits', 'RNOISE_3', value=rons[2], comment='in ELECTRONS')
+                pyfits.setval(path + date + '_read_noise_mask.fits', 'RNOISE_4', value=rons[3], comment='in ELECTRONS')
+                pyfits.setval(path + date + '_read_noise_mask.fits', 'GAIN_1', value=gain[0], comment='in e-/ADU')
+                pyfits.setval(path + date + '_read_noise_mask.fits', 'GAIN_2', value=gain[1], comment='in e-/ADU')
+                pyfits.setval(path + date + '_read_noise_mask.fits', 'GAIN_3', value=gain[2], comment='in e-/ADU')
+                pyfits.setval(path + date + '_read_noise_mask.fits', 'GAIN_4', value=gain[3], comment='in e-/ADU')
 
     if timit:
         print('Time elapsed: '+str(np.round(time.time() - start_time,1))+' seconds')
@@ -1265,7 +1278,7 @@ def make_master_dark(dark_list, MB, gain=None, scalable=False, noneg=False, save
     # create median dark files
     if scalable:
         # get median image (including subtraction of master bias) and scale to texp=1s 
-        MD = make_median_image(dark_list, MB=MB, correct_OS=True, scalable=scalable, raw=False)
+        MD = make_median_image(dark_list, MB=MB, scalable=scalable, raw=False)
         ny,nx = MD.shape
         q1,q2,q3,q4 = make_quadrant_masks(nx,ny)
         # convert to units of electrons
@@ -1302,10 +1315,12 @@ def make_master_dark(dark_list, MB, gain=None, scalable=False, noneg=False, save
             print('Using same directory as input file...')
             dum = dark_list[0].split('/')
             path = dark_list[0][0:-len(dum[-1])]
+            date = path.split('/')[-2]
         if scalable:
-            outfn = path+'master_dark_scalable.fits'
-            #get header from master BIAS frame
-            h = pyfits.getheader(path+'master_bias.fits')
+            outfn = path + date + '_master_dark_scalable.fits'
+            # get header from master BIAS frame
+#             h = pyfits.getheader(path + date + '_master_bias.fits')
+            h = pyfits.getheader(path + date + '_median_bias.fits')
             h['HISTORY'][0] = '   MASTER DARK frame - created '+time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())+' (GMT)'
             h['UNITS'] = 'ELECTRONS'
             h['COMMENT'] = 're-normalized to texp=1s to make it scalable'
@@ -1313,9 +1328,10 @@ def make_master_dark(dark_list, MB, gain=None, scalable=False, noneg=False, save
             pyfits.writeto(outfn, MD, h, clobber=True)
         else:
             for i,submd in enumerate(MD):
-                outfn = path+'master_dark_t'+str(int(unique_exp_times[i]))+'.fits'
-                #get header from master BIAS frame
-                h = pyfits.getheader(path+'master_bias.fits')
+                outfn = path + date + '_master_dark_t'+str(int(unique_exp_times[i]))+'.fits'
+                # get header from master BIAS frame
+#                 h = pyfits.getheader(path + date + '_master_bias.fits')
+                h = pyfits.getheader(path + date + '_median_bias.fits')
                 h['HISTORY'][0] = '   MASTER DARK frame - created '+time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())+' (GMT)'
                 h['TOTALEXP'] = (unique_exp_times[i], 'exposure time [s]')
                 h['UNITS'] = 'ELECTRONS'
@@ -1488,6 +1504,8 @@ def make_master_calib(file_list, lamptype=None, MB=None, ronmask=None, MD=None, 
     if debug_level >= 1:
         print('Creating master ' + typestring.upper() + ' frame from ' + str(len(file_list)) + ' individual exposures...')
     
+    date = file_list[0].split('/')[-2]
+    
     # if INPUT arrays are not given, read them from default files
     if path is None:
         print('WARNING: output file directory not provided!!!')
@@ -1569,9 +1587,8 @@ def make_master_calib(file_list, lamptype=None, MB=None, ronmask=None, MD=None, 
     # now subtract background (errors remain unchanged)
     if remove_bg:
         if chipmask is None:
-            date = file_list[0].split('/')[-2]
             chipmask = np.load('/Users/christoph/OneDrive - UNSW/chipmasks/archive/' + 'chipmask_' + date + '.npy').item()
-        
+            
         if lamptype == 'simth':
             lampmask = chipmask['thxe']
         elif lamptype == 'lfc':
@@ -1594,7 +1611,8 @@ def make_master_calib(file_list, lamptype=None, MB=None, ronmask=None, MD=None, 
 
     # now save master frame to file
     if savefile:
-        outfn = path + 'master_' + typestring + '.fits'
+        
+        outfn = path + date + '_master_' + typestring + '.fits'
         pyfits.writeto(outfn, master, clobber=True)
         pyfits.setval(outfn, 'HISTORY', value='   MASTER ' + typestring.upper() + ' frame - created ' + time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()) + ' (GMT)')
         pyfits.setval(outfn, 'MED_TEXP', value=np.median(texp_list), comment='median exposure time [s]')

@@ -54,15 +54,23 @@ def get_barycentric_correction(fn, rvabs=None, obs_path='/Users/christoph/OneDri
     targ_raw = pyfits.getval(fn, 'OBJECT')
     targ = targ_raw.split('+')[0]
     typ = targ[-3:]   
+    # Blaise's targets start with BKT or BKTRM
+    if targ[:3] == 'BKT':
+        if targ[:5] == 'BKTRM':
+            targ = targ[5:]
+        elif targ[:6] == 'BKTSec':
+            targ = targ[6:]
+        else:
+            targ = targ[3:]
 
     try:
         # for TOIs
-        if (typ == '.01') or (targ[:3] in ['TOI', 'TIC']):
+        if (typ == '.01') or (typ == '.02') or (targ[:3] in ['TOI', 'TIC']):
             if len(targ) <= 10:
                 if targ[:3] in ['TOI', 'TIC']:
-                    gaia_dr2_id = gaia_dict['TOI'+targ[3:6]]['gaia_dr2_id']
+                    gaia_dr2_id = gaia_dict['TOI'+targ[3:3+len(targ.split('.')[0])]]['gaia_dr2_id']
                 else:
-                    gaia_dr2_id = gaia_dict['TOI'+targ[:3]]['gaia_dr2_id']
+                    gaia_dr2_id = gaia_dict['TOI'+targ[:len(targ.split('.')[0])]]['gaia_dr2_id']
             else:
                 gaia_dr2_id = gaia_dict[targ]['gaia_dr2_id']
         # for other targets
