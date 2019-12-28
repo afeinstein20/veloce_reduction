@@ -267,7 +267,7 @@ pix_q,flux_q,err_q = extract_spectrum_from_indices(MW, err_MW, indices, method='
 pix,flux,err = extract_spectrum_from_indices(MW, err_MW, indices, method='optimal', slit_height=slit_height, fibs='all', slope=True, offset=True, date=date,
                                              individual_fibres=True, ronmask=ronmask, savefile=True, filetype='fits', obsname='master_white', path=path, timit=True)
 
-# (6c) MAKE MASTER FRAMES FOR EACH OF THE SIMULTAENOUS CALIBRATION SOURCES AND EXTRACT THEM
+# (6c) MAKE MASTER FRAMES FOR EACH OF THE SIMULTANEOUS CALIBRATION SOURCES AND EXTRACT THEM
 # TODO: use different traces and smaller slit_height for LFC only and lfc only???
 if len(thxe_list) > 0:
     choice = 'r'
