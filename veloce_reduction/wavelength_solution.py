@@ -2718,8 +2718,8 @@ def make_master_fibth(date=None, savefile=True, overwrite=False, laptop=False):
     err_medspec = 1.253 * np.std(allspec, axis=0) / np.sqrt(n_arc-1)     # normally it would be sigma/sqrt(n), but np.std is dividing by sqrt(n), not by sqrt(n-1)
     
     if savefile:
-        pyfits.writeto(path + date + '_master_ARC_' + date + '.fits', medspec, clobber=overwrite)
-        pyfits.append(path + date + '_master_ARC_' + date + '.fits', err_medspec, clobber=overwrite)
+        pyfits.writeto(path + date + '_master_ARC_' + '.fits', medspec, clobber=overwrite)
+        pyfits.append(path + date + '_master_ARC_' + '.fits', err_medspec, clobber=overwrite)
     
     return medspec, err_medspec
 
@@ -2749,8 +2749,8 @@ def make_arc_dispsols(date, deg_spectral=7, deg_spatial=7, polytype='chebyshev',
         path = "/Volumes/BERGRAID/data/veloce/reduced/" + date + "/"
     
     # check if master arc file already exists
-    if os.path.isfile(path + date + '_master_ARC_' + date + '.fits'):
-        master_arc = pyfits.getdata((path + 'master_ARC_' + date + '.fits'))
+    if os.path.isfile(path + date + '_master_ARC_' + '.fits'):
+        master_arc = pyfits.getdata(path + 'master_ARC_' + '.fits')
     else:
         # make master arc for that night
         master_arc, err_master_arc = make_master_fibth(date=date, savefile=True, laptop=laptop)
@@ -2788,13 +2788,13 @@ def make_arc_dispsols(date, deg_spectral=7, deg_spatial=7, polytype='chebyshev',
             all_air_wl[:, fib, :] = air_wl[:-1, :].copy()  # do NOT include the blue-most order
             all_vac_wl[:, fib, :] = vac_wl[:-1, :].copy()
             if save_individual:
-                pyfits.writeto(path + lamptype + '_dispsol_' + date + '_fibre_' + fibname[fib] + '.fits', air_wl, clobber=overwrite)
-                pyfits.append(path + lamptype + '_dispsol_' + date + '_fibre_' + fibname[fib] + '.fits', vac_wl)
+                pyfits.writeto(path + date + lamptype + '_dispsol_fibre_' + fibname[fib] + '.fits', air_wl, clobber=overwrite)
+                pyfits.append(path + date + lamptype + '_dispsol_fibre_' + fibname[fib] + '.fits', vac_wl)
 
     # save to all-fibres-combined fits file
     if savefits:
-        pyfits.writeto(path + date + '_' + lamptype + '_dispsol_' + '.fits', all_air_wl, clobber=overwrite)
-        pyfits.append(path + date + '_' + lamptype + '_dispsol_' + '.fits', all_vac_wl)
+        pyfits.writeto(path + date + '_' + lamptype + '_dispsol.fits', all_air_wl, clobber=overwrite)
+        pyfits.append(path + date + '_' + lamptype + '_dispsol.fits', all_vac_wl)
 
     if timit:
         delta_t = time.time() - start_time
@@ -2854,11 +2854,11 @@ def make_arc_dispsols_for_all_nights(outpath='/Users/christoph/OneDrive - UNSW/d
             # save to individual-fibre fits file(s)
             if savefits:
                 if save_individual:
-                    pyfits.writeto(outpath + lamptype + '_dispsol_' + date + '_fibre_' + fibname[fib] + '.fits', air_wl, clobber=overwrite)
+                    pyfits.writeto(outpath + date + lamptype + '_dispsol_fibre_' + fibname[fib] + '.fits', air_wl, clobber=overwrite)
                 
         # save to all-fibres-combined fits file
         if savefits:
-            pyfits.writeto(outpath + lamptype + '_dispsol_' + date + '.fits', all_air_wl, clobber=overwrite)
+            pyfits.writeto(outpath + date + lamptype + '_dispsol.fits', all_air_wl, clobber=overwrite)
         
     return
 
