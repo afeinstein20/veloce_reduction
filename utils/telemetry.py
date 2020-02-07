@@ -38,18 +38,22 @@ def telemetry():
     timestamp_cam_0, det_temp_0, cryohead_temp_0, perc_heater_0 = readcol(path + 'arccamera.txt.0', skipline=1, twod=False)
     timestamp_cam_1, det_temp_1, cryohead_temp_1, perc_heater_1 = readcol(path + 'arccamera.txt.1', skipline=1, twod=False)
     timestamp_cam_2, det_temp_2, cryohead_temp_2, perc_heater_2 = readcol(path + 'arccamera.txt.2', skipline=1, twod=False)
+    timestamp_cam_3, det_temp_3, cryohead_temp_3, perc_heater_3 = readcol(path + 'arccamera.txt.3', skipline=1, twod=False)
+    timestamp_cam_4, det_temp_4, cryohead_temp_4, perc_heater_4 = readcol(path + 'arccamera.txt.4', skipline=1, twod=False)
     
-    cam_time = Time(timestamp_cam, format='unix')         # from 17/10/2018 - 27/11/2018
-    cam_time_0 = Time(timestamp_cam_0, format='unix')     # from 19/04/2018 - 17/10/2018
+    cam_time = Time(timestamp_cam, format='unix')         
+    cam_time_0 = Time(timestamp_cam_0, format='unix')     
     cam_time_1 = Time(timestamp_cam_1, format='unix')
     cam_time_2 = Time(timestamp_cam_2, format='unix')
+    cam_time_3 = Time(timestamp_cam_3, format='unix')
+    cam_time_4 = Time(timestamp_cam_4, format='unix')
     
     # combine all the subsets
-    t = np.array(list(cam_time_2.jd) + list(cam_time_1.jd) + list(cam_time_0.jd) + list(cam_time.jd)) - 2.458e6
+    t = np.array(list(cam_time_4.jd) + list(cam_time_3.jd) + list(cam_time_2.jd) + list(cam_time_1.jd) + list(cam_time_0.jd) + list(cam_time.jd)) - 2.458e6
     tobj = Time(t + 2.458e6, format='jd')  
-    dtemp = np.array(list(det_temp_2) + list(det_temp_1) + list(det_temp_0) + list(det_temp))
-    cryo = np.array(list(cryohead_temp_2) + list(cryohead_temp_1) + list(cryohead_temp_0) + list(cryohead_temp))
-    heater_load = np.array(list(perc_heater_2) + list(perc_heater_1) + list(perc_heater_0) + list(perc_heater))
+    dtemp = np.array(list(det_temp_4) + list(det_temp_3) + list(det_temp_2) + list(det_temp_1) + list(det_temp_0) + list(det_temp))
+    cryo = np.array(list(cryohead_temp_4) + list(cryohead_temp_3) + list(cryohead_temp_2) + list(cryohead_temp_1) + list(cryohead_temp_0) + list(cryohead_temp))
+    heater_load = np.array(list(perc_heater_4) + list(perc_heater_3) + list(perc_heater_2) + list(perc_heater_1) + list(perc_heater_0) + list(perc_heater))
 
     # # for showing tau ceti obstimes
     # ix = np.zeros(len(jd))
@@ -66,38 +70,53 @@ def telemetry():
 
     # observing runs were:
     # 20180917 - 20180926
-    tstart_sep = 2458378.0
-    tend_sep = 2458388.0
+    tstart_sep18 = 2458378.0
+    tend_sep18 = 2458388.0
     # 20181115 - 20181127
-    tstart_nov = 2458437.0
-    tend_nov = 2458450.0
+    tstart_nov18 = 2458437.0
+    tend_nov18 = 2458450.0
     # 20190121 - 20190203
-    tstart_janfeb = 2458504.0
-    tend_janfeb = 2458518.0
+    tstart_janfeb1819 = 2458504.0
+    tend_janfeb1819 = 2458518.0
     # 20190408 - 20190415
-    tstart_apr = 2458581.0
-    tend_apr = 2458589.0
+    tstart_apr19 = 2458581.0
+    tend_apr19 = 2458589.0
     # 20190503 - 20190512
-    tstart_may01 = 2458606.0
-    tend_may01 = 2458616.0
+    tstart_may19_01 = 2458606.0
+    tend_may19_01 = 2458616.0
     # 20190517 - 20190528
-    tstart_may02 = 2458620.0
-    tend_may02 = 2458632.0
+    tstart_may19_02 = 2458620.0
+    tend_may19_02 = 2458632.0
     # 20190531 - 20190605
-    tstart_jun01 = 2458634.0
-    tend_jun01 = 2458640.0
+    tstart_jun19_01 = 2458634.0
+    tend_jun19_01 = 2458640.0
     # 20190619 - 20190625
-    tstart_jun02 = 2458653.0
-    tend_jun02 = 2458660.0
+    tstart_jun19_02 = 2458653.0
+    tend_jun19_02 = 2458660.0
     # 20190722 - 20190724
-    tstart_jul = 2458686.0
-    tend_jul = 2458689.0
-    starts = np.array([tstart_sep, tstart_nov, tstart_janfeb, tstart_apr, tstart_may01, tstart_may02, tstart_jun01, tstart_jun02, tstart_jul]) - 2.458e6
-    ends = np.array([tend_sep, tend_nov, tend_janfeb, tend_apr, tend_may01, tend_may02, tend_jun01, tend_jun02, tend_jul]) - 2.458e6
+    tstart_jul19 = 2458686.0
+    tend_jul19 = 2458689.0
+    # 20190805 - 20190826
+    tstart_aug19 = 2458700.0
+    tend_aug19 = 2458722.0
+    # 20190909 - 20190919
+    tstart_sep19 = 2458735.0
+    tend_sep19 = 2458746.0
+    # 20190929 - 20191105
+    tstart_sepoctnov19 = 2458755.0
+    tend_sepoctnov19 = 2458793.0
+    # 20191210 - 20200113
+    tstart_decjan1920 = 2458827.0
+    tend_decjan1920 = 2458862.0
+    
+    starts = np.array([tstart_sep18, tstart_nov18, tstart_janfeb1819, tstart_apr19, tstart_may19_01, tstart_may19_02, tstart_jun19_01, tstart_jun19_02, \
+                       tstart_jul19, tstart_aug19, tstart_sepoctnov19, tstart_decjan1920]) - 2.458e6
+    ends = np.array([tend_sep18, tend_nov18, tend_janfeb1819, tend_apr19, tend_may19_01, tend_may19_02, tend_jun19_01, tend_jun19_02, \
+                     tend_jul19, tend_aug19, tend_sepoctnov19, tend_decjan1920]) - 2.458e6
 
     ##### make a nice stacked plot #####
 
-    run = 'sep'
+    run = 'sepoctnov19'
 
     # runs = np.array(['all', 'sep', 'nov', 'jan', 'apr', 'may', 'jun', 'jul'])
     # runix = np.argwhere(runs == run)[0]
@@ -105,20 +124,28 @@ def telemetry():
 
     if run == 'all':
         tlow, thigh = (np.min(starts) - 3, np.max(ends) + 3 )
-    elif run == 'sep':
-        tlow, thigh = (tstart_sep - 2.458e6 - 3, tend_sep - 2.458e6 + 3)
-    elif run == 'nov':
-        tlow, thigh = (tstart_nov - 2.458e6 - 3, tend_nov - 2.458e6 + 3)
-    elif run == 'jan':
-        tlow, thigh = (tstart_janfeb - 2.458e6 - 3, tend_janfeb - 2.458e6 + 3)
-    elif run == 'apr':
-        tlow, thigh = (tstart_apr - 2.458e6 - 3, tend_apr - 2.458e6 + 3)
-    elif run == 'may':
-        tlow, thigh = (tstart_may01 - 2.458e6 - 3, tend_may01 - 2.458e6 + 3)
-    elif run == 'jun':
-        tlow, thigh = (tstart_may02 - 2.458e6 - 3, tend_jun02 - 2.458e6 + 3)
-    elif run == 'jul':
-        tlow, thigh = (tstart_jul - 2.458e6 - 3, tend_jul - 2.458e6 + 3)
+    elif run == 'sep18':
+        tlow, thigh = (tstart_sep18 - 2.458e6 - 3, tend_sep18 - 2.458e6 + 3)
+    elif run == 'nov18':
+        tlow, thigh = (tstart_nov18 - 2.458e6 - 3, tend_nov18 - 2.458e6 + 3)
+    elif run == 'jan1819':
+        tlow, thigh = (tstart_janfeb1819 - 2.458e6 - 3, tend_janfeb1819 - 2.458e6 + 3)
+    elif run == 'apr19':
+        tlow, thigh = (tstart_apr19 - 2.458e6 - 3, tend_apr19 - 2.458e6 + 3)
+    elif run == 'may19':
+        tlow, thigh = (tstart_may19_01 - 2.458e6 - 3, tend_may19_01 - 2.458e6 + 3)
+    elif run == 'jun19':
+        tlow, thigh = (tstart_may19_02 - 2.458e6 - 3, tend_jun19_02 - 2.458e6 + 3)
+    elif run == 'jul19':
+        tlow, thigh = (tstart_jul19 - 2.458e6 - 3, tend_jul19 - 2.458e6 + 3)
+    elif run == 'aug19':
+        tlow, thigh = (tstart_aug19 - 2.458e6 - 3, tend_aug19 - 2.458e6 + 3)
+    elif run == 'sep19':
+        tlow, thigh = (tstart_sep19 - 2.458e6 - 3, tend_sep19 - 2.458e6 + 3)
+    elif run == 'sepoctnov19':
+        tlow, thigh = (tstart_sepoctnov19 - 2.458e6 - 3, tend_sepoctnov19 - 2.458e6 + 3)
+    elif run == 'decjan1920':
+        tlow, thigh = (tstart_decjan1920 - 2.458e6 - 3, tend_decjan1920 - 2.458e6 + 3)
 
 
 

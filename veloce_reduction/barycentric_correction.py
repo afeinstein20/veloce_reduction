@@ -54,6 +54,7 @@ def get_barycentric_correction(fn, rvabs=None, obs_path='/Users/christoph/OneDri
     targ_raw = pyfits.getval(fn, 'OBJECT')
     targ = targ_raw.split('+')[0]
     typ = targ[-3:]   
+    
     # Blaise's targets start with BKT or BKTRM
     if targ[:3] == 'BKT':
         if targ[:5] == 'BKTRM':
@@ -62,6 +63,12 @@ def get_barycentric_correction(fn, rvabs=None, obs_path='/Users/christoph/OneDri
             targ = targ[6:]
         else:
             targ = targ[3:]
+
+    # sometimes the name of the PI is appended to the target name
+    if targ.split('_')[-1].lower() in ['bouma', 'dragomir']:
+        namelen = len(targ.split('_')[-1])
+        targ = targ[:-namelen-1]
+        typ = targ[-3:]
 
     try:
         # for TOIs

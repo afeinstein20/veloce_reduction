@@ -67,7 +67,7 @@ all_snr = readcol(path + starname + '_all_snr.dat', twod=False)[0]
 #     flux = pyfits.getdata(file, 0)
 #     err = pyfits.getdata(file, 1)
 #     all_snr.append(get_snr(flux, err))
-# np.savetxt(path + 'tauceti_all_snr.dat', np.array(all_snr))
+# np.savetxt(path + starname + '_all_snr.dat', np.array(all_snr))
 
 ########################################################################################################################
 ########################################################################################################################
@@ -77,14 +77,19 @@ all_snr = readcol(path + starname + '_all_snr.dat', twod=False)[0]
 # lfc_path = '/Volumes/BERGRAID/data/veloce/lfc_peaks/'
 # for i,filename in enumerate(file_list):
 #     dum = filename.split('/')
-#     obsname = dum[-1].split('_')[1]
-#     print(obsname, os.path.isfile(lfc_path + 'all/' + '2019' + '/' + obsname + 'olc.nst'))
-#     if os.path.isfile(lfc_path + 'all/' + '2019' + '/' + obsname + 'olc.nst'):
+# #     obsname = dum[-1].split('_')[1]   # before including the date in the reduced-spectrum filenames
+#     obsname = dum[-1].split('_')[2]
+#     print('Calculating wl-solution for ' + obsname + '   (' + str(i+1) + ' / ' + str(len(file_list)) + ')')
+# #     print(obsname, os.path.isfile(lfc_path + 'all/' + '2018' + '/' + obsname + 'olc.nst'))
+# #     print(obsname, os.path.isfile(lfc_path + 'all/' + '2019' + '/' + obsname + 'olc.nst'))
+# #     if os.path.isfile(lfc_path + 'all/' + '2019' + '/' + obsname + 'olc.nst'):
+#     if (os.path.isfile(lfc_path + 'all/' + '2018' + '/' + obsname + 'olc.nst')) or (os.path.isfile(lfc_path + 'all/' + '2019' + '/' + obsname + 'olc.nst')):
 #         utdate = pyfits.getval(filename, 'UTDATE')
 #         date = utdate[:4] + utdate[5:7] + utdate[8:]
 #         wldict, wl = get_dispsol_for_all_fibs_3(obsname, date=date)
 #         pyfits.writeto(path + pyfits.getval(filename, 'OBJECT').split('+')[0] + '_' + obsname + '_vac_wl.fits', wl, clobber=True)
-
+#     else:
+#         print('WARNING: could not calculate wl-solution for ' + obsname + ' - LFC peaks have not been measured!!!')
 ########################################################################################################################
 ########################################################################################################################
 ########################################################################################################################
@@ -116,7 +121,7 @@ norm_relints = np.load(path + 'norm_relints.npy')   # sum = 1
 ########################################################################################################################
 
 #################################################################################################################    
-### OK, now let's Cross-Correlation RVs on real observations
+### OK, now let's try Cross-Correlation RVs on real observations
 #################################################################################################################
 
 # calculating the CCFs for one order / 11 orders
@@ -146,8 +151,8 @@ date_0 = '20190518'
 f0 = pyfits.getdata(files[ix0], 0)
 err0 = pyfits.getdata(files[ix0], 1)
 obsname_0 = all_obsnames[ix0]
-# wl0 = pyfits.getdata(wls[ix0])
-wl0 = pyfits.getdata(lfc_wls[ix0])
+wl0 = pyfits.getdata(wls[ix0])
+# wl0 = pyfits.getdata(lfc_wls[ix0])
 bc0 = pyfits.getval(files[ix0], 'BARYCORR')
 
 maskdict = np.load('/Volumes/BERGRAID/data/veloce/reduced/' + date_0 + '/' + date_0 + '_mask.npy').item()
@@ -159,17 +164,17 @@ smoothed_flat, pix_sens = onedim_pixtopix_variations(mw_flux, filt='gaussian', f
 
 f0_clean = pyfits.getdata(path + '190248_' + obsname_0 + '_optimal3a_extracted_cleaned.fits')
 
-# f0_clean = f0.copy()
+f0_clean = f0.copy()
 # loop over orders
-# for o in range(f0.shape[0]):
-#     print('Order ', o + 1)
-#     # loop over fibres (but exclude the simThXe and LFC fibres for obvious reasons!!!)
-#     for fib in range(1,f0.shape[1]-1):
-#         if (o == 0) and (fib == 1):
-#             start_time = time.time()
-#         f0_clean[o, fib, :], ncos = onedim_medfilt_cosmic_ray_removal(f0[o, fib, :], err0[o, fib, :], w=31, thresh=5., low_thresh=3.)
-#         if (o == 38) and (fib == 24):
-#             print('time elapsed ', time.time() - start_time, ' seconds')
+for o in range(f0.shape[0]):
+    print('Order ', o + 1)
+    # loop over fibres (but exclude the simThXe and LFC fibres for obvious reasons!!!)
+    for fib in range(1,f0.shape[1]-1):
+        if (o == 0) and (fib == 1):
+            start_time = time.time()
+        f0_clean[o, fib, :], ncos = onedim_medfilt_cosmic_ray_removal(f0[o, fib, :], err0[o, fib, :], w=31, thresh=5., low_thresh=3.)
+        if (o == 38) and (fib == 24):
+            print('time elapsed ', time.time() - start_time, ' seconds')
 
 
 # NO!!! I think we want to divide by the flat, not the smoothed flat otherwise we're not taking out the pix-to-pix sensitivity variations...
@@ -199,10 +204,11 @@ for i,filename in enumerate(files):
     # read in spectrum
 #     f = pyfits.getdata(filename, 0)
     err = pyfits.getdata(filename, 1)
-#     wl = pyfits.getdata(wls[i])
-    wl = pyfits.getdata(lfc_wls[i])
+    wl = pyfits.getdata(wls[i])
+#     wl = pyfits.getdata(lfc_wls[i])
     bc = pyfits.getval(filename, 'BARYCORR')
-    f_clean = pyfits.getdata(path + '190248_' + obsname + '_optimal3a_extracted_cleaned.fits')
+#     f_clean = pyfits.getdata(path + '190248_' + obsname + '_optimal3a_extracted_cleaned.fits')
+    f_clean = pyfits.getdata(path + date + '_129.01_' + obsname + '_optimal3a_extracted_cleaned.fits')
 #     f_clean = f.copy()
 #     for o in range(f.shape[0]):
 #         for fib in range(f.shape[1]):
@@ -217,8 +223,8 @@ for i,filename in enumerate(files):
     #     all_xc.append(old_make_ccfs(f, wl, f0, wl0, bc=all_bc[i], bc0=all_bc[6], mask=None, smoothed_flat=None, delta_log_wl=1e-6, relgrid=False,
     #                             flipped=False, individual_fibres=False, debug_level=1, timit=False))
     #     rv,rverr,xcsum = get_RV_from_xcorr_2(f, wl, f0, wl0, bc=all_bc[i], bc0=all_bc[6], individual_fibres=True, individual_orders=True, old_ccf=True, debug_level=1)
-    sumrv, sumrverr, xcsum = get_RV_from_xcorr_2(f_clean, wl, f0_clean, wl0, bc=bc, bc0=bc0, smoothed_flat=smoothed_flat, fitrange=35, individual_fibres=True,
-                                                 individual_orders=False, deg_interp=3, norm_cont=True, fit_slope=False, old_ccf=False, debug_level=1)
+    sumrv, sumrverr, xcsum = get_RV_from_xcorr_2(f_clean, wl, f0_clean, wl0, bc=bc, bc0=bc0, smoothed_flat=smoothed_flat, fitrange=35, addrange=1500, individual_fibres=False,
+                                                 individual_orders=True, deg_interp=3, norm_cont=True, fit_slope=False, old_ccf=False, debug_level=1)
     #     sumrv,sumrverr,xcsum = get_RV_from_xcorr_2(f_dblz, wl, f0_dblz, wl0, bc=all_bc[i], bc0=all_bc[6], individual_fibres=False, individual_orders=False, old_ccf=True, debug_level=1)
     #     all_rv[i,:,:] = rv
     all_sumrv.append(sumrv)

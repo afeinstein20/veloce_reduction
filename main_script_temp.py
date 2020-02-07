@@ -48,8 +48,8 @@ fibparms_path = '/Users/christoph/OneDrive - UNSW/fibre_profiles/archive/'
 
 ### (0) GET INFO FROM FITS HEADERS ##################################################################################################################
 acq_list, bias_list, dark_list, flat_list, skyflat_list, domeflat_list, arc_list, thxe_list, laser_list, laser_and_thxe_list, stellar_list, unknown_list = get_obstype_lists(path)
-q_acq_list, q_bias_list, q_dark_list, q_flat_list, q_skyflat_list, q_domeflat_list, q_arc_list, q_thxe_list, q_laser_list, q_laser_and_thxe_list, q_stellar_list, q_unknown_list = get_obstype_lists(path, quick=True)
 assert len(unknown_list) == 0, "WARNING: unknown files encountered!!!"
+q_acq_list, q_bias_list, q_dark_list, q_flat_list, q_skyflat_list, q_domeflat_list, q_arc_list, q_thxe_list, q_laser_list, q_laser_and_thxe_list, q_stellar_list, q_unknown_list = get_obstype_lists(path, quick=True)
 assert len(q_unknown_list) == 0, "WARNING: unknown files encountered!!!"
 # obsnames = short_filenames(bias_list)
 dumimg = crop_overscan_region(correct_orientation(pyfits.getdata(bias_list[0])))
@@ -60,13 +60,13 @@ del dumimg
 # check white light exposures      
         
 for file in flat_list:
-# #     fimg = crop_overscan_region(correct_orientation(pyfits.getdata(file)))
+#     fimg = crop_overscan_region(correct_orientation(pyfits.getdata(file)))
     fimg = correct_for_bias_and_dark_from_filename(file, np.zeros((4096,4112)), np.zeros((4096,4112)), gain=[1., 1.095, 1.125, 1.], scalable=False, savefile=False, path=path)
-#     # plt.plot(fimg[165:230,3327])
-# #     plt.plot(fimg[1735:1802,2000])   # Q1
+#     plt.plot(fimg[165:230,3327])
+#     plt.plot(fimg[1735:1802,2000])   # Q1
 #     plt.plot(fimg[1650:1717,2709])   # Q2
     plt.plot(fimg[2305:2372,2709])   # Q3
-# #     plt.plot(fimg[2278:2345,2000])   # Q4
+#     plt.plot(fimg[2278:2345,2000])   # Q4
 
 
 ### (1) BAD PIXEL MASK ##############################################################################################################################
@@ -264,9 +264,9 @@ simth_stripes, simth_indices = extract_stripes(MW, traces['simth'], return_indic
 
 # (6b) extract Master Whites
 pix_q,flux_q,err_q = extract_spectrum_from_indices(MW, err_MW, indices, method='quick', slit_height=slit_height, ronmask=ronmask, savefile=True,
-                                                   date=date, filetype='fits', obsname='master_white', path=path, timit=True)
+                                                   date=date, filetype='fits', obsname=date+'_master_white', path=path, timit=True)
 pix,flux,err = extract_spectrum_from_indices(MW, err_MW, indices, method='optimal', slit_height=slit_height, fibs='all', slope=True, offset=True, date=date,
-                                             individual_fibres=True, ronmask=ronmask, savefile=True, filetype='fits', obsname='master_white', path=path, timit=True)
+                                             individual_fibres=True, ronmask=ronmask, savefile=True, filetype='fits', obsname=date+'_master_white', path=path, timit=True)
 
 # (6c) MAKE MASTER FRAMES FOR EACH OF THE SIMULTANEOUS CALIBRATION SOURCES AND EXTRACT THEM
 # TODO: use different traces and smaller slit_height for LFC only and lfc only???

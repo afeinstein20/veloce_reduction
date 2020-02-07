@@ -2519,13 +2519,13 @@ def get_dispsol_for_all_fibs_3(obsname, date=None, relto='LFC', degpol=7, nx=411
         lamptype = 'thxe'
         
     # read master ARC dispsol for that night
-    assert (os.path.isfile(red_path + date + '_' + lamptype + '_dispsol_' + '.fits')) or (os.path.isfile(raw_path + lamptype + '_dispsol_' + date + '.fits')), 'ERROR: master ARC wl-solution does not exist for ' + str(date) + ' !!!'
+    assert (os.path.isfile(red_path + date + '_' + lamptype + '_dispsol.fits')) or (os.path.isfile(raw_path + date + '_' + lamptype + '_dispsol_' + '.fits')), 'ERROR: master ARC wl-solution does not exist for ' + str(date) + ' !!!'
     try:
         # air_wl = pyfits.getdata(red_path + lamptype + '_dispsol_' + date + '.fits', 0)
-        vac_wl = pyfits.getdata(red_path + lamptype + '_dispsol_' + date + '.fits', 1)
+        vac_wl = pyfits.getdata(red_path + date + '_' + lamptype + '_dispsol.fits', 1)
     except:
         # air_wl = pyfits.getdata(raw_path + lamptype + '_dispsol_' + date + '.fits', 0)
-        vac_wl = pyfits.getdata(raw_path + lamptype + '_dispsol_' + date + '.fits', 1)
+        vac_wl = pyfits.getdata(raw_path + date + '_' + lamptype + '_dispsol_' + '.fits', 1)
 #         vac_wl = pyfits.getdata('/Volumes/BERGRAID/data/veloce/reduced/20190621/thxe_dispsol_20190621.fits', 1)
             
     # read file containing LFC peak positions of observation
@@ -2764,7 +2764,7 @@ def make_arc_dispsols(date, deg_spectral=7, deg_spatial=7, polytype='chebyshev',
     all_vac_wl = np.zeros(master_arc.shape)
 
     # loop over all fibres (excluding the simTh & LFC fibre)
-    for fib in range(1,master_arc.shape[1]-1):     
+    for fib in range(1, master_arc.shape[1]-1):     
 
         print('Processing fibre ' + fibname[fib])
 
@@ -2929,8 +2929,8 @@ def get_dispsol_for_all_fibs_from_fibth(fn, date=None, path=None, deg_spectral=7
         shortname = fn.split('/')[-1]
         obsname = shortname.split('_')[-3]
         obj = 'ARC_'
-        pyfits.writeto(path + obj + lamptype + '_' + obsname + '_air_dispsol_' + date + '.fits', all_air_wl, clobber=True)
-        pyfits.writeto(path + obj + lamptype + '_' + obsname + '_vac_dispsol_' + date + '.fits', all_vac_wl, clobber=True)
+        pyfits.writeto(path + date + obj + lamptype + '_' + obsname + '_air_dispsol.fits', all_air_wl, clobber=True)
+        pyfits.writeto(path + date + obj + lamptype + '_' + obsname + '_vac_dispsol.fits', all_vac_wl, clobber=True)
     
     if timit:
         delta_t = time.time() - start_time

@@ -72,21 +72,25 @@ def calculate_orbital_phase(name, jd=None, PT0_dict=None, t_ref = 2457000.):
 
 
 
+
 def create_toi_velobs_dict(obspath='/Users/christoph/OneDrive - UNSW/observations/', savefile=True, src='raw', laptop=False):
 
     """
     TODO:
     expand to other targets as well!
+    add seeing, cal source, RV, etc.
     """
 
     # code defensively...
     if laptop:
         redpath = '/Users/christoph/data/reduced/'
         rawpath = '/Users/christoph/data/raw_godoonly/'
+        logpath = '/Users/christoph/data/veloce_logs/'
     else:
         redpath = '/Volumes/BERGRAID/data/veloce/reduced/'
         rawpath = '/Volumes/BERGRAID/data/veloce/raw_goodonly/'
-    
+        logpath = '/Volumes/BERGRAID/data/veloce/veloce_logs/'
+
     while src.lower() not in ["red", "reduced", "raw"]:
         print("ERROR: invalid source input !!!")
         src = raw_input("Do you want to create the observation dictionary from raw or reduced files? (valid options are ['raw' / 'red(uced)'] )?") 
@@ -127,9 +131,10 @@ def create_toi_velobs_dict(obspath='/Users/christoph/OneDrive - UNSW/observation
         if typ == 'TOI':
 #             name = targ[-3:]
             name = targ.split('I')[-1]
-            synonyms = ['TOI'+name, 'TOI'+name+'.01', 'TIC'+name+'.01', name+'.01']
+            synonyms = ['TOI'+name, 'TOI'+name+'.01', 'TIC'+name+'.01', name+'.01', name+'.01A']
             if src.lower() in ['red', 'reduced']:
-                fn_list = [fn for fn in all_obs_list if ((fn.split('/')[-1]).split('_')[0]).split('+')[0] in synonyms]
+#                 fn_list = [fn for fn in all_obs_list if ((fn.split('/')[-1]).split('_')[0]).split('+')[0] in synonyms]   # before I added the date to the reduced-spectrum filenames
+                fn_list = [fn for fn in all_obs_list if ((fn.split('/')[-1]).split('_')[1]).split('+')[0] in synonyms]
             elif src.lower() == 'raw':
                 fn_list = [fn for fn,target in zip(all_obs_list, all_target_list) if target.split('+')[0] in synonyms]
         # for other targets
@@ -160,6 +165,7 @@ def create_toi_velobs_dict(obspath='/Users/christoph/OneDrive - UNSW/observation
     
             # prepare dictionary entry for this target
             vo[targ]['filenames'] = fn_list
+            vo[targ]['dates'] = []
             vo[targ]['nobs'] = len(fn_list)
             vo[targ]['P'] = per
             vo[targ]['T0'] = t0
@@ -167,32 +173,117 @@ def create_toi_velobs_dict(obspath='/Users/christoph/OneDrive - UNSW/observation
             vo[targ]['texp'] = []
             vo[targ]['obsnames'] = []
             vo[targ]['phase'] = []
-            # vo[targ]['snr'] = []     # would be nice as an upgrade in the future
+            vo[targ]['epoch_phase'] = []
+            vo[targ]['epoch_snr'] = []
+            vo[targ]['epoch_dates'] = []
+            vo[targ]['epoch_JD'] = []
+            vo[targ]['snr'] = []     # from logsheet
             # vo[targ]['cal'] = []     # would be nice as an upgrade in the future (calibration source: LFC, ThXe, interp?)
             # vo[targ]['rv'] = []     # would be nice as an upgrade in the future
             days = []
-            seq = []
+            seqs = []
+            
             # fill dictionary
             # loop over all observations for this target
             for file in fn_list:
+#                 print(n, file)
                 h = pyfits.getheader(file)
                 vo[targ]['JD'].append(h['UTMJD'] + 2.4e6 + 0.5 + (0.5 * h['ELAPSED'] / 86400.))  # use plain JD here, in order to avoid confusion
                 vo[targ]['texp'].append(h['ELAPSED'])
                 if src.lower() in ['red', 'reduced']:
-                    obsname = (file.split('/')[-1]).split('_')[1]
+#                     obsname = (file.split('/')[-1]).split('_')[1]   # before I added the date to the reduced-spectrum filenames
+                    obsname = (file.split('/')[-1]).split('_')[2]
                 elif src.lower() == 'raw':
                     obsname = ((file.split('/')[-1]).split('_')[0]).split('.')[0]
                 vo[targ]['obsnames'].append(obsname)
-                days.append(obsname[:5])
-                seq.append(obsname[5:])
+                date = file.split('/')[-2] 
+                vo[targ]['dates'].append(date)
+                day = obsname[:5]
+                days.append(day)
+                seq = obsname[5:]
+                seqs.append(seq)
+                logfilename = glob.glob(logpath + '*' + date[2:] + '*.log')[0]
+#                 print(date)
+                snr = np.nan   # fall-back option if snr not found in logsheets
+                with open(logfilename) as logfile:
+                    for line in logfile:
+                        if line[:4] == seq[1:]: 
+#                             print(line)
+                            snr = line.split()[5]
+                            try:
+                                snr = int(snr)
+                            except:
+                                snr = np.nan
+#                             print(snr)
+                vo[targ]['snr'].append(snr)  
+                
             vo[targ]['phase'].append(calculate_orbital_phase(targ, vo[targ]['JD']))
+            vo[targ]['phase'] = vo[targ]['phase'][0] 
             # check which exposures are adjacent to determine the number of epochs
-            vo[targ]['nepochs'] = vo[targ]['nobs']
+#             vo[targ]['nepochs'] = vo[targ]['nobs']
+            vo[targ]['nepochs'] = len(set(vo[targ]['dates']))
+            
             if vo[targ]['nobs'] >= 2:
-                for d in set(days):
-                    ix = [i for i, day in enumerate(days) if day == d]
-                    rundiff = np.diff(np.array(seq)[ix].astype(int))
-                    vo[targ]['nepochs'] -= np.sum(rundiff == 1)
+#                 for d in set(days):
+                for d in sorted(set(vo[targ]['dates'])):
+#                     print(d)
+                    n_epoch_per_night = 1
+#                     ix = [i for i, day in enumerate(days) if day == d]
+                    ix = [i for i, date in enumerate(vo[targ]['dates']) if date == d]
+                    rundiff = np.diff(np.array(seqs)[ix].astype(int))
+                    # if the obsnums are not consecutive, check how long in between - count it as a new epoch if more than an hour in between exposures
+                    if (rundiff > 1).any():
+                        gaps = np.where(rundiff > 1)[0]
+#                         obsnums = np.array(seqs)[ix].astype(int)
+                        jds = np.array(vo[targ]['JD'])[ix]
+                        exptimes = np.array(vo[targ]['texp'])[ix]
+                        for gap in sorted(gaps):
+                            delta_t = 86400. * (jds[gap+1] - jds[gap]) - exptimes[gap+1]/2. - exptimes[gap]/2. 
+                            if delta_t > 3600. :
+                                vo[targ]['nepochs'] += 1
+                                n_epoch_per_night += 1
+                    
+                    if n_epoch_per_night == 1:
+                        # for the individual single-shot exposures within this epoch get the phases, SNRs, and JDs
+                        ss_phases = vo[targ]['phase'][ix]
+                        snrs = np.array(vo[targ]['snr'])[ix]
+                        jds = np.array(vo[targ]['JD'])[ix]
+                        # get the combined SNR for the epoch
+                        vo[targ]['epoch_snr'].append(np.sqrt(np.sum(snrs**2)))
+                        # now get the weighted mean phase and mean JD for the epoch - weight by SNR if possible; if not, use sqrt(texp)
+                        if ~np.isnan(snrs).any():
+                            vo[targ]['epoch_phase'].append(np.average(ss_phases, weights=snrs))
+                            vo[targ]['epoch_JD'].append(np.average(jds, weights=snrs))
+                        else:
+                            print('WARNING: logsheet incomplete for', d)
+                            exptimes = np.array(vo[targ]['texp'])[ix]
+                            vo[targ]['epoch_phase'].append(np.average(ss_phases, weights=np.sqrt(exptimes)))
+                            vo[targ]['epoch_JD'].append(np.average(jds, weights=np.sqrt(exptimes)))
+                        # record the date for that epoch
+                        vo[targ]['epoch_dates'].append(d)
+                    else:
+                        ix_sublist = []
+                        substart_indices = np.r_[0, np.array(gaps)+1, len(ix)]
+                        ix_sublist = [ix[substart_indices[j]:substart_indices[j+1]] for j in range(len(substart_indices)-1)]   # that hurts my brain, but it works ;)
+                        for subix in ix_sublist:
+                            # for the individual single-shot exposures within this epoch get the phases, SNRs, and JDs
+                            ss_phases = vo[targ]['phase'][subix]
+                            snrs = np.array(vo[targ]['snr'])[subix]
+                            jds = np.array(vo[targ]['JD'])[subix]
+                            # get the combined SNR for the epoch
+                            vo[targ]['epoch_snr'].append(np.sqrt(np.sum(snrs**2))) 
+                            # now get the weighted mean phase and mean JD for the epoch - weight by SNR if possible; if not, use exposure time
+                            if ~np.isnan(snrs).any():
+                                vo[targ]['epoch_phase'].append(np.average(ss_phases, weights=snrs))
+                                vo[targ]['epoch_JD'].append(np.average(jds, weights=snrs))
+                            else:
+                                print('WARNING: logsheet incomplete for', d)
+                                exptimes = np.array(vo[targ]['texp'])[subix]
+                                vo[targ]['epoch_phase'].append(np.average(ss_phases, weights=exptimes))
+                                vo[targ]['epoch_JD'].append(np.average(jds, weights=exptimes))
+                            # record the date for that epoch
+                            vo[targ]['epoch_dates'].append(d)
+                    
 
     if savefile:
         np.save(obspath + 'velobs_' + rawred + '.npy', vo)
@@ -232,7 +323,7 @@ def create_bstar_velobs_dict(path='/Users/christoph/OneDrive - UNSW/observations
 
     # read input file
 #     targets, T0, P = readcol(path + 'PT0_list.txt', twod=False, verbose=False)
-    targets = readcol('/Users/christoph/OneDrive - UNSw/observing/AAT/bstars.txt', twod=False)
+    targets = readcol('/Users/christoph/OneDrive - UNSW/observing/AAT/bstars.txt', twod=False)
     targets = targets[0].astype(str)     # readcol peculiarity...
 
     # initialise dictionary
@@ -311,6 +402,7 @@ def create_bstar_velobs_dict(path='/Users/christoph/OneDrive - UNSW/observations
 
 
 
+
 def plot_toi_phase(toi, vo=None, saveplot=False, outpath=None):
     if vo is None:
         vo = np.load('/Users/christoph/OneDrive - UNSW/observations/velobs_raw.npy').item()
@@ -336,6 +428,7 @@ def plot_toi_phase(toi, vo=None, saveplot=False, outpath=None):
 
 
 
+
 def plot_toi_phase_lin(toi, vo=None, saveplot=False, outpath=None, no_xlabel=False, no_title=False):
     if vo is None:
         vo = np.load('/Users/christoph/OneDrive - UNSW/observations/velobs_raw.npy').item()
@@ -348,7 +441,9 @@ def plot_toi_phase_lin(toi, vo=None, saveplot=False, outpath=None, no_xlabel=Fal
     x = np.linspace(0, 1, 1000)
     plt.plot(x, np.zeros(len(x)), 'k')
     phi = np.squeeze(vo[toi]['phase'])
+    ep_phi = vo[toi]['epoch_phase']
     plt.plot(phi, np.zeros(len(phi)), 'ro', markersize=3)
+    plt.plot(ep_phi, np.zeros(len(ep_phi)), 'bx', markersize=7)
     plt.ylabel(toi, rotation='horizontal', ha='right', va='center', fontsize='large', fontweight='bold')
     plt.yticks([])
     plt.xlim(-0.05,1.25)
@@ -374,6 +469,7 @@ def plot_toi_phase_lin(toi, vo=None, saveplot=False, outpath=None, no_xlabel=Fal
 
 
 
+
 def plot_all_toi_phases(src='raw', path='/Users/christoph/OneDrive - UNSW/observations/', saveplots=True, lin=False, per_page=16):
     if src.lower() == 'raw':
         vo = np.load(path + 'velobs_raw.npy').item()
@@ -395,6 +491,7 @@ def plot_all_toi_phases(src='raw', path='/Users/christoph/OneDrive - UNSW/observ
         else:
             plot_toi_phase(targ, vo=vo, saveplot=saveplots, outpath = path + 'plots/')
     return
+
 
 
 
@@ -429,6 +526,7 @@ def get_reduced_obslist(laptop=False):
 #     unique_targets = set(all_target_list)
 
     return all_obs_list
+
 
 
 
@@ -487,6 +585,7 @@ def make_text_file_for_latex(vo):
                 outfile.write(r'\newpage' + '\n')
     outfile.close()
     return
+
 
 
 
@@ -587,7 +686,15 @@ def update_redobs(starname, starpath=None, pattern=None, overwrite=False):
         os.system("mkdir " + neither_path)
         
     # copy all reduced files of the target to the target folder
-    os.system("find " + redpath + "20* -name '" + "*" + pattern + "*optimal*' -exec cp '{}' " + starpath + " \;")
+#     os.system("find " + redpath + "20* -name '" + "*" + pattern + "*optimal*' -exec cp '{}' " + starpath + " \;")
+    if starname[:2] == 'HD':
+        synonyms = ['HD'+pattern, pattern]
+    elif starname[:3] == 'TOI':
+        synonyms = ['TOI'+pattern, 'TOI'+pattern+'.01', 'TIC'+pattern+'.01', pattern+'.01']
+    else:
+        synonyms = [pattern]
+    for syn in synonyms:
+            os.system("find " + redpath + "20* -name '" + "*" + syn + "*optimal*' -exec cp '{}' " + starpath + " \;")
     
     # some more housekeeping...
     chipmask_path = '/Users/christoph/OneDrive - UNSW/chipmasks/archive/'

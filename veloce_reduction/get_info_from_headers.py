@@ -85,12 +85,15 @@ def identify_obstypes(path):
 
 
 
-def get_obstype_lists(path, pattern=None, weeding=True, quick=False):
+def get_obstype_lists(path, pattern=None, weeding=True, quick=False, raw_goodonly=True):
 
-    date = path[-9:-1]
+    if raw_goodonly:
+        date = path[-9:-1]
+    else:
+        date = '20' + path[-13:-7]
 
     if pattern is None:
-        file_list = glob.glob(path + "*.fits")
+        file_list = glob.glob(path + date[-2:] + "*.fits")
     else:
         file_list = glob.glob(path + '*' + pattern + '*.fits')
     
@@ -151,7 +154,7 @@ def get_obstype_lists(path, pattern=None, weeding=True, quick=False):
             laser_and_thxe_list.append(file)
         elif obj_type.lower().startswith(("wasp","proxima","kelt","toi","tic","hd","hr","hip","gj","gl","ast","alpha","beta","gamma",
                                           "delta","tau","ksi","ach","zeta","ek",'1', '2', '3', '4', '5', '6', '7', '8', '9',
-                                          'bd', 'bps', 'cd', 'he', 'g', 'cs', 'bkt', 'meingast', 'spangap', 'sarah', 'rm')):
+                                          'bd', 'bps', 'cd', 'he', 'g', 'cs', 'bkt', 'meingast', 'spangap', 'sarah', 'rm', 'fp', 'vel')):
             stellar_list.append(file)
         else:
             unknown_list.append(file)
