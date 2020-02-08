@@ -175,9 +175,11 @@ def create_toi_velobs_dict(obspath='/Users/christoph/OneDrive - UNSW/observation
             vo[targ]['phase'] = []
             vo[targ]['epoch_phase'] = []
             vo[targ]['epoch_snr'] = []
+            vo[targ]['epoch_seeing'] = []
             vo[targ]['epoch_dates'] = []
             vo[targ]['epoch_JD'] = []
             vo[targ]['snr'] = []     # from logsheet
+            vo[targ]['seeing'] = []  # from logsheet
             # vo[targ]['cal'] = []     # would be nice as an upgrade in the future (calibration source: LFC, ThXe, interp?)
             # vo[targ]['rv'] = []     # would be nice as an upgrade in the future
             days = []
@@ -205,17 +207,32 @@ def create_toi_velobs_dict(obspath='/Users/christoph/OneDrive - UNSW/observation
                 logfilename = glob.glob(logpath + '*' + date[2:] + '*.log')[0]
 #                 print(date)
                 snr = np.nan   # fall-back option if snr not found in logsheets
+                seeing = np.nan   # fall-back option if seeing not found in logsheets
                 with open(logfilename) as logfile:
                     for line in logfile:
                         if line[:4] == seq[1:]: 
 #                             print(line)
+                            # SNR
                             snr = line.split()[5]
                             try:
                                 snr = int(snr)
                             except:
                                 snr = np.nan
-#                             print(snr)
-                vo[targ]['snr'].append(snr)  
+                            # seeing
+                            seeing = line.split()[7]
+                            try:
+                                if date <= 20180926:
+                                    seeing = np.round(float(seeing), 1)
+                                else:
+                                    seeing = np.round(float(seeing[:-1]),1)
+                            except:
+                                seeing = np.nan
+                if date >= 20200129:
+                    seeing_fac = 1.
+                else:
+                    seeing_fac = np.sqrt(2)
+                vo[targ]['snr'].append(snr)
+                vo[targ]['seeing'].append(np.round(seeing * seeing_fac,1))
                 
             vo[targ]['phase'].append(calculate_orbital_phase(targ, vo[targ]['JD']))
             vo[targ]['phase'] = vo[targ]['phase'][0] 
@@ -247,18 +264,21 @@ def create_toi_velobs_dict(obspath='/Users/christoph/OneDrive - UNSW/observation
                         # for the individual single-shot exposures within this epoch get the phases, SNRs, and JDs
                         ss_phases = vo[targ]['phase'][ix]
                         snrs = np.array(vo[targ]['snr'])[ix]
+                        seeings = np.array(vo[targ]['seeing'])[ix]
                         jds = np.array(vo[targ]['JD'])[ix]
                         # get the combined SNR for the epoch
                         vo[targ]['epoch_snr'].append(np.sqrt(np.sum(snrs**2)))
-                        # now get the weighted mean phase and mean JD for the epoch - weight by SNR if possible; if not, use sqrt(texp)
+                        # now get the weighted mean phase and mean JD for the epoch - weight by SNR if possible; if not, use exposure times
                         if ~np.isnan(snrs).any():
                             vo[targ]['epoch_phase'].append(np.average(ss_phases, weights=snrs))
                             vo[targ]['epoch_JD'].append(np.average(jds, weights=snrs))
+                            vo[targ]['epoch_seeing'].append(np.average(seeings, weights=snrs))
                         else:
                             print('WARNING: logsheet incomplete for', d)
                             exptimes = np.array(vo[targ]['texp'])[ix]
-                            vo[targ]['epoch_phase'].append(np.average(ss_phases, weights=np.sqrt(exptimes)))
-                            vo[targ]['epoch_JD'].append(np.average(jds, weights=np.sqrt(exptimes)))
+                            vo[targ]['epoch_phase'].append(np.average(ss_phases, weights=exptimes))
+                            vo[targ]['epoch_JD'].append(np.average(jds, weights=exptimes))
+                            vo[targ]['epoch_seeing'].append(np.average(seeings, weights=exptimes))
                         # record the date for that epoch
                         vo[targ]['epoch_dates'].append(d)
                     else:
@@ -269,6 +289,7 @@ def create_toi_velobs_dict(obspath='/Users/christoph/OneDrive - UNSW/observation
                             # for the individual single-shot exposures within this epoch get the phases, SNRs, and JDs
                             ss_phases = vo[targ]['phase'][subix]
                             snrs = np.array(vo[targ]['snr'])[subix]
+                            seeings = np.array(vo[targ]['seeing'])[subix]
                             jds = np.array(vo[targ]['JD'])[subix]
                             # get the combined SNR for the epoch
                             vo[targ]['epoch_snr'].append(np.sqrt(np.sum(snrs**2))) 
@@ -276,14 +297,15 @@ def create_toi_velobs_dict(obspath='/Users/christoph/OneDrive - UNSW/observation
                             if ~np.isnan(snrs).any():
                                 vo[targ]['epoch_phase'].append(np.average(ss_phases, weights=snrs))
                                 vo[targ]['epoch_JD'].append(np.average(jds, weights=snrs))
+                                vo[targ]['epoch_seeing'].append(np.average(seeings, weights=snrs))
                             else:
                                 print('WARNING: logsheet incomplete for', d)
                                 exptimes = np.array(vo[targ]['texp'])[subix]
                                 vo[targ]['epoch_phase'].append(np.average(ss_phases, weights=exptimes))
                                 vo[targ]['epoch_JD'].append(np.average(jds, weights=exptimes))
+                                vo[targ]['epoch_seeing'].append(np.average(seeings, weights=exptimes))
                             # record the date for that epoch
                             vo[targ]['epoch_dates'].append(d)
-                    
 
     if savefile:
         np.save(obspath + 'velobs_' + rawred + '.npy', vo)
