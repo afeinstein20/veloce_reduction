@@ -694,9 +694,9 @@ def make_ccfs(f, wl, f0, wl0, bc=0., bc0=0., smoothed_flat=None, delta_log_wl=1e
 #         use_orders = [5, 6, 17, 25, 26, 27, 31, 34, 35, 36]         # at the moment 17 and 34 give the lowest scatter
 #     use_orders = [5, 6, 17, 25, 26, 27, 31, 34, 35, 36]
 #     use_orders = [5, 6, 17, 25, 27, 31, 36]
-#     use_orders = [17]
+    use_orders = [17]
 #     use_orders = np.arange(1,39)
-    use_orders = np.arange(1,37)
+#     use_orders = np.arange(1,37)
 #     use_orders = np.arange(n_ord)
 
     print('Using ' + str(len(use_orders)) + ' orders for CCF...')
