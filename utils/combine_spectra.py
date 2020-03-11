@@ -701,36 +701,36 @@ def main_script_for_timtim(date = '20190621'):
         pyfits.append(file, wl, clobber=True)
     
     
-#     ### STEP 2: append barycentric correction!?!?!?
-#     # loop over all stellar observations
-#     for i,file in enumerate(stellar_list):
-#         if i==0:
-#             print
-#             print('STEP 3: appending barycentric correction')
-#         print(str(i+1)+'/'+str(len(stellar_list)))
-#         
-#         # get object name
-#         object = pyfits.getval(file, 'OBJECT').split('+')[0]
-#         # get observation midpoint in time (in JD)
-#         jd = pyfits.getval(file, 'UTMJD') + 0.5*pyfits.getval(file, 'ELAPSED')/86400. + 2.4e6 + 0.5
-#         # get Gaia DR2 ID from object
-#         if object in gaia_dict.keys():
-#             gaia_dr2_id = gaia_dict[object]
-#             # get barycentric correction from Gaia DR2 ID and obstime
-#             try:
-#                 bc = get_bc_from_gaia(gaia_dr2_id, jd)[0]
-#             except:
-#                 bc = get_bc_from_gaia(gaia_dr2_id, jd)
-#         else:
-#             hipnum = hipnum_dict[object]
-#             bc = barycorrpy.get_BC_vel(JDUTC=jd, hip_id=hipnum, obsname='AAO', ephemeris='de430')[0][0]
-#         
-#         bc = np.round(bc,2)
-#         assert not np.isnan(bc), 'ERROR: could not calculate barycentric correction for '+file
-#         print('barycentric correction for object ' + object + ' :  ' + str(bc) + ' m/s')
-#         
-#         # write the barycentric correction into the FITS header of both the quick-extracted and the optimal-extracted reduced spectrum files
-#         pyfits.setval(file, 'BARYCORR', value=bc, comment='barycentric velocity correction [m/s]')
+    #     ### STEP 2: append barycentric correction!?!?!?
+    #     # loop over all stellar observations
+    #     for i,file in enumerate(stellar_list):
+    #         if i==0:
+    #             print
+    #             print('STEP 3: appending barycentric correction')
+    #         print(str(i+1)+'/'+str(len(stellar_list)))
+    #         
+    #         # get object name
+    #         object = pyfits.getval(file, 'OBJECT').split('+')[0]
+    #         # get observation midpoint in time (in JD)
+    #         jd = pyfits.getval(file, 'UTMJD') + 0.5*pyfits.getval(file, 'ELAPSED')/86400. + 2.4e6 + 0.5
+    #         # get Gaia DR2 ID from object
+    #         if object in gaia_dict.keys():
+    #             gaia_dr2_id = gaia_dict[object]
+    #             # get barycentric correction from Gaia DR2 ID and obstime
+    #             try:
+    #                 bc = get_bc_from_gaia(gaia_dr2_id, jd)[0]
+    #             except:
+    #                 bc = get_bc_from_gaia(gaia_dr2_id, jd)
+    #         else:
+    #             hipnum = hipnum_dict[object]
+    #             bc = barycorrpy.get_BC_vel(JDUTC=jd, hip_id=hipnum, obsname='AAO', ephemeris='de430')[0][0]
+    #         
+    #         bc = np.round(bc,2)
+    #         assert not np.isnan(bc), 'ERROR: could not calculate barycentric correction for '+file
+    #         print('barycentric correction for object ' + object + ' :  ' + str(bc) + ' m/s')
+    #         
+    #         # write the barycentric correction into the FITS header of both the quick-extracted and the optimal-extracted reduced spectrum files
+    #         pyfits.setval(file, 'BARYCORR', value=bc, comment='barycentric velocity correction [m/s]')
     
     
     ### STEP 3: combine the flux in all fibres for each exposure (by going to a common wl-grid (by default the one for the central fibre) and get median sky spectrum
@@ -881,6 +881,7 @@ def main_script_for_bouma(date = '30200130', skysub=False):
     used_fibth_list = [path + 'calibs/' + date + '_ARC - ThAr_' + obsname + '_optimal3a_extracted.fits' for obsname in fibth_obsnames]
     stellar_list = glob.glob(path + 'stellar_only/' + '*optimal*.fits')
     stellar_list.sort()
+    stellar_obsnames = [(fn.split('/')[-1]).split('_')[2] for fn in stellar_list]
     # stellar_list_quick = glob.glob(path + 'stellar_only/' + '*quick*.fits')
     # stellar_list_quick.sort()
      
@@ -909,6 +910,17 @@ def main_script_for_bouma(date = '30200130', skysub=False):
         wl = interpolate_dispsols(wl1, wl2, t1, t2, tobs)
         # append this wavelength solution to the extracted spectrum FITS files
         pyfits.append(file, wl, clobber=True)
+    
+# #     # alternatively, if there are LFC wl-solutions available
+#     for filename,obsname in zip(stellar_list[:5], stellar_obsnames[:5]):
+#         wldict, wl = get_dispsol_for_all_fibs_3(obsname, date='20190126')
+#         pyfits.append(filename, wl[:-1,:,:])
+#  
+#     for filename,obsname in zip(stellar_list[5:], stellar_obsnames[5:]):
+#         wldict, wl = get_dispsol_for_all_fibs_3(obsname, date='20190522')
+#         pyfits.append(filename, wl[:-1,:,:])
+    
+    
     
     
 #     ### STEP 2: append barycentric correction!?!?!?
@@ -964,7 +976,7 @@ def main_script_for_bouma(date = '30200130', skysub=False):
         # combine sky fibres (N=3, exclude the ones next to SimTh (only SimTh was on for 20200130 and 20200131)), then take the median        
         f_sky, err_sky, wl_sky = median_fibres(f, err, wl, osf=5, fibs=[22, 23, 24])
                                           
-        # save to new FITS file
+        # save to new FITS files
         outpath = path + 'fibres_combined/'
         fname = file.split('/')[-1]
         new_fn = outpath + fname.split('.')[0] + '.' + fname.split('.')[1] + '_stellar_fibres_combined.fits'
@@ -1004,7 +1016,9 @@ def main_script_for_bouma(date = '30200130', skysub=False):
         object = pyfits.getval(file, 'OBJECT').split('+')[0]
          
         # make list that keeps a record of which observations feed into the combined final one
-        used_obsnames = [(fn.split('/')[-1]).split('_')[3] for fn,obj in zip(fc_stellar_list, object_list) if obj == object]
+#         used_obsnames = [(fn.split('/')[-1]).split('_')[3] for fn,obj in zip(fc_stellar_list, object_list) if obj == object]
+        used_obsnames = [(fn.split('/')[-1]).split('_')[2] for fn,obj in zip(fc_stellar_list, object_list) if obj == object]
+        
         # add this information to the fits headers
         h['N_EXP'] = (len(used_obsnames), 'number of single-shot exposures')
         h_err['N_EXP'] = (len(used_obsnames), 'number of single-shot exposures')

@@ -286,7 +286,7 @@ def get_RV_from_xcorr(f, err, wl, f0, wl0, mask=None, smoothed_flat=None, osf=2,
 
 
 
-def get_RV_from_xcorr_2(f, wl, f0, wl0, bc=0, bc0=0, mask=None, smoothed_flat=None, delta_log_wl=1e-6, addrange=150, fitrange=35,
+def get_RV_from_xcorr_2(f, wl, f0, wl0, bc=0, bc0=0, mask=None, smoothed_flat=None, delta_log_wl=1e-6, addrange=150, fitrange=35, npeaks=1,
                         taper=True, taper_width=0.05, flipped=False, deg_interp=3, individual_fibres=True, individual_orders=True,
                         scrunch=False, fit_slope=False, norm_cont=False, synthetic_template=False, old_ccf=False, debug_level=0, timit=False):
     """
@@ -306,6 +306,7 @@ def get_RV_from_xcorr_2(f, wl, f0, wl0, bc=0, bc0=0, mask=None, smoothed_flat=No
     'delta_log_wl'  : stepsize of the log-wl grid
     'addrange'      : the central (2*addrange + 1) pixels of the CCFs will be added
     'fitrange'      : a Gauss-like function will be fitted to the central (2*fitrange + 1) pixels
+    'npeaks'        : the number of peaks to be fitted in the central region of the CCF (essentially that's the number of stars, but allows room for experiments)
     'taper'         : boolean - do you want to taper off the edges for the inputs to the xcorr-routine?
     'taper_width'   : fractional width/length of the input arrays to the xcorr-routine that will be tapered to zero at both ends
     'flipped'       : boolean - reverse order of inputs to xcorr routine?
@@ -327,6 +328,11 @@ def get_RV_from_xcorr_2(f, wl, f0, wl0, bc=0, bc0=0, mask=None, smoothed_flat=No
     04/06/2018 - CMB fixed bug when turning around arrays (need to use new variable)
     28/06/2018 - CMB fixed bug with interpolation of log wls
     """
+
+    assert delta_log_wl > 0, 'ERROR: "delta_log_wl" must ge greater than zero!!!'
+    assert fitrange > 0 and fitrange.__class__ == int, 'ERROR: "fitrange" must be a positive integer'
+    assert addrange > 0 and addrange.__class__ == int and addrange >= fitrange, 'ERROR: "addrange" must be a positive integer, and must be larger than "fitrange"'
+    assert npeaks > 0 and npeaks.__class__ == int, 'ERROR: "npeaks" must be a positive integer'
 
     if timit:
         start_time = time.time()
@@ -354,7 +360,7 @@ def get_RV_from_xcorr_2(f, wl, f0, wl0, bc=0, bc0=0, mask=None, smoothed_flat=No
         xcs = old_make_ccfs(f, wl, f0, wl0, bc=bc, bc0=bc0, mask=mask, smoothed_flat=smoothed_flat, delta_log_wl=delta_log_wl, relgrid=False,
                             flipped=flipped, individual_fibres=individual_fibres, synthetic_template=synthetic_template, debug_level=debug_level, timit=timit)
 
-    
+
     if individual_fibres:
 
         # make array only containing the central parts of the CCFs (which can have different total lengths) for fitting
@@ -384,32 +390,37 @@ def get_RV_from_xcorr_2(f, wl, f0, wl0, bc=0, bc0=0, mask=None, smoothed_flat=No
                 if debug_level >= 3:
                     print('order = ', o, ' ; fibre = ', f)
                 xc = xcarr[o, f, :]
-                
+
                 # find peaks (the highest of which we assume is the real one we want) in case the delta-rvabs is non-zero
                 peaks = np.r_[True, xc[1:] > xc[:-1]] & np.r_[xc[:-1] > xc[1:], True]
                 # filter out maxima too close to the edges to avoid problems
                 peaks[:5] = False
                 peaks[-5:] = False
-                guessloc = np.argmax(xc*peaks)
-                if guessloc >= len(xc)//2:
-                    xrange = np.arange(np.minimum(len(xc) - 2*fitrange-1, guessloc - fitrange), np.minimum(guessloc + fitrange + 1, len(xc)), 1)
+                if npeaks == 1:
+                    guessloc = np.argmax(xc*peaks)
+                    if guessloc >= len(xc)//2:
+                        xrange = np.arange(np.minimum(len(xc) - 2*fitrange-1, guessloc - fitrange), np.minimum(guessloc + fitrange + 1, len(xc)), 1)
+                    else:
+                        xrange = np.arange(np.maximum(0, guessloc - fitrange), np.maximum(guessloc + fitrange + 1, 2*fitrange+1), 1)
                 else:
-                    xrange = np.arange(np.maximum(0, guessloc - fitrange), np.maximum(guessloc + fitrange + 1, 2*fitrange+1), 1)
+                    # find the npeaks highest peaks in the CCF
+                    guesslocs = np.argsort(xc * peaks)[-npeaks:]
+                    xrange = np.arange(np.maximum(0, np.min(guesslocs) - fitrange), np.minimum(np.max(guesslocs) + fitrange + 1, len(xc)), 1)
 #                 xrange = np.arange(guessloc - fitrange, guessloc + fitrange + 1, 1)
 #                 xrange = np.arange(np.argmax(xc) - fitrange, np.argmax(xc) + fitrange + 1, 1)
-                
+
                 # make sure we have a dynamic range
                 xc -= np.min(xc[xrange])
                 # "normalize" it
                 xc /= np.max(xc)
                 xc *= 0.9
                 xc += 0.1
-                
+
                 if fit_slope:
-                    print('latest version OK')
+                    print('latest version OKOK')
                     # parameters: mu, sigma, amp, beta, offset, slope
                     guess = np.array([guessloc, fitrange//3, 0.9, 2., np.min(xc[xrange]), 0.])
-                
+
                     try:
                         # subtract the minimum of the fitrange so as to have a "dynamic range"
                         popt, pcov = op.curve_fit(gausslike_with_amp_and_offset_and_slope, xrange, xc[xrange], p0=guess, maxfev=1000000)
@@ -422,10 +433,10 @@ def get_RV_from_xcorr_2(f, wl, f0, wl0, bc=0, bc0=0, mask=None, smoothed_flat=No
                         mu = np.nan
                         mu_err = np.nan
                 else:
-                    print('latest version OK')
+                    print('latest version OKOK')
                     # parameters: mu, sigma, amp, beta, offset
                     guess = np.array([guessloc, fitrange//3, 0.9, 2., np.min(xc[xrange])])
-    
+
                     try:
                         # subtract the minimum of the fitrange so as to have a "dynamic range"
                         popt, pcov = op.curve_fit(gausslike_with_amp_and_offset, xrange, xc[xrange], p0=guess, maxfev=1000000)
@@ -468,20 +479,25 @@ def get_RV_from_xcorr_2(f, wl, f0, wl0, bc=0, bc0=0, mask=None, smoothed_flat=No
                 print('order ' + str(o+1))
             xc = xcarr[o, :]
             # want to fit a symmetric region around the peak, not around the "centre" of the xc
-            
+
             # find peaks (the highest of which we assume is the real one we want) in case the delta-rvabs is non-zero
             peaks = np.r_[True, xc[1:] > xc[:-1]] & np.r_[xc[:-1] > xc[1:], True]
             # filter out maxima too close to the edges to avoid problems
             peaks[:5] = False
             peaks[-5:] = False
-            guessloc = np.argmax(xc*peaks)
-            if guessloc >= len(xc)//2:
-                xrange = np.arange(np.minimum(len(xc) - 2*fitrange-1, guessloc - fitrange), np.minimum(guessloc + fitrange + 1, len(xc)), 1)
+            if npeaks == 1:
+                guessloc = np.argmax(xc*peaks)
+                if guessloc >= len(xc)//2:
+                    xrange = np.arange(np.minimum(len(xc) - 2*fitrange-1, guessloc - fitrange), np.minimum(guessloc + fitrange + 1, len(xc)), 1)
+                else:
+                    xrange = np.arange(np.maximum(0, guessloc - fitrange), np.maximum(guessloc + fitrange + 1, 2*fitrange+1), 1)
             else:
-                xrange = np.arange(np.maximum(0, guessloc - fitrange), np.maximum(guessloc + fitrange + 1, 2*fitrange+1), 1)
+                # find the npeaks highest peaks in the CCF
+                guesslocs = np.argsort(xc * peaks)[-npeaks:]
+                xrange = np.arange(np.maximum(0, np.min(guesslocs) - fitrange), np.minimum(np.max(guesslocs) + fitrange + 1, len(xc)), 1)
 #             xrange = np.arange(guessloc - fitrange, guessloc + fitrange + 1, 1)
 #           xrange = np.arange(np.argmax(xc) - fitrange, np.argmax(xc) + fitrange + 1, 1)
-            
+
             # make sure we have a dynamic range
             if debug_level >= 3:
                 print(xrange)
@@ -490,12 +506,12 @@ def get_RV_from_xcorr_2(f, wl, f0, wl0, bc=0, bc0=0, mask=None, smoothed_flat=No
             xc /= np.max(xc)
             xc *= 0.9
             xc += 0.1
-            
+
             if fit_slope:
-                print('latest version OK')
+                print('latest version OKOK')
                 # parameters: mu, sigma, amp, beta, offset, slope
                 guess = np.array([guessloc, fitrange//3, 0.9, 2., np.min(xc[xrange]), 0.])
-                
+
                 try:
                     # subtract the minimum of the fitrange so as to have a "dynamic range"
                     popt, pcov = op.curve_fit(gausslike_with_amp_and_offset_and_slope, xrange, xc[xrange], p0=guess, maxfev=1000000)
@@ -508,7 +524,7 @@ def get_RV_from_xcorr_2(f, wl, f0, wl0, bc=0, bc0=0, mask=None, smoothed_flat=No
                     mu = np.nan
                     mu_err = np.nan
             else:
-                print('latest version OK')
+                print('latest version OKOK')
                 # parameters: mu, sigma, amp, beta, offset
                 guess = np.array([guessloc, fitrange//3, 0.9, 2., np.min(xc[xrange])])
 
@@ -560,7 +576,7 @@ def get_RV_from_xcorr_2(f, wl, f0, wl0, bc=0, bc0=0, mask=None, smoothed_flat=No
 
 
 
-def make_ccfs(f, wl, f0, wl0, bc=0., bc0=0., smoothed_flat=None, delta_log_wl=1e-6, deg_interp=1, flipped=False, individual_fibres=True, scrunch=False, 
+def make_ccfs(f, wl, f0, wl0, bc=0., bc0=0., smoothed_flat=None, delta_log_wl=1e-6, deg_interp=1, flipped=False, individual_fibres=True, scrunch=False,
               norm_cont=True, taper=True, taper_width=0.05, use_orders=None, synthetic_template=False, n_stellar_fibs=19, debug_level=0, timit=False):
     """
     This routine calculates the CCFs of an observed spectrum and a template spectrum for each order.
@@ -691,10 +707,12 @@ def make_ccfs(f, wl, f0, wl0, bc=0., bc0=0., smoothed_flat=None, delta_log_wl=1e
 #     if use_orders == 'all':
 #         use_orders = np.arange(1,39)
 #     if use_orders is None:
-#         use_orders = [5, 6, 17, 25, 26, 27, 31, 34, 35, 36]         # at the moment 17 and 34 give the lowest scatter
-#     use_orders = [5, 6, 17, 25, 26, 27, 31, 34, 35, 36]
+#     use_orders = [5, 6, 17, 25, 26, 27, 31, 34, 35, 36]         # at the moment 17 and 34 give the lowest scatter
+#     use_orders = [5, 17, 25, 26, 27, 31, 34, 35, 36]
+    use_orders = [5, 17, 25, 26, 27, 28, 31, 32, 33, 34, 35, 36]    # for TOI192
 #     use_orders = [5, 6, 17, 25, 27, 31, 36]
-    use_orders = [17]
+#     use_orders = [17]
+#     use_orders = [35]
 #     use_orders = np.arange(1,39)
 #     use_orders = np.arange(1,37)
 #     use_orders = np.arange(n_ord)

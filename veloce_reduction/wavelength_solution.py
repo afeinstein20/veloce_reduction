@@ -2530,6 +2530,7 @@ def get_dispsol_for_all_fibs_3(obsname, date=None, relto='LFC', degpol=7, nx=411
             
     # read file containing LFC peak positions of observation
 #     _, yref, xref, _, _, _, _, _, _, _, _ = readcol(lfc_path + '21sep30019olc.nst', twod=False, skipline=2)
+    assert os.path.isfile(lfc_path + 'all/' + year + '/' + obsname + 'olc.nst'), 'ERROR: file containing LFC peak positions does not exist for ' + obsname + ' (' + year + ')'
     try:
         _, y, x, _, _, _, _, _, _, _, _ = readcol(lfc_path + 'all/' + year + '/' + obsname + 'olc.nst', twod=False, skipline=2)
     except:
