@@ -13,7 +13,7 @@ import time
 from scipy import ndimage
 from readcol import readcol
 
-from veloce_reduction.veloce_reduction.helper_functions import xcorr, gausslike_with_amp_and_offset, gausslike_with_amp_and_offset_and_slope, central_parts_of_mask, spectres, cmb_scrunch
+from veloce_reduction.veloce_reduction.helper_functions import xcorr, gausslike_with_amp_and_offset, gausslike_with_amp_and_offset_and_slope, central_parts_of_mask, spectres, cmb_scrunch, multi_fibmodel_with_amp_and_offset
 from veloce_reduction.veloce_reduction.flat_fielding import deblaze_orders, onedim_pixtopix_variations
 
 
@@ -382,9 +382,9 @@ def get_RV_from_xcorr_2(f, wl, f0, wl0, bc=0, bc0=0, mask=None, smoothed_flat=No
             xcarr = xcarr[np.newaxis, :]  # need that extra dimension for the for-loop below
             xcsum = np.sum(xcarr, axis=0)
 
-        # format is (n_ord, n_fib)
-        rv = np.zeros((xcarr.shape[0], xcarr.shape[1]))
-        rverr = np.zeros((xcarr.shape[0], xcarr.shape[1]))
+        # format is (n_ord, n_fib, npeaks)
+        rv = np.zeros((xcarr.shape[0], xcarr.shape[1], npeaks))
+        rverr = np.zeros((xcarr.shape[0], xcarr.shape[1], npeaks))
         for o in range(xcarr.shape[0]):
             for f in range(xcarr.shape[1]):
                 if debug_level >= 3:
@@ -418,6 +418,7 @@ def get_RV_from_xcorr_2(f, wl, f0, wl0, bc=0, bc0=0, mask=None, smoothed_flat=No
 
                 if fit_slope:
                     print('latest version OKOK')
+                    assert npeaks == 1, 'ERROR: multi-peak fitting together with slope fitting has not been implemented yet!!!'
                     # parameters: mu, sigma, amp, beta, offset, slope
                     guess = np.array([guessloc, fitrange//3, 0.9, 2., np.min(xc[xrange]), 0.])
 
@@ -434,24 +435,57 @@ def get_RV_from_xcorr_2(f, wl, f0, wl0, bc=0, bc0=0, mask=None, smoothed_flat=No
                         mu_err = np.nan
                 else:
                     print('latest version OKOK')
-                    # parameters: mu, sigma, amp, beta, offset
-                    guess = np.array([guessloc, fitrange//3, 0.9, 2., np.min(xc[xrange])])
+                    
+#                 # OLD VERSION: can only accommodate one peak, but same as below
+#                 # parameters: mu, sigma, amp, beta, offset
+#                 guess = np.array([guessloc, fitrange//3, 0.9, 2., np.min(xc[xrange])])
+# 
+#                 try:
+#                     # subtract the minimum of the fitrange so as to have a "dynamic range"
+#                     popt, pcov = op.curve_fit(gausslike_with_amp_and_offset, xrange, xc[xrange], p0=guess, maxfev=1000000)
+#                     mu = popt[0]
+#                     mu_err = np.sqrt(pcov[0, 0])
+#                     if debug_level >= 1:
+#                         print('Fit successful...')
+#                 except:
+#                     popt, pcov = (np.nan, np.nan)
+#                     mu = np.nan
+#                     mu_err = np.nan
 
+                    # NEW: THIS WAY WE CAN ACCOMMODATE ANY (user-defined) NUMBER OF PEAKS
+                    guess = []
+                    lower_bounds = []
+                    upper_bounds = []
+                    for n in range(npeaks):
+                        # mu, sigma, amp, beta
+                        guess.append(np.array([guesslocs[n], fitrange//3, xc[guesslocs[n]], 2.]))
+                        lower_bounds.append([xrange[0], 0, 0, 1])
+                        upper_bounds.append([xrange[-1], np.inf, np.inf, 4])
+                    # reformat arrays
+                    guess = np.array(guess).flatten()
+                    lower_bounds = np.array(lower_bounds).flatten()
+                    upper_bounds = np.array(upper_bounds).flatten()
+                    # append offset
+                    guess = np.append(guess, np.min(xc[xrange]))
+                    lower_bounds = np.append(lower_bounds, -1)
+                    upper_bounds = np.append(upper_bounds, 1)
+                    # fit multiple peaks
                     try:
-                        # subtract the minimum of the fitrange so as to have a "dynamic range"
-                        popt, pcov = op.curve_fit(gausslike_with_amp_and_offset, xrange, xc[xrange], p0=guess, maxfev=1000000)
-                        mu = popt[0]
-                        mu_err = np.sqrt(pcov[0, 0])
-                        if debug_level >= 1:
-                            print('Fit successful...')
+                        popt, pcov = op.curve_fit(multi_fibmodel_with_amp_and_offset, xrange, xc[xrange], p0=guess, bounds=(lower_bounds, upper_bounds), maxfev=100000)
                     except:
-                        popt, pcov = (np.nan, np.nan)
-                        mu = np.nan
-                        mu_err = np.nan
-
+                        popt, pcov = (np.ones(4*npeaks+1)*np.nan, np.ones(4*npeaks+1)*np.nan)
+                    popt_arr = np.reshape(popt[:-1], (npeaks, 4))
+                    pcov_arr = np.reshape(pcov[:-1], (npeaks, 4))
+    #                 offset = popt[-1]
+                    mu = popt_arr[:,0]
+                    mu_err = popt_arr[:,0]
+                    ixs = np.arange(0,npeaks*4,4)
+                    pcov_dum = 
+                    mu_err = np.sqrt(np.array([pcov[ix,ix] for ix in ixs]))    
+                    
                 # convert to RV in m/s
-                rv[o, f] = c * (mu - (len(xc) // 2)) * delta_log_wl
-                rverr[o, f] = c * mu_err * delta_log_wl
+                rv[o, f, :] = c * (mu - (len(xc) // 2)) * delta_log_wl
+                rverr[o, f, :] = c * mu_err * delta_log_wl
 
     else:
 
@@ -472,8 +506,9 @@ def get_RV_from_xcorr_2(f, wl, f0, wl0, bc=0, bc0=0, mask=None, smoothed_flat=No
             xcarr = xcarr[np.newaxis, :]  # need that extra dimension for the for-loop below
 
         xcsum = np.sum(xcarr, axis=0)
-        rv = np.zeros(xcarr.shape[0])
-        rverr = np.zeros(xcarr.shape[0])
+        # format is (n_ord, npeaks)
+        rv = np.zeros((xcarr.shape[0], npeaks))
+        rverr = np.zeros((xcarr.shape[0], npeaks))
         for o in range(xcarr.shape[0]):
             if debug_level >= 2:
                 print('order ' + str(o+1))
@@ -509,6 +544,7 @@ def get_RV_from_xcorr_2(f, wl, f0, wl0, bc=0, bc0=0, mask=None, smoothed_flat=No
 
             if fit_slope:
                 print('latest version OKOK')
+                assert npeaks == 1, 'ERROR: multi-peak fitting together with slope fitting has not been implemented yet!!!'
                 # parameters: mu, sigma, amp, beta, offset, slope
                 guess = np.array([guessloc, fitrange//3, 0.9, 2., np.min(xc[xrange]), 0.])
 
@@ -525,24 +561,57 @@ def get_RV_from_xcorr_2(f, wl, f0, wl0, bc=0, bc0=0, mask=None, smoothed_flat=No
                     mu_err = np.nan
             else:
                 print('latest version OKOK')
-                # parameters: mu, sigma, amp, beta, offset
-                guess = np.array([guessloc, fitrange//3, 0.9, 2., np.min(xc[xrange])])
+                
+#                 # OLD VERSION: can only accommodate one peak, but same as below
+#                 # parameters: mu, sigma, amp, beta, offset
+#                 guess = np.array([guessloc, fitrange//3, 0.9, 2., np.min(xc[xrange])])
+# 
+#                 try:
+#                     # subtract the minimum of the fitrange so as to have a "dynamic range"
+#                     popt, pcov = op.curve_fit(gausslike_with_amp_and_offset, xrange, xc[xrange], p0=guess, maxfev=1000000)
+#                     mu = popt[0]
+#                     mu_err = np.sqrt(pcov[0, 0])
+#                     if debug_level >= 1:
+#                         print('Fit successful...')
+#                 except:
+#                     popt, pcov = (np.nan, np.nan)
+#                     mu = np.nan
+#                     mu_err = np.nan
 
+                # NEW: THIS WAY WE CAN ACCOMMODATE ANY (user-defined) NUMBER OF PEAKS
+                guess = []
+                lower_bounds = []
+                upper_bounds = []
+                for n in range(npeaks):
+                    # mu, sigma, amp, beta
+                    guess.append(np.array([guesslocs[n], fitrange//3, xc[guesslocs[n]], 2.]))
+                    lower_bounds.append([xrange[0], 0, 0, 1])
+                    upper_bounds.append([xrange[-1], np.inf, np.inf, 4])
+                # reformat arrays
+                guess = np.array(guess).flatten()
+                lower_bounds = np.array(lower_bounds).flatten()
+                upper_bounds = np.array(upper_bounds).flatten()
+                # append offset
+                guess = np.append(guess, np.min(xc[xrange]))
+                lower_bounds = np.append(lower_bounds, -1)
+                upper_bounds = np.append(upper_bounds, 1)
+                # fit multiple peaks
                 try:
-                    # subtract the minimum of the fitrange so as to have a "dynamic range"
-                    popt, pcov = op.curve_fit(gausslike_with_amp_and_offset, xrange, xc[xrange], p0=guess, maxfev=1000000)
-                    mu = popt[0]
-                    mu_err = np.sqrt(pcov[0, 0])
-                    if debug_level >= 1:
-                        print('Fit successful...')
+                    popt, pcov = op.curve_fit(multi_fibmodel_with_amp_and_offset, xrange, xc[xrange], p0=guess, bounds=(lower_bounds, upper_bounds), maxfev=100000)
                 except:
-                    popt, pcov = (np.nan, np.nan)
-                    mu = np.nan
-                    mu_err = np.nan
-
+                    popt, pcov = (np.ones(4*npeaks+1)*np.nan, np.ones(4*npeaks+1)*np.nan)
+                popt_arr = np.reshape(popt[:-1], (npeaks, 4))
+                pcov_arr = np.reshape(pcov[:-1], (npeaks, 4))
+#                 offset = popt[-1]
+                mu = popt_arr[:,0]
+                mu_err = popt_arr[:,0]
+                ixs = np.arange(0,npeaks*4,4)
+                pcov_dum = 
+                mu_err = np.sqrt(np.array([pcov[ix,ix] for ix in ixs]))
+                    
             # convert to RV in m/s
-            rv[o] = c * (mu - (len(xc) // 2)) * delta_log_wl
-            rverr[o] = c * mu_err * delta_log_wl
+            rv[o,:] = c * (mu - (len(xc) // 2)) * delta_log_wl
+            rverr[o,:] = c * mu_err * delta_log_wl
 #             # # plot a single fit for debugging
 #             plot_osf = 10
 #             plot_os_grid = np.linspace(xrange[0], xrange[-1], plot_osf * (len(xrange)-1) + 1)

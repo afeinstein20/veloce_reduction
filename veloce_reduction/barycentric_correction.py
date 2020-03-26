@@ -157,11 +157,11 @@ def get_bc_from_gaia(gaia_dr2_id, jd, rvabs=0):
 
 
 
-def append_bc_to_reduced_files(date, root='/Volumes/BERGRAID/data/veloce/'):
+def append_bc_to_reduced_files(date, rawpath='/Volumes/BERGRAID/data/veloce/raw_goodonly/', redpath='/Volumes/BERGRAID/data/veloce/reduced/'):
     
     print('Appending barycentric corrections to the reduced spectra of ' + str(date) + '...')
     
-    acq_list, bias_list, dark_list, flat_list, skyflat_list, domeflat_list, arc_list, thxe_list, laser_list, laser_and_thxe_list, stellar_list, unknown_list = get_obstype_lists(root+'raw_goodonly/'+date+'/')
+    acq_list, bias_list, dark_list, flat_list, skyflat_list, domeflat_list, arc_list, thxe_list, laser_list, laser_and_thxe_list, stellar_list, unknown_list = get_obstype_lists(rawpath + date + '/')
     stellar_list.sort()
     obsnames = short_filenames(stellar_list)
     object_list = [pyfits.getval(file, 'OBJECT').split('+')[0] for file in stellar_list]
@@ -177,7 +177,7 @@ def append_bc_to_reduced_files(date, root='/Volumes/BERGRAID/data/veloce/'):
         if np.isnan(bc):
             bc = ''
         # write the barycentric correction into the FITS header of both the quick-extracted and the optimal-extracted reduced spectrum files
-        sublist = glob.glob(root + 'reduced/' + date + '/*' + obsname + '*extracted*')
+        sublist = glob.glob(redpath + date + '/*' + obsname + '*extracted*')
         for outfn in sublist:
             pyfits.setval(outfn, 'BARYCORR', value=bc, comment='barycentric velocity correction [m/s]')   
     

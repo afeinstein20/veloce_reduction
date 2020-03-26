@@ -51,7 +51,7 @@ def make_median_image(imglist, MB=None, ronmask=None, scale=False, gain=[1,1,1,1
         MB = np.ones(dumimg.shape) * 4.
         del dumimg
     
-    # loop over all files in "dark_list"
+    # loop over all files
     for n,file in enumerate(imglist):
         
         if debug_level >=1:
@@ -78,6 +78,8 @@ def make_median_image(imglist, MB=None, ronmask=None, scale=False, gain=[1,1,1,1
     else:
         medimg = np.median(np.array(allimg), axis=0)
         err_medimg = 1.253 * np.std(np.array(allimg), axis=0) / np.sqrt(N-1)     # normally it would be sigma/sqrt(n), but np.std is dividing by sqrt(n), not by sqrt(n-1)
+
+    print('Giggidy')
 
     return medimg, err_medimg
 
@@ -620,6 +622,7 @@ def get_bias_and_readnoise_from_overscan_collapse(img, gain=None, ramps=[35, 35,
         print('Time elapsed: '+str(np.round(time.time() - start_time, 1))+' seconds')
     
     return bias, bias_only, offsets, rons
+
 
 
 
@@ -1266,19 +1269,21 @@ def make_master_dark(dark_list, MB, gain=None, scalable=False, noneg=False, save
     assert gain is not None, 'ERROR: gain is not defined!' 
 
     # get a list of all the exposure times first
-    exp_times = []
-    for file in sorted(dark_list):
-        exp_times.append(np.round(pyfits.getval(file,'TOTALEXP'),0))
+    # OLD WAY:
+    # exp_times = []
+    # for file in sorted(dark_list):
+    #     exp_times.append(np.round(pyfits.getval(file,'TOTALEXP'),0))
+    exp_times = [np.round(pyfits.getval(fn, 'ELAPSED'),1) for fn in dark_list]
 
     # list of unique exposure times
-    unique_exp_times = np.array(list(sorted(set(exp_times))))
+    unique_exp_times = np.array(sorted(set(exp_times)))
     if debug_level >= 1 and len(unique_exp_times) > 1:
-        print('WARNING: not all dark frames have the same exposure times! Found '+str(len(unique_exp_times))+' unique exposure times!!!')
+        print('WARNING: not all dark frames have the same exposure times! Found ' + str(len(unique_exp_times)) + ' unique exposure times!!!')
 
     # create median dark files
     if scalable:
         # get median image (including subtraction of master bias) and scale to texp=1s 
-        MD = make_median_image(dark_list, MB=MB, scalable=scalable, raw=False)
+        MD = make_median_image(dark_list, MB=MB, scale=scalable, raw=False)
         ny,nx = MD.shape
         q1,q2,q3,q4 = make_quadrant_masks(nx,ny)
         # convert to units of electrons
@@ -1296,7 +1301,7 @@ def make_master_dark(dark_list, MB, gain=None, scalable=False, noneg=False, save
         # get median image (including subtraction of master bias) for each "sub-list"
         MD = []
         for sublist in all_dark_lists:
-            sub_MD = make_median_image(sublist, MB=MB, scalable=scalable, raw=False)
+            sub_MD = make_median_image(sublist, MB=MB, scale=scalable, raw=False)
             ny,nx = sub_MD.shape
             q1,q2,q3,q4 = make_quadrant_masks(nx,ny)
             # convert to units of electrons
@@ -1341,6 +1346,91 @@ def make_master_dark(dark_list, MB, gain=None, scalable=False, noneg=False, save
         print('Time elapsed: '+str(np.round(time.time() - start_time,1))+' seconds')
 
     return MD
+
+
+
+
+
+def make_master_darks(dark_list, MB, gain=None, noneg=False, savefile=True, path=None, debug_level=0, timit=False):
+    """
+    This routine creates a "MASTER DARK" frame from a given list of dark frames for each exposure time that is present.
+    It also subtracts the MASTER BIAS and the overscan levels from each dark frame before combining them into the master dark frames.
+    NOTE: the output is in units of ELECTRONS!!!
+
+    INPUT:
+    'dark_list'    : list of raw dark image files (incl. directories)
+    'MB'           : the master bias frame [ADU]
+    'gain'         : the gains for each quadrant [e-/ADU]
+    'noneg'        : boolean - do you want to allow negative pixels? (True=no, False=yes)
+    'savefile'     : boolean - do you want to save the master dark frame to a fits file?
+    'path'         : path to the output file directory (only needed if savefile is set to TRUE)
+    'debug_level'  : for debugging...
+    'timit'        : boolean - do you want to measure execution run time?
+
+    OUTPUT:
+    'MD'  : the master dark frame [e-]
+    """
+
+    if timit:
+        start_time = time.time()
+
+    if debug_level >= 1:
+        print('Creating master dark frame from ' + str(len(dark_list)) + ' dark frames...')
+
+    # code defensively...
+    assert gain is not None, 'ERROR: gain is not defined!'
+
+    # get a list of all the exposure times first
+    exp_times = [np.round(pyfits.getval(fn, 'ELAPSED'), 1) for fn in dark_list]
+
+    # list of unique exposure times
+    unique_exp_times = np.array(sorted(set(exp_times)))
+    if debug_level >= 1 and len(unique_exp_times) > 1:
+        print('WARNING: not all dark frames have the same exposure times! Found ' + str(len(unique_exp_times)) + ' unique exposure times!!!')
+
+    # create median dark files
+    # make dark "sublists" for all unique exposure times
+    all_dark_lists = []
+    # OLD WAY:
+    # for i in range(len(unique_exp_times)):
+    #     all_dark_lists.append(np.array(dark_list)[np.argwhere(exp_times == unique_exp_times[i]).flatten()])
+    for texp in unique_exp_times:
+        all_dark_lists.append([fn for fn in dark_list if np.round(pyfits.getval(fn, 'ELAPSED'),1) == texp])
+    # get median image (including subtraction of OS & median bias) for each "sub-list"
+    MD_list = []
+    for texp,sublist in zip(unique_exp_times,all_dark_lists):
+        # this is includes bias-/OS-correction and output is already in units of [e-]
+        sub_MD = make_median_image(sublist, MB=MB, ronmask=ronmask, scale=False)[0]
+        if noneg:
+            sub_MD = np.clip(sub_MD, 0, None)
+        MD_list.append(sub_MD)
+
+    # save to FITS file
+    if savefile:
+        if path is None:
+            print('WARNING: output file directory not provided!!!')
+            print('Using same directory as input file...')
+            dum = dark_list[0].split('/')
+            path = dark_list[0][0:-len(dum[-1])]
+            date = path.split('/')[-2]
+        for texp,submd in zip(unique_exp_times,MD_list):
+            # outfn = path + date + '_master_dark_t' + str(int(unique_exp_times[i])) + '.fits'
+            outfn = path + date + '_master_dark_t{0:.1f}s.fits'.format(texp)
+            # get header from master BIAS frame
+            #                 h = pyfits.getheader(path + date + '_master_bias.fits')
+            h = pyfits.getheader(path + date + '_median_bias.fits')
+            h['HISTORY'][0] = '   MASTER DARK frame - created ' + time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()) + ' (GMT)'
+            h['TOTALEXP'] = (texp, 'exposure time [s]')
+            h['UNITS'] = 'ELECTRONS'
+            pyfits.writeto(outfn, submd, h, clobber=True)
+
+    if timit:
+        print('Time elapsed: ' + str(np.round(time.time() - start_time, 1)) + ' seconds')
+
+    if savefile:
+        return
+    else:
+        return MD_list
 
 
 
@@ -1562,7 +1652,8 @@ def make_master_calib(file_list, lamptype=None, MB=None, ronmask=None, MD=None, 
     # texp_list = [pyfits.getval(file, 'ELAPSED') for file in file_list]
     if lamptype.lower() == 'lfc':
         try:
-            texp_list = [pyfits.getval(file, 'LCTEXPTM') for file in file_list]
+            # texp_list = [pyfits.getval(file, 'LCTEXPTM') for file in file_list]  ### this is the wrong keyword, at least for Aug 2019
+            texp_list = [pyfits.getval(file, 'LCEXP') for file in file_list]
             # scale to the median exposure time
             tscale = np.array(texp_list) / np.median(texp_list)
         except:
@@ -1638,11 +1729,14 @@ def make_master_calib(file_list, lamptype=None, MB=None, ronmask=None, MD=None, 
 
     # now save master frame to file
     if savefile:
-        
         outfn = path + date + '_master_' + typestring + '.fits'
         pyfits.writeto(outfn, master, clobber=True)
         pyfits.setval(outfn, 'HISTORY', value='   MASTER ' + typestring.upper() + ' frame - created ' + time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()) + ' (GMT)')
-        pyfits.setval(outfn, 'MED_TEXP', value=np.median(texp_list), comment='median exposure time [s]')
+        if lamptype == 'both':
+            pyfits.setval(outfn, 'MED_T_LC', value=np.median(texp_list_lfc), comment='median exposure time of LFC [s]')
+            pyfits.setval(outfn, 'MED_T_TH', value=np.median(texp_list_simth), comment='median exposure time of SimThXe [s]')
+        else:
+            pyfits.setval(outfn, 'MED_TEXP', value=np.median(texp_list), comment='median exposure time [s]')
         pyfits.setval(outfn, 'UNITS', value='ELECTRONS')
         pyfits.setval(outfn, 'METHOD', value='median', comment='method to create master ' + typestring + ' and remove outliers')
         h = pyfits.getheader(outfn)

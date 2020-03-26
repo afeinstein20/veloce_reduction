@@ -184,7 +184,7 @@ def get_multiple_fibre_profiles_single_order(sc, sr, err_sc, ordpol, ordmask=Non
             #     plt.plot(grid,normdata)
 
             dynrange = np.max(normdata) - np.min(normdata)
-            goodpeaks, mostpeaks, allpeaks = find_suitable_peaks(normdata, thresh=np.min(normdata)+0.3*dynrange, bgthresh=np.min(normdata)+0.15*dynrange,
+            goodpeaks, mostpeaks, allpeaks = find_suitable_peaks(normdata, thresh=np.min(normdata) + 0.3*dynrange, bgthresh=np.min(normdata) + 0.15*dynrange,
                                                                  clip_edges=False, gauss_filter_sigma=10, slope=1e-8)
 
             if debug_level >=1 :

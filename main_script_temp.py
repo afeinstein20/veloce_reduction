@@ -264,9 +264,9 @@ simth_stripes, simth_indices = extract_stripes(MW, traces['simth'], return_indic
 
 # (6b) extract Master Whites
 pix_q,flux_q,err_q = extract_spectrum_from_indices(MW, err_MW, indices, method='quick', slit_height=slit_height, ronmask=ronmask, savefile=True,
-                                                   date=date, filetype='fits', obsname=date+'_master_white', path=path, timit=True)
+                                                   date=date, filetype='fits', obsname='master_white', path=path, timit=True)
 pix,flux,err = extract_spectrum_from_indices(MW, err_MW, indices, method='optimal', slit_height=slit_height, fibs='all', slope=True, offset=True, date=date,
-                                             individual_fibres=True, ronmask=ronmask, savefile=True, filetype='fits', obsname=date+'_master_white', path=path, timit=True)
+                                             individual_fibres=True, ronmask=ronmask, savefile=True, filetype='fits', obsname='master_white', path=path, timit=True)
 
 # (6c) MAKE MASTER FRAMES FOR EACH OF THE SIMULTANEOUS CALIBRATION SOURCES AND EXTRACT THEM
 # TODO: use different traces and smaller slit_height for LFC only and lfc only???
@@ -377,7 +377,7 @@ for subl in arc_sublists.keys():
 
 
 ### (8) PROCESS INDIVIDUAL SIM. CALIBRATION FRAMES ##################################################################################################
-# TODO: use different traces and smaller slit_height for LFC only and lfc only???
+
 if len(thxe_list) > 0:
     print('Processing sim-ThXe images...')
     dum = process_science_images(thxe_list, traces['simth'], chipmask, mask=mask, stripe_indices=indices, quick_indices=simth_indices,

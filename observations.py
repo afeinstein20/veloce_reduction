@@ -131,7 +131,7 @@ def create_toi_velobs_dict(obspath='/Users/christoph/OneDrive - UNSW/observation
         if typ == 'TOI':
 #             name = targ[-3:]
             name = targ.split('I')[-1]
-            synonyms = ['TOI'+name, 'TOI'+name+'.01', 'TIC'+name+'.01', name+'.01', name+'.01A']
+            synonyms = ['TOI'+name, 'TOI'+name+'.01', 'TIC'+name+'.01', name+'.01', name+'.01A', name+'.01BC', name+'.01_Bouma', 'BKT'+name+'.01', 'BKTRM'+name+'.01']
             if src.lower() in ['red', 'reduced']:
 #                 fn_list = [fn for fn in all_obs_list if ((fn.split('/')[-1]).split('_')[0]).split('+')[0] in synonyms]   # before I added the date to the reduced-spectrum filenames
                 fn_list = [fn for fn in all_obs_list if ((fn.split('/')[-1]).split('_')[1]).split('+')[0] in synonyms]
@@ -158,7 +158,7 @@ def create_toi_velobs_dict(obspath='/Users/christoph/OneDrive - UNSW/observation
         # sort the entire list            
         fn_list.sort()
 
-        # only create an entry if we jave observations for this target
+        # only create an entry if we have observations for this target
         if len(fn_list) > 0:
             # initialise sub-dictionary for this object
             vo[targ] = {}
@@ -179,6 +179,7 @@ def create_toi_velobs_dict(obspath='/Users/christoph/OneDrive - UNSW/observation
             vo[targ]['epoch_dates'] = []
             vo[targ]['epoch_JD'] = []
             vo[targ]['snr'] = []     # from logsheet
+            vo[targ]['sqrtnphot'] = []     # from logsheet
             vo[targ]['seeing'] = []  # from logsheet
             # vo[targ]['cal'] = []     # would be nice as an upgrade in the future (calibration source: LFC, ThXe, interp?)
             # vo[targ]['rv'] = []     # would be nice as an upgrade in the future
@@ -207,6 +208,7 @@ def create_toi_velobs_dict(obspath='/Users/christoph/OneDrive - UNSW/observation
                 logfilename = glob.glob(logpath + '*' + date[2:] + '*.log')[0]
 #                 print(date)
                 snr = np.nan   # fall-back option if snr not found in logsheets
+                sqrtnphot = np.nan   # fall-back option if snr not found in logsheets
                 seeing = np.nan   # fall-back option if seeing not found in logsheets
                 with open(logfilename) as logfile:
                     for line in logfile:
@@ -218,6 +220,12 @@ def create_toi_velobs_dict(obspath='/Users/christoph/OneDrive - UNSW/observation
                                 snr = int(snr)
                             except:
                                 snr = np.nan
+                            # SNR
+                            sqrtnphot = line.split()[6]
+                            try:
+                                sqrtnphot = int(sqrtnphot)
+                            except:
+                                sqrtnphot = np.nan
                             # seeing
                             seeing = line.split()[7]
                             try:
@@ -232,6 +240,7 @@ def create_toi_velobs_dict(obspath='/Users/christoph/OneDrive - UNSW/observation
                 else:
                     seeing_fac = np.sqrt(2)
                 vo[targ]['snr'].append(snr)
+                vo[targ]['sqrtnphot'].append(sqrtnphot)
                 vo[targ]['seeing'].append(np.round(seeing * seeing_fac,1))
                 
             vo[targ]['phase'].append(calculate_orbital_phase(targ, vo[targ]['JD']))
@@ -563,16 +572,18 @@ def get_raw_obslist(return_targets=False, laptop=False, verbose=True):
     datedir_list.sort()
     print('Searching for reduced spectra in ' + str(len(datedir_list)) + ' nights of observations...')
 
-    all_obs_list = []
+    dum_obs_list = []
     
     for datedir in datedir_list:
         datedir += '/'
         obs_list = glob.glob(datedir + '[0-3]*.fits')
-        all_obs_list.append(obs_list)
+        dum_obs_list.append(obs_list)
         # target_set = set([(fn.split('/')[-1]).split('_')[0] for fn in obs_list])
 #         all_target_list.append(list(target_set))
 
-    all_obs_list = [item for sublist in all_obs_list for item in sublist]
+    dum_obs_list = [item for sublist in dum_obs_list for item in sublist]
+    shortfn_list = [(fn.split('/')[-1]).split('.')[0] for fn in dum_obs_list]
+    all_obs_list = [obs for obs,shortfn in zip(dum_obs_list, shortfn_list) if len(shortfn)==10]
     
     if return_targets:
         all_target_list = []

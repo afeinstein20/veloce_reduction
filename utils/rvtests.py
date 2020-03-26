@@ -82,8 +82,8 @@ all_snr = readcol(path + starname + '_all_snr.dat', twod=False)[0]
 #     print('Calculating wl-solution for ' + obsname + '   (' + str(i+1) + ' / ' + str(len(file_list)) + ')')
 # #     print(obsname, os.path.isfile(lfc_path + 'all/' + '2018' + '/' + obsname + 'olc.nst'))
 # #     print(obsname, os.path.isfile(lfc_path + 'all/' + '2019' + '/' + obsname + 'olc.nst'))
-# #     if os.path.isfile(lfc_path + 'all/' + '2019' + '/' + obsname + 'olc.nst'):
-#     if (os.path.isfile(lfc_path + 'all/' + '2018' + '/' + obsname + 'olc.nst')) or (os.path.isfile(lfc_path + 'all/' + '2019' + '/' + obsname + 'olc.nst')):
+#     if os.path.isfile(lfc_path + 'all/' + '2019' + '/' + obsname + 'olc.nst'):
+# #     if (os.path.isfile(lfc_path + 'all/' + '2018' + '/' + obsname + 'olc.nst')) or (os.path.isfile(lfc_path + 'all/' + '2019' + '/' + obsname + 'olc.nst')):
 #         utdate = pyfits.getval(filename, 'UTDATE')
 #         date = utdate[:4] + utdate[5:7] + utdate[8:]
 #         wldict, wl = get_dispsol_for_all_fibs_3(obsname, date=date)
@@ -120,6 +120,13 @@ norm_relints = np.load(path + 'norm_relints.npy')   # sum = 1
 ########################################################################################################################
 ########################################################################################################################
 
+# for TOIs - get orbital phase (will be a subset of vo['TOIXXX']['phase'], but we only want the values for the observations we're actually analysing here...
+# need to import functions from veloce_reduction.observations
+obspath = '/Users/christoph/OneDrive - UNSW/observations/'
+PT0_dict = np.load(obspath + 'PT0_dict.npy').item()
+all_phi = calculate_orbital_phase(starname, jd=all_jd, PT0_dict=PT0_dict)
+
+
 #################################################################################################################    
 ### OK, now let's try Cross-Correlation RVs on real observations
 #################################################################################################################
@@ -130,13 +137,14 @@ norm_relints = np.load(path + 'norm_relints.npy')   # sum = 1
 # vers = 'v2d'
 
 all_xc = []
-all_rv = np.zeros((len(files), 19))
+all_rv = np.zeros((len(files), 12))
 # all_rv = np.zeros((len(files), 10, 19))
 # all_rv = np.zeros((len(files), 11, 19))
 all_sumrv = []
+all_sumrverr = []
 # all_sumrv = np.zeros(len(files))
 # all_sumrv_2 = np.zeros(len(files))
-xcsums = np.zeros((len(files), 301))
+xcsums = np.zeros((len(files), 2*addrange + 1))
 # xcsums = np.zeros((len(files), 19, 301))
 # xcsums = np.zeros((len(files), 38, 301))
 
@@ -163,6 +171,7 @@ mw_flux = pyfits.getdata('/Volumes/BERGRAID/data/veloce/reduced/' + date_0 + '/'
 smoothed_flat, pix_sens = onedim_pixtopix_variations(mw_flux, filt='gaussian', filter_width=25)
 
 f0_clean = pyfits.getdata(path + '190248_' + obsname_0 + '_optimal3a_extracted_cleaned.fits')
+# f0_clean = pyfits.getdata(path + '20191027_192.01_' + obsname_0 + '_optimal3a_extracted_cleaned.fits')
 
 f0_clean = f0.copy()
 # loop over orders
@@ -209,6 +218,7 @@ for i,filename in enumerate(files):
     bc = pyfits.getval(filename, 'BARYCORR')
 #     f_clean = pyfits.getdata(path + '190248_' + obsname + '_optimal3a_extracted_cleaned.fits')
     f_clean = pyfits.getdata(path + date + '_129.01_' + obsname + '_optimal3a_extracted_cleaned.fits')
+#     f_clean = pyfits.getdata(path + date + '_192.01_' + obsname + '_optimal3a_extracted_cleaned.fits')
 #     f_clean = f.copy()
 #     for o in range(f.shape[0]):
 #         for fib in range(f.shape[1]):
@@ -220,18 +230,29 @@ for i,filename in enumerate(files):
     #     wldict,wl = get_dispsol_for_all_fibs(obsname, date=date, fibs='stellar', refit=False, fibtofib=True, nightly_coeffs=True)
 #     wldict, wl = get_dispsol_for_all_fibs_2(obsname, refit=True, eps=2)
 #     f_dblz, err_dblz = deblaze_orders(f_clean, mw_flux, mask=maskdict, err=err, combine_fibres=True, degpol=5, gauss_filter_sigma=3., maxfilter_size=100)
-    #     all_xc.append(old_make_ccfs(f, wl, f0, wl0, bc=all_bc[i], bc0=all_bc[6], mask=None, smoothed_flat=None, delta_log_wl=1e-6, relgrid=False,
-    #                             flipped=False, individual_fibres=False, debug_level=1, timit=False))
+#     all_xc.append(old_make_ccfs(f, wl, f0, wl0, bc=all_bc[i], bc0=all_bc[6], mask=None, smoothed_flat=None, delta_log_wl=1e-6, relgrid=False,
+#                                flipped=False, individual_fibres=False, debug_level=1, timit=False))
     #     rv,rverr,xcsum = get_RV_from_xcorr_2(f, wl, f0, wl0, bc=all_bc[i], bc0=all_bc[6], individual_fibres=True, individual_orders=True, old_ccf=True, debug_level=1)
     sumrv, sumrverr, xcsum = get_RV_from_xcorr_2(f_clean, wl, f0_clean, wl0, bc=bc, bc0=bc0, smoothed_flat=smoothed_flat, fitrange=35, addrange=1500, individual_fibres=False,
                                                  individual_orders=True, deg_interp=3, norm_cont=True, fit_slope=False, old_ccf=False, debug_level=1)
     #     sumrv,sumrverr,xcsum = get_RV_from_xcorr_2(f_dblz, wl, f0_dblz, wl0, bc=all_bc[i], bc0=all_bc[6], individual_fibres=False, individual_orders=False, old_ccf=True, debug_level=1)
     #     all_rv[i,:,:] = rv
     all_sumrv.append(sumrv)
+    all_sumrverr.append(sumrverr)
 #     all_rv[i,:] = sumrv[0,:]
-    #     all_sumrv[i] = sumrv
+    all_rv[i,:] = sumrv
     xcsums[i, :] = xcsum
+#     all_xc.append(make_ccfs(f_clean, wl, f0_clean, wl0, bc=bc, bc0=bc0, smoothed_flat=smoothed_flat, delta_log_wl=1e-6, deg_interp=3, flipped=False,
+#                         individual_fibres=False, scrunch=False, synthetic_template=False, norm_cont=True, debug_level=0, timit=False))
 xcsums = np.array(xcsums)
+
+
+# for i in range(xcarr.shape[0]):
+#     plt.plot(xcarr[i,:], 'r')
+# 
+# for i in np.array([5, 6, 17, 25, 26, 27, 31, 34, 35, 36])-1:   # the minus one is because we excluded Order 01 in creating the CCFs
+#     plt.plot(xcarr[i,:], 'b')
+
 
 np.savetxt('/Users/christoph/OneDrive - UNSW/tauceti/rvtest/sep_2019/rvs_' + vers + '.txt', all_sumrv)
 
