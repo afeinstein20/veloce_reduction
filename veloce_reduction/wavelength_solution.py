@@ -2719,8 +2719,8 @@ def make_master_fibth(date=None, savefile=True, overwrite=False, laptop=False):
     err_medspec = 1.253 * np.std(allspec, axis=0) / np.sqrt(n_arc-1)     # normally it would be sigma/sqrt(n), but np.std is dividing by sqrt(n), not by sqrt(n-1)
     
     if savefile:
-        pyfits.writeto(path + date + '_master_ARC_' + '.fits', medspec, clobber=overwrite)
-        pyfits.append(path + date + '_master_ARC_' + '.fits', err_medspec, clobber=overwrite)
+        pyfits.writeto(path + date + '_master_ARC' + '.fits', medspec, clobber=overwrite)
+        pyfits.append(path + date + '_master_ARC' + '.fits', err_medspec, clobber=overwrite)
     
     return medspec, err_medspec
 
@@ -2750,8 +2750,8 @@ def make_arc_dispsols(date, deg_spectral=7, deg_spatial=7, polytype='chebyshev',
         path = "/Volumes/BERGRAID/data/veloce/reduced/" + date + "/"
     
     # check if master arc file already exists
-    if os.path.isfile(path + date + '_master_ARC_' + '.fits'):
-        master_arc = pyfits.getdata(path + 'master_ARC_' + '.fits')
+    if os.path.isfile(path + date + '_master_ARC' + '.fits'):
+        master_arc = pyfits.getdata(path + date + '_master_ARC' + '.fits')
     else:
         # make master arc for that night
         master_arc, err_master_arc = make_master_fibth(date=date, savefile=True, laptop=laptop)
@@ -2930,8 +2930,8 @@ def get_dispsol_for_all_fibs_from_fibth(fn, date=None, path=None, deg_spectral=7
         shortname = fn.split('/')[-1]
         obsname = shortname.split('_')[-3]
         obj = 'ARC_'
-        pyfits.writeto(path + date + obj + lamptype + '_' + obsname + '_air_dispsol.fits', all_air_wl, clobber=True)
-        pyfits.writeto(path + date + obj + lamptype + '_' + obsname + '_vac_dispsol.fits', all_vac_wl, clobber=True)
+        pyfits.writeto(path + date + '_' + obj + lamptype + '_' + obsname + '_air_dispsol.fits', all_air_wl, clobber=True)
+        pyfits.writeto(path + date + '_' + obj + lamptype + '_' + obsname + '_vac_dispsol.fits', all_vac_wl, clobber=True)
     
     if timit:
         delta_t = time.time() - start_time
@@ -2970,27 +2970,29 @@ def interpolate_dispsols(wl1, wl2, t1, t2, tobs):
     
     assert wl1.shape == wl2.shape, 'ERROR: wl1 and wl2 do not have the same dimensions!!!'
     assert t1 <= t2, 'ERROR: t2 is not greater than or equal to t1'
-    assert (tobs >= t1) and (tobs <= t2), 'ERROR: tobs does not lie between t1 and t2'
+    
     if t1 == t2:
-        assert wl1 == wl2, 'ERROR: t1 is equal to t2, but the wl-solutions are not the same!!!'
+        assert (wl1 == wl2).all(), 'ERROR: t1 is equal to t2, but wl1 is not equal to wl2'
         return wl1
-    
-    #prepare output array
-    interp_wl = np.zeros(wl1.shape)
-    
-    # difference array
-    delta_wl = wl2 - wl1
-    
-    # total time between the two reference wl-solutions
-    delta_t = t2 - t1
-    
-    # fractional time ([0...1]) that is the target for interpolation
-    frac = (tobs - t1) / delta_t
-    
-    # now linearly interpolate between wl1 and wl2 to tobs
-    interp_wl = wl1 + frac * delta_wl
-    
-    return interp_wl
+    else:
+        assert (tobs >= t1) and (tobs <= t2), 'ERROR: tobs does not lie between t1 and t2'
+        
+        #prepare output array
+        interp_wl = np.zeros(wl1.shape)
+        
+        # difference array
+        delta_wl = wl2 - wl1
+        
+        # total time between the two reference wl-solutions
+        delta_t = t2 - t1
+        
+        # fractional time ([0...1]) that is the target for interpolation
+        frac = (tobs - t1) / delta_t
+        
+        # now linearly interpolate between wl1 and wl2 to tobs
+        interp_wl = wl1 + frac * delta_wl
+        
+        return interp_wl
 
 
 

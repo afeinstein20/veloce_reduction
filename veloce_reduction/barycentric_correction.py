@@ -33,6 +33,76 @@ def create_gaiadr2_id_dict(path='/Users/christoph/OneDrive - UNSW/observations/'
 
 
 
+
+
+def create_gaia_coords_dict(obspath='/Users/christoph/OneDrive - UNSW/observations/',
+                            vlist='velocelist2_SG2SG4_dec19_concise.txt', savefile=True):
+
+    # build Gaia DR2 dictionary
+
+    vlist_fn = obspath + vlist
+
+    dumnames, dumpers, dumt0s, dumras, dumdecs, dumpmras, dumpmdecs, dumpxs, dumTICs = readcol(vlist_fn, twod=False)
+    names = []
+    pers = []
+    t0s = []
+    ras = []
+    decs = []
+    pmras = []
+    pmdecs = []
+    pxs = []
+    TICs = []
+
+    for i in range(len(dumnames)):
+        dum = [character for character in dumnames[i] if character not in ['{', '}']]
+        dum = "".join(dum)
+        names.append(dum)
+        dum = [character for character in dumpers[i] if character not in ['{', '}']]
+        dum = "".join(dum)
+        pers.append(dum)
+        dum = [character for character in dumt0s[i] if character not in ['{', '}']]
+        dum = "".join(dum)
+        t0s.append(dum)
+        dum = [character for character in dumras[i] if character not in ['{', '}']]
+        dum = "".join(dum)
+        ras.append(dum)
+        dum = [character for character in dumdecs[i] if character not in ['{', '}']]
+        dum = "".join(dum)
+        decs.append(dum)
+        dum = [character for character in dumpmras[i] if character not in ['{', '}']]
+        dum = "".join(dum)
+        pmras.append(dum)
+        dum = [character for character in dumpmdecs[i] if character not in ['{', '}']]
+        dum = "".join(dum)
+        pmdecs.append(dum)
+        dum = [character for character in dumpxs[i] if character not in ['{', '}']]
+        dum = "".join(dum)
+        pxs.append(dum)
+        dum = [character for character in dumTICs[i] if character not in ['{', '}']]
+        dum = "".join(dum)
+        TICs.append(dum)
+
+    gaia_coords = {}
+    for toi, per, t0, ra, dec, pmra, pmdec, px, tic in zip(names, pers, t0s, ras, decs, pmras, pmdecs, pxs, TICs):
+        gaia_coords[toi] = {}
+        gaia_coords[toi]['P'] = per
+        gaia_coords[toi]['T0'] = t0
+        gaia_coords[toi]['ra'] = ra
+        gaia_coords[toi]['dec'] = dec
+        gaia_coords[toi]['pmra'] = pmra
+        gaia_coords[toi]['pmdec'] = pmdec
+        gaia_coords[toi]['px'] = px
+        gaia_coords[toi]['TIC'] = tic
+
+    if savefile:
+        np.save(obspath + 'gaia_coords.npy', gaia_coords)
+
+    return gaia_coords
+
+
+
+
+
 def get_barycentric_correction(fn, rvabs=None, obs_path='/Users/christoph/OneDrive - UNSW/observations/'):
     """
     wrapper routine for using barycorrpy with Gaia DR2 coordinates
@@ -65,7 +135,7 @@ def get_barycentric_correction(fn, rvabs=None, obs_path='/Users/christoph/OneDri
             targ = targ[3:]
 
     # sometimes the name of the PI is appended to the target name
-    if targ.split('_')[-1].lower() in ['bouma', 'dragomir']:
+    if targ.split('_')[-1].lower() in ['bouma', 'dragomir', 'shporer']:
         namelen = len(targ.split('_')[-1])
         targ = targ[:-namelen-1]
         typ = targ[-3:]

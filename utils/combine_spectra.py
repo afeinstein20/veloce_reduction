@@ -271,8 +271,6 @@ def median_fibres(f, err, wl, osf=5, fibs='sky', ref=12, timit=False):
 
 
 
-
-
 def combine_exposures(f_list, err_list, wl_list, osf=5, remove_cosmics=True, thresh=7, low_thresh=3, debug_level=0, timit=False):
     
     if timit:
@@ -409,8 +407,6 @@ def combine_exposures(f_list, err_list, wl_list, osf=5, remove_cosmics=True, thr
         print('Time elapsed: ' + str(np.round(delta_t,1)) + ' seconds')
         
     return comb_f, comb_err, ref_wl
-
-
 
 
 
@@ -980,10 +976,12 @@ def main_script_for_bouma(date = '30200130', skysub=False):
         outpath = path + 'fibres_combined/'
         fname = file.split('/')[-1]
         new_fn = outpath + fname.split('.')[0] + '.' + fname.split('.')[1] + '_stellar_fibres_combined.fits'
+#         new_fn = outpath + fname.split('.')[0] + '_stellar_fibres_combined.fits'
         pyfits.writeto(new_fn, comb_f, h, clobber=True)
         pyfits.append(new_fn, comb_err, h_err, clobber=True)
         pyfits.append(new_fn, ref_wl, clobber=True)
         sky_fn = outpath + fname.split('.')[0] + '.' + fname.split('.')[1] + '_median_sky.fits'
+#         sky_fn = outpath + fname.split('.')[0] + '_median_sky.fits'
         pyfits.writeto(sky_fn, f_sky, h, clobber=True)
         pyfits.append(sky_fn, err_sky, h_err, clobber=True)
         pyfits.append(sky_fn, wl_sky, clobber=True)
@@ -1027,8 +1025,8 @@ def main_script_for_bouma(date = '30200130', skysub=False):
             h_err['EXP_' + str(j+1)] = (used_obsnames[j], 'name of single-shot exposure')
          
         # make lists containing the (sky-subtracted) flux, error, wl-arrays, barycentric correction, and exposure times for the fibre-combined optimal extracted spectra  
-        bc_list = [pyfits.getval(fn, 'BARYCORR') for fn,obj in zip(fc_stellar_list, object_list) if obj == object]
-        texp_list = [pyfits.getval(fn, 'ELAPSED') for fn,obj in zip(fc_stellar_list, object_list) if obj == object]
+#         bc_list = [pyfits.getval(fn, 'BARYCORR') for fn,obj in zip(fc_stellar_list, object_list) if obj == object]
+#         texp_list = [pyfits.getval(fn, 'ELAPSED') for fn,obj in zip(fc_stellar_list, object_list) if obj == object]
         if skysub:
             f_list = []
             err_list = []
@@ -1061,7 +1059,12 @@ def main_script_for_bouma(date = '30200130', skysub=False):
          
         # save to new FITS file(s)
         outpath = path + 'final_combined_spectra/'
-        new_fn = outpath + object + '_final_combined.fits'
+        if skysub:
+            new_fn = outpath + object + '_final_combined_sky_subtracted.fits'
+            h['SKYSUB'] = 'TRUE'
+        else:
+            new_fn = outpath + object + '_final_combined.fits'
+            h['SKYSUB'] = 'FALSE'
         pyfits.writeto(new_fn, comb_f, h, clobber=True)
         pyfits.append(new_fn, comb_err, h_err, clobber=True)
         pyfits.append(new_fn, ref_wl, clobber=True)

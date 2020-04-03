@@ -104,7 +104,7 @@ if choice.lower() == 's':
 else:
     # get offsets and read-out noise from bias frames (units: [offsets] = ADUs; [RON] = e-)
     if len(bias_list) > 9:
-        bias_list = sorted(bias_list)[0:3]
+        bias_list = sorted(bias_list)[0:9]
     else:
         bias_list = sorted(bias_list)
     medbias,coeffs,offsets,rons = get_bias_and_readnoise_from_bias_frames(bias_list, degpol=5, clip=5., gain=gain, save_medimg=True, debug_level=1, timit=True)

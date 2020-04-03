@@ -19,14 +19,15 @@ from veloce_reduction.veloce_reduction.background import extract_background, fit
 
 
 
-def make_median_image(imglist, MB=None, ronmask=None, scale=False, gain=[1,1,1,1], debug_level=0):
+def make_median_image(imglist, MB=None, ronmask=None, return_err=True, scale=False, gain=[1,1,1,1], debug_level=0):
     """
     Make a median image from a given list of images.
 
     INPUT:
     'imglist'     : list of files (incl. directories)
     'MB'          : master bias frame - if provided, it will be subtracted from every image before median image is computed
-    'ronmask'     : the read-noise mask (or frame) [e-]
+    'ronmask'     : the read-noise mask (or frame) [e-] (only needed if "return_err" is set to TRUE
+    'return_err'  : boolean - do you want to return the correspoding error image as well?
     'scale'       : boolean - do you want to scale this to the median exposure time?
     'debug_level' : for debugging...
 
@@ -39,16 +40,17 @@ def make_median_image(imglist, MB=None, ronmask=None, scale=False, gain=[1,1,1,1
 
     # prepare arrays
     allimg = []
-    allerr = []
+    if return_err:
+        allerr = []
     
     if MB is None:
         dumimg = crop_overscan_region(correct_orientation(pyfits.getdata(imglist[0])))
         MB = np.zeros(dumimg.shape)
         del dumimg
     
-    if ronmask is None:
+    if return_err and ronmask is None:
         dumimg = crop_overscan_region(correct_orientation(pyfits.getdata(imglist[0])))
-        MB = np.ones(dumimg.shape) * 4.
+        ronmask = np.ones(dumimg.shape) * 4.
         del dumimg
     
     # loop over all files
@@ -60,8 +62,9 @@ def make_median_image(imglist, MB=None, ronmask=None, scale=False, gain=[1,1,1,1
         # read in dark image (and perform OS correction, cropping and rotation on the fly)
         img = correct_for_bias_and_dark_from_filename(file, MB, MD=np.zeros(MB.shape), gain=gain)   # [e-]
         allimg.append(img)
-        err_img = np.sqrt(np.clip(img,0,None) + ronmask*ronmask)   # [e-]
-        allerr.append(err_img)
+        if return_err:
+            err_img = np.sqrt(np.clip(img,0,None) + ronmask*ronmask)   # [e-]
+            allerr.append(err_img)
         
     if scale:
         # list of individual exposure times for all whites (should all be the same, but just in case...)
@@ -74,14 +77,17 @@ def make_median_image(imglist, MB=None, ronmask=None, scale=False, gain=[1,1,1,1
     if scale:
         # take median after scaling to median exposure time 
         medimg = np.median(np.array(allimg) / tscale.reshape(len(allimg), 1, 1), axis=0)
-        err_medimg = 1.253 * np.std(np.array(allimg) / tscale.reshape(len(allimg), 1, 1), axis=0) / np.sqrt(N-1)     # normally it would be sigma/sqrt(n), but np.std is dividing by sqrt(n), not by sqrt(n-1)
+        if return_err:
+            err_medimg = 1.253 * np.std(np.array(allimg) / tscale.reshape(len(allimg), 1, 1), axis=0) / np.sqrt(N-1)     # normally it would be sigma/sqrt(n), but np.std is dividing by sqrt(n), not by sqrt(n-1)
     else:
         medimg = np.median(np.array(allimg), axis=0)
-        err_medimg = 1.253 * np.std(np.array(allimg), axis=0) / np.sqrt(N-1)     # normally it would be sigma/sqrt(n), but np.std is dividing by sqrt(n), not by sqrt(n-1)
+        if return_err:
+            err_medimg = 1.253 * np.std(np.array(allimg), axis=0) / np.sqrt(N-1)     # normally it would be sigma/sqrt(n), but np.std is dividing by sqrt(n), not by sqrt(n-1)
 
-    print('Giggidy')
-
-    return medimg, err_medimg
+    if return_err:
+        return medimg, err_medimg
+    else:
+        return medimg
 
 
 
@@ -1400,7 +1406,7 @@ def make_master_darks(dark_list, MB, gain=None, noneg=False, savefile=True, path
     MD_list = []
     for texp,sublist in zip(unique_exp_times,all_dark_lists):
         # this is includes bias-/OS-correction and output is already in units of [e-]
-        sub_MD = make_median_image(sublist, MB=MB, ronmask=ronmask, scale=False)[0]
+        sub_MD = make_median_image(sublist, MB=MB, scale=False)[0]
         if noneg:
             sub_MD = np.clip(sub_MD, 0, None)
         MD_list.append(sub_MD)

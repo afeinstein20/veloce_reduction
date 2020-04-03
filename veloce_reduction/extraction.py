@@ -1307,7 +1307,8 @@ def extract_spectrum_from_indices(img, err_img, stripe_indices, ronmask=None, me
                     h['OFFSET'] = (offset,)
                 # write to FITS file    
                 if starname == '':
-                    outfn = path + date + '_' + starname + obsname + '_' + method.lower() + submethod + '_extracted.fits'
+                    # outfn = path + date + '_' + starname + obsname + '_' + method.lower() + submethod + '_extracted.fits'
+                    outfn = path + obsname + '_' + method.lower() + submethod + '_extracted.fits'
                 else:
                     outfn = path + date + '_' + starname + '_' + obsname + '_' + method.lower() + submethod + '_extracted.fits'
                 pyfits.writeto(outfn, fluxarr, h, clobber=True)    
