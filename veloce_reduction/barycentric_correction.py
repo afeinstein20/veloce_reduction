@@ -85,13 +85,13 @@ def create_gaia_coords_dict(obspath='/Users/christoph/OneDrive - UNSW/observatio
     gaia_coords = {}
     for toi, per, t0, ra, dec, pmra, pmdec, px, tic in zip(names, pers, t0s, ras, decs, pmras, pmdecs, pxs, TICs):
         gaia_coords[toi] = {}
-        gaia_coords[toi]['P'] = per
-        gaia_coords[toi]['T0'] = t0
-        gaia_coords[toi]['ra'] = ra
-        gaia_coords[toi]['dec'] = dec
-        gaia_coords[toi]['pmra'] = pmra
-        gaia_coords[toi]['pmdec'] = pmdec
-        gaia_coords[toi]['px'] = px
+        gaia_coords[toi]['P'] = float(per)
+        gaia_coords[toi]['T0'] = float(t0)
+        gaia_coords[toi]['ra'] = float(ra)
+        gaia_coords[toi]['dec'] = float(dec)
+        gaia_coords[toi]['pmra'] = float(pmra)
+        gaia_coords[toi]['pmdec'] = float(pmdec)
+        gaia_coords[toi]['px'] = float(px)
         gaia_coords[toi]['TIC'] = tic
 
     if savefile:

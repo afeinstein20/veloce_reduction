@@ -398,6 +398,7 @@ def get_RV_from_xcorr_2(f, wl, f0, wl0, bc=0, bc0=0, mask=None, smoothed_flat=No
                 peaks[-5:] = False
                 if npeaks == 1:
                     guessloc = np.argmax(xc*peaks)
+                    guesslocs = [guessloc]
                     if guessloc >= len(xc)//2:
                         xrange = np.arange(np.minimum(len(xc) - 2*fitrange-1, guessloc - fitrange), np.minimum(guessloc + fitrange + 1, len(xc)), 1)
                     else:
@@ -480,7 +481,7 @@ def get_RV_from_xcorr_2(f, wl, f0, wl0, bc=0, bc0=0, mask=None, smoothed_flat=No
                     mu = popt_arr[:,0]
                     mu_err = popt_arr[:,0]
                     ixs = np.arange(0,npeaks*4,4)
-                    pcov_dum = 
+                    # pcov_dum =
                     mu_err = np.sqrt(np.array([pcov[ix,ix] for ix in ixs]))    
                     
                 # convert to RV in m/s
@@ -522,6 +523,7 @@ def get_RV_from_xcorr_2(f, wl, f0, wl0, bc=0, bc0=0, mask=None, smoothed_flat=No
             peaks[-5:] = False
             if npeaks == 1:
                 guessloc = np.argmax(xc*peaks)
+                guesslocs = [guessloc]
                 if guessloc >= len(xc)//2:
                     xrange = np.arange(np.minimum(len(xc) - 2*fitrange-1, guessloc - fitrange), np.minimum(guessloc + fitrange + 1, len(xc)), 1)
                 else:
@@ -606,7 +608,7 @@ def get_RV_from_xcorr_2(f, wl, f0, wl0, bc=0, bc0=0, mask=None, smoothed_flat=No
                 mu = popt_arr[:,0]
                 mu_err = popt_arr[:,0]
                 ixs = np.arange(0,npeaks*4,4)
-                pcov_dum = 
+                # pcov_dum =
                 mu_err = np.sqrt(np.array([pcov[ix,ix] for ix in ixs]))
                     
             # convert to RV in m/s
@@ -776,9 +778,9 @@ def make_ccfs(f, wl, f0, wl0, bc=0., bc0=0., smoothed_flat=None, delta_log_wl=1e
 #     if use_orders == 'all':
 #         use_orders = np.arange(1,39)
 #     if use_orders is None:
-#     use_orders = [5, 6, 17, 25, 26, 27, 31, 34, 35, 36]         # at the moment 17 and 34 give the lowest scatter
+    use_orders = [5, 6, 17, 25, 26, 27, 31, 34, 35, 36]         # at the moment 17 and 34 give the lowest scatter
 #     use_orders = [5, 17, 25, 26, 27, 31, 34, 35, 36]
-    use_orders = [5, 17, 25, 26, 27, 28, 31, 32, 33, 34, 35, 36]    # for TOI192
+#     use_orders = [5, 17, 25, 26, 27, 28, 31, 32, 33, 34, 35, 36]    # for TOI192
 #     use_orders = [5, 6, 17, 25, 27, 31, 36]
 #     use_orders = [17]
 #     use_orders = [35]
@@ -855,7 +857,7 @@ def make_ccfs(f, wl, f0, wl0, bc=0., bc0=0., smoothed_flat=None, delta_log_wl=1e
         ord_blaze_sorted[np.isnan(ord_blaze_sorted)] = 0.
 
         # only use stellar fibres now
-        for i in range(n_stellar_fibs):   
+        for i in range(n_stellar_fibs):
             # (i) using SpectRes
 #             rebinned_f0[i, :] = spectres(logwlgrid, logwl0_sorted[i, :], ord_f0_sorted[i, :])
 #             rebinned_f[i, :] = spectres(logwlgrid, logwl_sorted[i, :], ord_f_sorted[i, :])
@@ -869,7 +871,7 @@ def make_ccfs(f, wl, f0, wl0, bc=0., bc0=0., smoothed_flat=None, delta_log_wl=1e
                 # if k=1, then that is equivalent to spl_ref_f0 = interp.interp1d(logwl0_sorted[i, :], ord_f0_sorted[i, :])
                 # if k=3, then that is equivalent to spl_ref_f0 = interp.interp1d(logwl0_sorted[i, :], ord_f0_sorted[i, :], kind='cubic')
                 rebinned_f0[i, :] = spl_ref_f0(logwlgrid)
-                spl_ref_f = interp.InterpolatedUnivariateSpline(logwl_sorted[i, :], ord_f_sorted[i, :], k=deg_interp)  
+                spl_ref_f = interp.InterpolatedUnivariateSpline(logwl_sorted[i, :], ord_f_sorted[i, :], k=deg_interp)
                 rebinned_f[i, :] = spl_ref_f(logwlgrid)
             if blaze_provided:
                 # (i) using SpectRes
@@ -879,7 +881,7 @@ def make_ccfs(f, wl, f0, wl0, bc=0., bc0=0., smoothed_flat=None, delta_log_wl=1e
                     rebinned_blaze[i, :] = cmb_scrunch(logwlgrid, logwl_sorted[i, :], ord_blaze_sorted[i, :])
                 else:
                     # (iii) using interpolation (using pixel centres)
-                    spl_ref_blaze = interp.InterpolatedUnivariateSpline(logwl_sorted[i, :], ord_blaze_sorted[i, :], k=deg_interp)  
+                    spl_ref_blaze = interp.InterpolatedUnivariateSpline(logwl_sorted[i, :], ord_blaze_sorted[i, :], k=deg_interp)
                     rebinned_blaze[i, :] = spl_ref_blaze(logwlgrid)
          
         

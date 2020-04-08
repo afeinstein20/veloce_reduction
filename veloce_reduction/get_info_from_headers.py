@@ -12,75 +12,6 @@ import numpy as np
 from veloce_reduction.veloce_reduction.helper_functions import laser_on, thxe_on, find_nearest
 from veloce_reduction.veloce_reduction.calibration import correct_for_bias_and_dark_from_filename
 
-#path = '/Users/christoph/UNSW/veloce_spectra/test1/'
-
-
-
-def identify_obstypes(path):
-    """
-    Identify the type of observation from the card in the FITS header, and create lists of filename for the different observation types.
-    """
-    
-    
-    file_list = glob.glob(path+"*.fits")
-    
-    bias_list = []
-    dark_list = []
-    sky_list = []
-    # lflat_list = []
-    skyflat_list = []
-    # arc_list = []
-    fibre_flat_list = []
-    unknown_list = []
-    # white_list = []
-    thar_list = []
-    thxe_list = []
-    laser_list = []
-    stellar_list = []
-    
-    for file in file_list:
-        h = pyfits.getheader(file)
-        # type = h['exptype']
-        obstype = h['NDFCLASS']
-        
-        if obstype.upper() == 'BIAS':
-            bias_list.append(file)
-        elif obstype.upper() == 'DARK':
-            dark_list.append(file)
-        elif obstype.upper() == 'MFSKY':
-            sky_list.append(file)
-        # elif obstype.upper() == 'LFLAT':
-        #     lflat_list.append(file)
-        elif obstype.upper() == 'SFLAT':
-            skyflat_list.append(file)
-        # elif obstype.upper() == 'MFARC':
-        #     arc_list.append(file)
-        elif obstype.upper() == 'MFFFF':
-            fibre_flat_list.append(file)
-        elif obstype.upper() == 'MFOBJECT':
-            if h['OBJECT'].lower() == 'thar':
-                thar_list.append(file)
-            elif h['OBJECT'].lower() == 'thxe':
-                thxe_list.append(file)
-            elif h['OBJECT'].lower() == 'laser':
-                laser_list.append(file)
-            else:
-                stellar_list.append(file)
-        # elif obstype.upper() in ('FLAT', 'WHITE'):
-        #     white_list.append(file)
-        # elif obstype.upper() == 'THAR':
-        #     thar_list.append(file)
-        # elif obstype.upper() == 'THXE':
-        #     thxe_list.append(file)
-        # elif obstype.upper() == 'LASER':
-        #     laser_list.append(file)
-        # elif obstype.upper() == 'STELLAR':
-        #     stellar_list.append(file)
-        else:
-            print('WARNING: unknown exposure type encountered for',file)
-            unknown_list.append(file)
-    
-    return bias_list,dark_list,sky_list,skyflat_list,fibre_flat_list,thar_list,thxe_list,laser_list,stellar_list,unknown_list
 
 
 
@@ -230,7 +161,78 @@ def get_obstype_lists(path, pattern=None, weeding=True, quick=False, raw_goodonl
 
 
 
+def identify_obstypes(path):
+    """
+    DUMMY ROUTINE: NOT CURRENTLY USED
+    Identify the type of observation from the card in the FITS header, and create lists of filename for the different observation types.
+    """
+
+    file_list = glob.glob(path + "*.fits")
+
+    bias_list = []
+    dark_list = []
+    sky_list = []
+    # lflat_list = []
+    skyflat_list = []
+    # arc_list = []
+    fibre_flat_list = []
+    unknown_list = []
+    # white_list = []
+    thar_list = []
+    thxe_list = []
+    laser_list = []
+    stellar_list = []
+
+    for file in file_list:
+        h = pyfits.getheader(file)
+        # type = h['exptype']
+        obstype = h['NDFCLASS']
+
+        if obstype.upper() == 'BIAS':
+            bias_list.append(file)
+        elif obstype.upper() == 'DARK':
+            dark_list.append(file)
+        elif obstype.upper() == 'MFSKY':
+            sky_list.append(file)
+        # elif obstype.upper() == 'LFLAT':
+        #     lflat_list.append(file)
+        elif obstype.upper() == 'SFLAT':
+            skyflat_list.append(file)
+        # elif obstype.upper() == 'MFARC':
+        #     arc_list.append(file)
+        elif obstype.upper() == 'MFFFF':
+            fibre_flat_list.append(file)
+        elif obstype.upper() == 'MFOBJECT':
+            if h['OBJECT'].lower() == 'thar':
+                thar_list.append(file)
+            elif h['OBJECT'].lower() == 'thxe':
+                thxe_list.append(file)
+            elif h['OBJECT'].lower() == 'laser':
+                laser_list.append(file)
+            else:
+                stellar_list.append(file)
+        # elif obstype.upper() in ('FLAT', 'WHITE'):
+        #     white_list.append(file)
+        # elif obstype.upper() == 'THAR':
+        #     thar_list.append(file)
+        # elif obstype.upper() == 'THXE':
+        #     thxe_list.append(file)
+        # elif obstype.upper() == 'LASER':
+        #     laser_list.append(file)
+        # elif obstype.upper() == 'STELLAR':
+        #     stellar_list.append(file)
+        else:
+            print('WARNING: unknown exposure type encountered for', file)
+            unknown_list.append(file)
+
+    return bias_list, dark_list, sky_list, skyflat_list, fibre_flat_list, thar_list, thxe_list, laser_list, stellar_list, unknown_list
+
+
+
+
+
 def get_obstype_lists_temp(path, pattern=None, weeding=True):
+    """DUMMY ROUTINE: NOT CURRENTLY USED"""
 
     if pattern is None:
         file_list = glob.glob(path + "*.fits")
@@ -305,6 +307,7 @@ def get_obstype_lists_temp(path, pattern=None, weeding=True):
 
 
 def get_obs_coords_from_header(fn):
+    """DUMMY ROUTINE: NOT CURRENTLY USED"""
     h = pyfits.getheader(fn)
     lat = h['LAT_OBS']
     long = h['LONG_OBS']

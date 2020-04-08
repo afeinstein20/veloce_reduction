@@ -2583,7 +2583,7 @@ def get_dispsol_for_all_fibs_3(obsname, date=None, relto='LFC', degpol=7, nx=411
         ord_wlfit = np.poly1d(np.polyfit(xx, vac_wl[o,-2,:], degpol))
         peak_thxe_wls = ord_wlfit(ord_x)
         
-        # find the nearest entry in the array of theoretical wavelengths for each peak based in the ThXe dispsol
+        # find the nearest entry in the array of theoretical wavelengths for each peak based on the ThXe dispsol
         theo_wls = np.array([find_nearest(lfc_vac_wls, ord_wlfit(peak_x)) for peak_x in ord_x])
         
         if norm_coords:
@@ -2592,7 +2592,7 @@ def get_dispsol_for_all_fibs_3(obsname, date=None, relto='LFC', degpol=7, nx=411
 #             ord_xx_norm = (xx.astype(float) / (nx-1)) 
             ord_lam_norm = (theo_wls - np.min(theo_wls)) / (np.max((theo_wls - np.min(theo_wls)))) 
             new_fit = np.poly1d(np.polyfit(ord_x_norm, theo_wls, degpol))
-            # residuals in Angstromgs
+            # residuals in Angstroms
             wlres = theo_wls - new_fit(ord_x_norm)
             # fit the inverse problem as well, so that we can estimate the RMS in pixels (note that I subtract min(theo_wls) so as to "normalize" wls for the fit (otherwise it goes haywire numreically)
             inv_new_fit = np.poly1d(np.polyfit(ord_lam_norm, ord_x, degpol))
@@ -2601,7 +2601,7 @@ def get_dispsol_for_all_fibs_3(obsname, date=None, relto='LFC', degpol=7, nx=411
         else:   
             # make new wl-vs-x-fit and reject outliers
             new_fit = np.poly1d(np.polyfit(ord_x, theo_wls, degpol))
-            # residuals in Angstromgs
+            # residuals in Angstroms
             wlres = theo_wls - new_fit(ord_x)
             # fit the inverse problem as well, so that we can estimate the RMS in pixels (note that I subtract min(theo_wls) so as to "normalize" wls for the fit (otherwise it goes haywire numreically)
             inv_new_fit = np.poly1d(np.polyfit(theo_wls - np.min(theo_wls), ord_x, degpol))

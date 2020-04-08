@@ -3,6 +3,7 @@ Created on 4 Sep. 2017
 
 @author: christoph
 '''
+
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import ndimage

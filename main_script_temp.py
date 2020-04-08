@@ -133,12 +133,14 @@ else:
 # create (bias-subtracted) MASTER DARK frame (units = electrons)
 # MD = make_master_dark(dark_list, MB=MB, gain=gain, scalable=False, savefile=True, path=path, timit=True)
 # MDS = make_master_dark(dark_list, MB=medbias, gain=gain, scalable=True, savefile=True, path=path, debug_level=1, timit=True)
+# use make_master_darks (ie plural) from now on!!!!!
+# make_master_darks(dark_list, MB=medbias, gain=gain)
 MDS = np.zeros(medbias.shape)
 
 
 
 # (iii) WHITES 
-#create (bias- & dark-subtracted) MASTER WHITE frame and corresponding error array (units = electrons)
+# create (bias- & dark-subtracted) MASTER WHITE frame and corresponding error array (units = electrons)
 choice_mw = 'r'
 if os.path.isfile(path + date + '_master_white.fits'):
     choice_mw = raw_input("MASTER WHITE image for " + date + " already exists! Do you want to skip this step or recreate it? ['s' / 'r']")
@@ -151,7 +153,7 @@ else:
     MW,err_MW = process_whites(flat_list, MB=medbias, ronmask=ronmask, MD=MDS, gain=gain, scalable=True, fancy=False, P_id=None,
                                clip=5., savefile=False, saveall=False, diffimg=False, remove_bg=False, path=path, debug_level=1, timit=False)
     
-    #####################################################################################################################################################
+#####################################################################################################################################################
 
 
 
@@ -191,8 +193,7 @@ if choice_mw.lower() == 'r':
     MW,err_MW = process_whites(flat_list, MB=medbias, ronmask=ronmask, MD=MDS, gain=gain, scalable=True, fancy=False, P_id=P_id,
                                clip=5., savefile=True, saveall=False, diffimg=False, remove_bg=True, path=path, debug_level=1, timit=False)
 
-# get a smoothed Master White and a pixel-to-pixel sensitivity map
-smoothed_flat, pix_sens = onedim_pixtopix_variations_spline(MW, knots=9, savefits=True, path=path, debug_level=1)
+
 #####################################################################################################################################################
 
 
@@ -264,9 +265,13 @@ simth_stripes, simth_indices = extract_stripes(MW, traces['simth'], return_indic
 
 # (6b) extract Master Whites
 pix_q,flux_q,err_q = extract_spectrum_from_indices(MW, err_MW, indices, method='quick', slit_height=slit_height, ronmask=ronmask, savefile=True,
-                                                   date=date, filetype='fits', obsname='master_white', path=path, timit=True)
+                                                   date=date, filetype='fits', obsname=date+'_master_white', path=path, timit=True)
 pix,flux,err = extract_spectrum_from_indices(MW, err_MW, indices, method='optimal', slit_height=slit_height, fibs='all', slope=True, offset=True, date=date,
-                                             individual_fibres=True, ronmask=ronmask, savefile=True, filetype='fits', obsname='master_white', path=path, timit=True)
+                                             individual_fibres=True, ronmask=ronmask, savefile=True, filetype='fits', obsname=date+'_master_white', path=path, timit=True)
+
+# # get a smoothed Master White and a pixel-to-pixel sensitivity map (no, need to do that to 1-dim spectrum)
+# smoothed_flat, pix_sens = onedim_pixtopix_variations_spline(MW, knots=9, savefits=True, path=path, debug_level=1)
+
 
 # (6c) MAKE MASTER FRAMES FOR EACH OF THE SIMULTANEOUS CALIBRATION SOURCES AND EXTRACT THEM
 # TODO: use different traces and smaller slit_height for LFC only and lfc only???

@@ -144,6 +144,7 @@ all_sumrv = []
 all_sumrverr = []
 # all_sumrv = np.zeros(len(files))
 # all_sumrv_2 = np.zeros(len(files))
+addrange = 150
 xcsums = np.zeros((len(files), 2*addrange + 1))
 # xcsums = np.zeros((len(files), 19, 301))
 # xcsums = np.zeros((len(files), 38, 301))
@@ -216,8 +217,8 @@ for i,filename in enumerate(files):
     wl = pyfits.getdata(wls[i])
 #     wl = pyfits.getdata(lfc_wls[i])
     bc = pyfits.getval(filename, 'BARYCORR')
-#     f_clean = pyfits.getdata(path + '190248_' + obsname + '_optimal3a_extracted_cleaned.fits')
-    f_clean = pyfits.getdata(path + date + '_129.01_' + obsname + '_optimal3a_extracted_cleaned.fits')
+    f_clean = pyfits.getdata(path + '190248_' + obsname + '_optimal3a_extracted_cleaned.fits')
+    # f_clean = pyfits.getdata(path + date + '_129.01_' + obsname + '_optimal3a_extracted_cleaned.fits')
 #     f_clean = pyfits.getdata(path + date + '_192.01_' + obsname + '_optimal3a_extracted_cleaned.fits')
 #     f_clean = f.copy()
 #     for o in range(f.shape[0]):

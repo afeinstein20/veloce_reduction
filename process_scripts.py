@@ -251,7 +251,7 @@ def process_science_images(imglist, P_id, chipmask, mask=None, stripe_indices=No
 
     # get a list with the object names
     object_list = [pyfits.getval(file, 'OBJECT').split('+')[0] for file in imglist]
-    if object_list[0] == 'ARC - ThAr':
+    if object_list[0][:3] == 'ARC':
         obstype = 'ARC'
     elif object_list[0].lower() in ["lc", "lc-only", "lfc", "lfc-only", "simlc", "thxe", "thxe-only", "simth", "thxe+lfc", "lfc+thxe", "lc+simthxe", "lc+thxe"]:
         obstype = 'simcalib'

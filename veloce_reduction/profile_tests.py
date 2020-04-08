@@ -354,7 +354,7 @@ def fit_multiple_profiles(P_id, stripes, err_stripes, mask=None, slit_height=25,
 
 
 
-def fit_multiple_profiles_from_indices(P_id, img, err_img, stripe_indices, mask=None, slit_height=25, nfib=24, lfc=False,
+def fit_multiple_profiles_from_indices(P_id, img, err_img, stripe_indices, mask=None, slit_height=30, nfib=24, lfc=False,
                                        sampling_size=25, step_size=None, varbeta=True, offset=True, debug_level=0, timit=False):
     """
     This routine determines the profiles of the fibres in spatial direction. This is an extremely crucial step, as the
@@ -369,7 +369,7 @@ def fit_multiple_profiles_from_indices(P_id, img, err_img, stripe_indices, mask=
     'err_img'       : estimated uncertainties in the 2-dim input array/image
     'mask'          : dictionary of boolean masks (keys = orders) from "find_stripes" (masking out regions of very low signal)
     'slit_height'   : height of the extraction slit (ie the pixel columns are 2*slit_height pixels long)
-    'nfib'          : number of fibres
+    'nfib'          : number of fibres (should be 24, as the light from the Quartz lamp goes through the 19 science fibres and the 5 sky fibres)
     'lfc'           : boolean - is this LFC data? (in which case we only want to use the pixels near a peak to determine the fibre profiles)
     'sampling_size' : how many pixels (in dispersion direction) either side of current i-th pixel do you want to
                       consider? (ie stack profiles for a total of 2*sampling_size+1 pixels in dispersion direction...)
