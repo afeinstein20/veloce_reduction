@@ -134,7 +134,7 @@ def create_toi_velobs_dict(obspath='/Users/christoph/OneDrive - UNSW/observation
             name = targ.split('I')[-1]
             synonyms = ['TOI'+name, 'TOI'+name+'.01', 'TIC'+name+'.01', name+'.01', name+'.01A', name+'.01BC', name+'.01_Bouma', 'BKT'+name+'.01', 'BKTRM'+name+'.01']
             if src.lower() in ['red', 'reduced']:
-#                 fn_list = [fn for fn in all_obs_list if ((fn.split('/')[-1]).split('_')[0]).split('+')[0] in synonyms]   # before I added the date to the reduced-spectrum filenames
+#                 fn_list = [fn for fn in all_obs_list if ((fn.split('/')[-1]).split('_')[0]).split('+')[0] in synonyms]     # before I added the date to the reduced-spectrum filenames
                 fn_list = [fn for fn in all_obs_list if ((fn.split('/')[-1]).split('_')[1]).split('+')[0] in synonyms]
             elif src.lower() == 'raw':
                 fn_list = [fn for fn,target in zip(all_obs_list, all_target_list) if target.split('+')[0] in synonyms]
@@ -152,7 +152,8 @@ def create_toi_velobs_dict(obspath='/Users/christoph/OneDrive - UNSW/observation
             elif targ == 'AST303':
                 targ2 = 'TIC142142718'
             if src.lower() in ['red', 'reduced']:
-                fn_list = [fn for fn in all_obs_list if ((fn.split('/')[-1]).split('_')[0]).split('+')[0] in [targ, targ2]]
+#                 fn_list = [fn for fn in all_obs_list if ((fn.split('/')[-1]).split('_')[0]).split('+')[0] in [targ, targ2]]     # before I added the date to the reduced-spectrum filenames
+                fn_list = [fn for fn in all_obs_list if ((fn.split('/')[-1]).split('_')[1]).split('+')[0] in [targ, targ2]]
             elif src.lower() == 'raw':
                 fn_list = [fn for fn,target in zip(all_obs_list, all_target_list) if target.split('+')[0] in [targ, targ2]]
         
@@ -189,14 +190,15 @@ def create_toi_velobs_dict(obspath='/Users/christoph/OneDrive - UNSW/observation
             
             # fill dictionary
             # loop over all observations for this target
-            for file in fn_list:
+            for n,file in enumerate(fn_list):
 #                 print(n, file)
                 h = pyfits.getheader(file)
                 vo[targ]['JD'].append(h['UTMJD'] + 2.4e6 + 0.5 + (0.5 * h['ELAPSED'] / 86400.))  # use plain JD here, in order to avoid confusion
                 vo[targ]['texp'].append(h['ELAPSED'])
                 if src.lower() in ['red', 'reduced']:
 #                     obsname = (file.split('/')[-1]).split('_')[1]   # before I added the date to the reduced-spectrum filenames
-                    obsname = (file.split('/')[-1]).split('_')[2]
+#                     obsname = (file.split('/')[-1]).split('_')[2]   # this does not work if there is a PI name appended (eg "20191012_429.01_Dragomir_12oct30116_optimal3a_extracted.fits")
+                    obsname = (file.split('/')[-1]).split('_')[-3]
                 elif src.lower() == 'raw':
                     obsname = ((file.split('/')[-1]).split('_')[0]).split('.')[0]
                 vo[targ]['obsnames'].append(obsname)
@@ -236,7 +238,7 @@ def create_toi_velobs_dict(obspath='/Users/christoph/OneDrive - UNSW/observation
                                     seeing = np.round(float(seeing[:-1]),1)
                             except:
                                 seeing = np.nan
-                if date >= 20200129:
+                if int(date) >= 20200129:
                     seeing_fac = 1.
                 else:
                     seeing_fac = np.sqrt(2)

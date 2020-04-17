@@ -31,8 +31,8 @@ file_list = glob.glob(path + '*optimal3a_extracted.fits')
 file_list.sort()  # this is not a proper sort, but see two lines below
 wl_list = glob.glob(path + '*vac_wl.fits*')
 wl_list.sort()   # this is not a proper sort, but consistent with file_list; proper sort is done below
-lfc_wl_list = glob.glob(path + '*vac_wl_lfc.fits*')
-lfc_wl_list.sort()   # this is not a proper sort, but consistent with file_list; proper sort is done below
+# lfc_wl_list = glob.glob(path + '*vac_wl_lfc.fits*')
+# lfc_wl_list.sort()   # this is not a proper sort, but consistent with file_list; proper sort is done below
 assert len(file_list) == len(wl_list), 'ERROR: number of wl-solution files does not match the number of reduced spectra!!!'
 
 obsname_list = [fn.split('_')[-3] for fn in file_list]
@@ -46,7 +46,7 @@ sortix = np.argsort(utmjd)
 all_obsnames = np.array(obsname_list)[sortix]
 files = np.array(file_list)[sortix]
 wls = np.array(wl_list)[sortix]
-lfc_wls = np.array(lfc_wl_list)[sortix]
+# lfc_wls = np.array(lfc_wl_list)[sortix]
 all_bc = np.array(bc_list)[sortix]
 all_jd = utmjd[sortix]
 
@@ -73,7 +73,7 @@ all_snr = readcol(path + starname + '_all_snr.dat', twod=False)[0]
 ########################################################################################################################
 ########################################################################################################################
 
-# # make all new wl-solutions and save to file (only once)
+# make all new wl-solutions and save to file (only once)
 # lfc_path = '/Volumes/BERGRAID/data/veloce/lfc_peaks/'
 # for i,filename in enumerate(file_list):
 #     dum = filename.split('/')
@@ -82,7 +82,8 @@ all_snr = readcol(path + starname + '_all_snr.dat', twod=False)[0]
 #     print('Calculating wl-solution for ' + obsname + '   (' + str(i+1) + ' / ' + str(len(file_list)) + ')')
 # #     print(obsname, os.path.isfile(lfc_path + 'all/' + '2018' + '/' + obsname + 'olc.nst'))
 # #     print(obsname, os.path.isfile(lfc_path + 'all/' + '2019' + '/' + obsname + 'olc.nst'))
-#     if os.path.isfile(lfc_path + 'all/' + '2019' + '/' + obsname + 'olc.nst'):
+#     year = (filename.split('/')[-1]).split('_')[0][:4]
+#     if os.path.isfile(lfc_path + 'all/' + year + '/' + obsname + 'olc.nst'):
 # #     if (os.path.isfile(lfc_path + 'all/' + '2018' + '/' + obsname + 'olc.nst')) or (os.path.isfile(lfc_path + 'all/' + '2019' + '/' + obsname + 'olc.nst')):
 #         utdate = pyfits.getval(filename, 'UTDATE')
 #         date = utdate[:4] + utdate[5:7] + utdate[8:]
@@ -116,16 +117,30 @@ norm_relints = np.load(path + 'norm_relints.npy')   # sum = 1
 #     relints.append(obs_relints)
 #     norm_relints.append(obs_relints / np.max(obs_relints))
 
-######################################################################################################################## np.max(param)
+########################################################################################################################
 ########################################################################################################################
 ########################################################################################################################
 
 # for TOIs - get orbital phase (will be a subset of vo['TOIXXX']['phase'], but we only want the values for the observations we're actually analysing here...
 # need to import functions from veloce_reduction.observations
-obspath = '/Users/christoph/OneDrive - UNSW/observations/'
-PT0_dict = np.load(obspath + 'PT0_dict.npy').item()
-all_phi = calculate_orbital_phase(starname, jd=all_jd, PT0_dict=PT0_dict)
+# obspath = '/Users/christoph/OneDrive - UNSW/observations/'
+# PT0_dict = np.load(obspath + 'PT0_dict.npy').item()
+# all_phi = calculate_orbital_phase(starname, jd=all_jd, PT0_dict=PT0_dict)
 
+# get seeing and phase for only the observations we are concerned with here
+obspath = '/Users/christoph/OneDrive - UNSW/observations/'
+vo_red = np.load(obspath + 'velobs_reduced.npy').item()
+all_seeing = [seeing for seeing,obsn in zip(vo_red[starname]['seeing'], vo_red[starname]['obsnames']) if obsn in all_obsnames]
+all_phi = [phi for phi,obsn in zip(vo_red[starname]['phase'], vo_red[starname]['obsnames']) if obsn in all_obsnames]
+
+# # make seeing sublists as a function of seeing
+# for seeing_thresh in np.arange(0.8,2.51,0.1):
+#     print(str(np.round(seeing_thresh,1)))
+#     seeing_sublist = [seeing for seeing in all_seeing if seeing <= seeing_thresh]
+#     obsname_sublist = [obsn for obsn,seeing in zip(all_obsnames,all_seeing) if seeing <= seeing_thresh]
+#     # np.savetxt(path + 'seeing_le_' + str(np.round(seeing_thresh,1))[0] + str(np.round(seeing_thresh,1))[-1] + '.txt', obsname_sublist)
+#     np.savetxt(path + 'seeing_le_' + str(np.round(seeing_thresh, 1))[0] + str(np.round(seeing_thresh, 1))[-1] + '.txt',
+#                np.array(zip(obsname_sublist, seeing_sublist)), fmt=('%s     %s'))
 
 #################################################################################################################    
 ### OK, now let's try Cross-Correlation RVs on real observations

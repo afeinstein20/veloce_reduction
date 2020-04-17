@@ -227,6 +227,30 @@ def get_bc_from_gaia(gaia_dr2_id, jd, rvabs=0):
 
 
 
+
+def get_bc_from_gaia_coords(ra, dec, pmra, pmdec, px, jd, rvabs=0):
+    """
+    wrapper routine for using barycorrpy with Gaia DR2 coordinates
+    """
+    
+    # use 2015.5 as an epoch (Gaia DR2)
+    epoch = 2457206.375
+
+#     gaia_data = Gaia.query_object_async(coordinate=coord, width=width, height=height)
+#     q = Gaia.launch_job_async('SELECT * FROM gaiadr2.gaia_source WHERE source_id = ' + str(gaia_dr2_id))
+#     q = Gaia.launch_job('SELECT * FROM gaiadr2.gaia_source WHERE source_id = ' + str(gaia_dr2_id))
+#     gaia_data = q.results
+
+    bc = barycorrpy.get_BC_vel(JDUTC=jd, ra=ra, dec=dec, pmra=pmra, pmdec=pmdec, px=px, rv=rvabs*1e3, epoch=epoch, obsname='AAO', ephemeris='de430')
+    # bc = barycorrpy.get_BC_vel(JDUTC=utmjd, ra=ra, dec=dec, pmra=gaia_data['pmra'], pmdec=gaia_data['pmdec'],
+    #                            px=gaia_data['parallax'], rv=gaia_data['radial_velocity']*1e3, obsname='AAO', ephemeris='de430')
+    # bc = barycorrpy.get_BC_vel(JDUTC=utmjd, ra=ra, dec=dec, pmra=pmra, pmdec=pmdec,
+    #                            px=px, rv=rv, obsname='AAO', ephemeris='de430')
+
+    return bc[0][0]
+
+
+
 def append_bc_to_reduced_files(date, rawpath='/Volumes/BERGRAID/data/veloce/raw_goodonly/', redpath='/Volumes/BERGRAID/data/veloce/reduced/'):
     
     print('Appending barycentric corrections to the reduced spectra of ' + str(date) + '...')

@@ -410,7 +410,7 @@ def combine_exposures(f_list, err_list, wl_list, osf=5, remove_cosmics=True, thr
 
 
 
-def main_script_for_sarah(date = '20190722'):
+def main_script_for_sarah(date = '20190722', skysub=False):
     # Gaia DR2 ID dictionary for Zucker July 2019 targets
     hipnum_dict = {'10144': 7588, 
                    '121263': 68002,
@@ -484,7 +484,8 @@ def main_script_for_sarah(date = '20190722'):
      
     fibth_obsnames = [fn.split('_air_')[0][-10:] for fn in air_wl_list]
     # arc_list = glob.glob(path + 'calibs/' + 'ARC*optimal*.fits')   
-    used_fibth_list = [path + 'calibs/' + date + '_ARC - ThAr_' + obsname + '_optimal3a_extracted.fits' for obsname in fibth_obsnames]
+#     used_fibth_list = [path + 'calibs/' + date + '_ARC - ThAr_' + obsname + '_optimal3a_extracted.fits' for obsname in fibth_obsnames]
+    used_fibth_list = [path + 'calibs/' + 'ARC - ThAr_' + obsname + '_optimal3a_extracted.fits' for obsname in fibth_obsnames]
     stellar_list = glob.glob(path + 'stellar_only/' + '*optimal*.fits')
     stellar_list.sort()
     # stellar_list_quick = glob.glob(path + 'stellar_only/' + '*quick*.fits')
@@ -620,10 +621,27 @@ def main_script_for_sarah(date = '20190722'):
             h['EXP_' + str(j+1)] = (used_obsnames[j], 'name of single-shot exposure')
             h_err['EXP_' + str(j+1)] = (used_obsnames[j], 'name of single-shot exposure')
         
-        # make lists containing the (sky-subtracted) flux, error, and wl-arrays for the fibre-combined optimal extracted spectra  
-        f_list = [pyfits.getdata(fn,0) - 19*pyfits.getdata(skyfn,0) for fn,skyfn,obj in zip(fc_stellar_list, sky_list, object_list) if obj == object]
-        err_list = [np.sqrt(pyfits.getdata(fn,1)**2 + 19*pyfits.getdata(skyfn,1)**2) for fn,skyfn,obj in zip(fc_stellar_list, sky_list, object_list) if obj == object]
-        wl_list = [pyfits.getdata(fn,2) for fn,obj in zip(fc_stellar_list, object_list) if obj == object]
+#         # make lists containing the (sky-subtracted) flux, error, and wl-arrays for the fibre-combined optimal extracted spectra  
+#         f_list = [pyfits.getdata(fn,0) - 19*pyfits.getdata(skyfn,0) for fn,skyfn,obj in zip(fc_stellar_list, sky_list, object_list) if obj == object]
+#         err_list = [np.sqrt(pyfits.getdata(fn,1)**2 + 19*pyfits.getdata(skyfn,1)**2) for fn,skyfn,obj in zip(fc_stellar_list, sky_list, object_list) if obj == object]
+#         wl_list = [pyfits.getdata(fn,2) for fn,obj in zip(fc_stellar_list, object_list) if obj == object]
+#         # combine the single-shot exposures
+#         comb_f, comb_err, ref_wl = combine_exposures(f_list, err_list, wl_list, osf=5, remove_cosmics=True, thresh=7, low_thresh=3, debug_level=0, timit=False)
+        
+        if skysub:
+            f_list = []
+            err_list = []
+            wl_list = []
+            for fn,skyfn,obj in zip(fc_stellar_list, sky_list, object_list):
+                if obj == object:
+                    F, ERR, WL = subtract_sky(pyfits.getdata(fn,0), pyfits.getdata(fn,1), pyfits.getdata(fn,2), 19*pyfits.getdata(skyfn,0), np.sqrt(19)*pyfits.getdata(skyfn,1), pyfits.getdata(skyfn,2))
+                    f_list.append(F)
+                    err_list.append(ERR)
+                    wl_list.append(WL)
+        else: 
+            f_list = [pyfits.getdata(fn,0) for fn,obj in zip(fc_stellar_list, object_list) if obj == object]
+            err_list = [pyfits.getdata(fn,1) for fn,obj in zip(fc_stellar_list, object_list) if obj == object]
+            wl_list = [pyfits.getdata(fn,2) for fn,obj in zip(fc_stellar_list, object_list) if obj == object]
         # combine the single-shot exposures
         comb_f, comb_err, ref_wl = combine_exposures(f_list, err_list, wl_list, osf=5, remove_cosmics=True, thresh=7, low_thresh=3, debug_level=0, timit=False)
         
@@ -634,8 +652,22 @@ def main_script_for_sarah(date = '20190722'):
         wm_bc = np.average(bc_list, weights=texp_list)  
         
         # save to new FITS file(s)
+#         outpath = path + 'final_combined_spectra/'
+#         new_fn = outpath + object + '_final_combined.fits'
+#         pyfits.writeto(new_fn, comb_f, h, clobber=True)
+#         pyfits.append(new_fn, comb_err, h_err, clobber=True)
+#         pyfits.append(new_fn, ref_wl, clobber=True)
+        # write the barycentric correction into the FITS header of both the quick-extracted and the optimal-extracted reduced spectrum files
+#         pyfits.setval(new_fn, 'BARYCORR', value=wm_bc, comment='barycentric velocity correction [m/s]')
+
+        # save to new FITS file(s)
         outpath = path + 'final_combined_spectra/'
-        new_fn = outpath + object + '_final_combined.fits'
+        if skysub:
+            new_fn = outpath + object + '_final_combined_sky_subtracted.fits'
+            h['SKYSUB'] = 'TRUE'
+        else:
+            new_fn = outpath + object + '_final_combined.fits'
+            h['SKYSUB'] = 'FALSE'
         pyfits.writeto(new_fn, comb_f, h, clobber=True)
         pyfits.append(new_fn, comb_err, h_err, clobber=True)
         pyfits.append(new_fn, ref_wl, clobber=True)
@@ -822,7 +854,7 @@ def main_script_for_timtim(date = '20190621'):
             h['EXP_' + str(j+1)] = (used_obsnames[j], 'name of single-shot exposure')
             h_err['EXP_' + str(j+1)] = (used_obsnames[j], 'name of single-shot exposure')
          
-        # make lists containing the (sky-subtracted) flux, error, wl-arrays, barycentric correction, and exposure times for the fibre-combined optimal extracted spectra  
+        # make lists containing the flux, error, wl-arrays, barycentric correction, and exposure times for the fibre-combined optimal extracted spectra  
         f_list = [pyfits.getdata(fn,0) for fn,obj in zip(fc_stellar_list, object_list) if obj == object]
         err_list = [pyfits.getdata(fn,1) for fn,obj in zip(fc_stellar_list, object_list) if obj == object]
         wl_list = [pyfits.getdata(fn,2) for fn,obj in zip(fc_stellar_list, object_list) if obj == object]
