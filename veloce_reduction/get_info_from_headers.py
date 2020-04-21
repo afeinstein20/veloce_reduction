@@ -16,7 +16,25 @@ from veloce_reduction.veloce_reduction.calibration import correct_for_bias_and_d
 
 
 
-def get_obstype_lists(path, pattern=None, weeding=True, quick=False, raw_goodonly=True):
+def get_obstype_lists(path, pattern=None, weeding=True, quick=False, raw_goodonly=True, savefiles=True):
+    """
+    This routine performs the "INGEST" step, ie for all files in a given night it identifies the type of observation and sorts the files into lists.
+    For simcalib exposures it also determines which lamps were actually firing, no matter what the header says, as that can often be wrong (LC / SimTh / LC+SimTh).
+
+    INPUT:
+    "path"          : the directory containing the data
+    "pattern"       : if provided, only files containing a certain string pattern will be included
+    "weeding"       : boolean - do you want to weed out binned observations?
+    "quick"         : boolean - if TRUE, simcalib status in determined from headers alone (not from 2-dim images)
+    "raw_goodonly"  : boolean - if TRUE, expect 8-digit date (YYYYMMDD) - if FALSE expect 6-digit date (YYMMDD)
+    "savefiles"     : boolean - do you want to save the lists into output files
+
+    OUTPUT:
+    lists containing the filenames (incl. directory) of the respective observations of a certain type
+
+    MODHIST:
+    20200421 - CMB removed domeflat and skyflat lists (not used with Veloce)
+    """
 
     if raw_goodonly:
         date = path[-9:-1]
@@ -50,8 +68,8 @@ def get_obstype_lists(path, pattern=None, weeding=True, quick=False, raw_goodonl
     bias_list = []
     dark_list = []
     flat_list = []
-    skyflat_list = []
-    domeflat_list = []
+    # skyflat_list = []
+    # domeflat_list = []
     arc_list = []
     thxe_list = []
     laser_list = []
@@ -71,10 +89,10 @@ def get_obstype_lists(path, pattern=None, weeding=True, quick=False, raw_goodonl
             dark_list.append(file)
         elif obj_type.lower().startswith('flat'):
             flat_list.append(file)
-        elif obj_type.lower().startswith('skyflat'):
-            skyflat_list.append(file)
-        elif obj_type.lower().startswith('domeflat'):
-            domeflat_list.append(file)
+        # elif obj_type.lower().startswith('skyflat'):
+        #     skyflat_list.append(file)
+        # elif obj_type.lower().startswith('domeflat'):
+        #     domeflat_list.append(file)
         elif obj_type.lower().startswith('arc'):
             arc_list.append(file)
         elif obj_type.lower() in ["thxe", "thxe-only", "simth"]:
@@ -155,7 +173,20 @@ def get_obstype_lists(path, pattern=None, weeding=True, quick=False, raw_goodonl
                 unknown_list.append(file)
         
 
-    return acq_list, bias_list, dark_list, flat_list, skyflat_list, domeflat_list, arc_list, simth_only_list, laser_only_list, laser_and_simth_list, stellar_list, unknown_list
+    if savefiles:
+        np.savetxt(path + date + '_acquire_list.txt', acq_list, fmt='%s')
+        np.savetxt(path + date + '_bias_list.txt', bias_list, fmt='%s')
+        np.savetxt(path + date + '_dark_list.txt', dark_list, fmt='%s')
+        np.savetxt(path + date + '_flat_list.txt', flat_list, fmt='%s')
+        np.savetxt(path + date + '_arc_list.txt', arc_list, fmt='%s')
+        np.savetxt(path + date + '_simth_only_list.txt', simth_only_list, fmt='%s')
+        np.savetxt(path + date + '_lfc_only_list.txt', laser_only_list, fmt='%s')
+        np.savetxt(path + date + '_lfc_and_simth_list.txt', laser_and_simth_list, fmt='%s')
+        np.savetxt(path + date + '_stellar_list.txt', stellar_list, fmt='%s')
+        np.savetxt(path + date + '_unknown_list.txt', unknown_list, fmt='%s')
+
+    # return acq_list, bias_list, dark_list, flat_list, skyflat_list, domeflat_list, arc_list, simth_only_list, laser_only_list, laser_and_simth_list, stellar_list, unknown_list
+    return acq_list, bias_list, dark_list, flat_list, arc_list, simth_only_list, laser_only_list, laser_and_simth_list, stellar_list, unknown_list
 
 
 

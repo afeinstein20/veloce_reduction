@@ -17,7 +17,6 @@ from veloce_reduction.veloce_reduction.background import extract_background, ext
 from veloce_reduction.veloce_reduction.order_tracing import extract_stripes
 from veloce_reduction.veloce_reduction.extraction import extract_spectrum, extract_spectrum_from_indices
 from veloce_reduction.veloce_reduction.relative_intensities import get_relints, get_relints_from_indices, append_relints_to_FITS
-from veloce_reduction.veloce_reduction.get_info_from_headers import get_obs_coords_from_header
 from veloce_reduction.veloce_reduction.barycentric_correction import get_barycentric_correction
 
 

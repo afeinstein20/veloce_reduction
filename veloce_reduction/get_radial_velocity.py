@@ -435,7 +435,7 @@ def get_RV_from_xcorr_2(f, wl, f0, wl0, bc=0, bc0=0, mask=None, smoothed_flat=No
                         mu = np.nan
                         mu_err = np.nan
                 else:
-                    print('latest version OKOK')
+                    print('latest version 20200417')
                     
 #                 # OLD VERSION: can only accommodate one peak, but same as below
 #                 # parameters: mu, sigma, amp, beta, offset
@@ -476,13 +476,12 @@ def get_RV_from_xcorr_2(f, wl, f0, wl0, bc=0, bc0=0, mask=None, smoothed_flat=No
                     except:
                         popt, pcov = (np.ones(4*npeaks+1)*np.nan, np.ones(4*npeaks+1)*np.nan)
                     popt_arr = np.reshape(popt[:-1], (npeaks, 4))
-                    pcov_arr = np.reshape(pcov[:-1], (npeaks, 4))
-    #                 offset = popt[-1]
-                    mu = popt_arr[:,0]
-                    mu_err = popt_arr[:,0]
-                    ixs = np.arange(0,npeaks*4,4)
-                    # pcov_dum =
-                    mu_err = np.sqrt(np.array([pcov[ix,ix] for ix in ixs]))    
+                    mu = popt_arr[:, 0]
+                    offset = popt[-1]
+                    # pcov_arr = np.reshape(pcov[:-1,:-1], (4*npeaks, 4*npeaks))
+                    # mu_err = popt_arr[:,0]
+                    ixs = np.arange(0, npeaks * 4, 4)
+                    mu_err = np.sqrt(np.array([pcov[ix, ix] for ix in ixs]))
                     
                 # convert to RV in m/s
                 rv[o, f, :] = c * (mu - (len(xc) // 2)) * delta_log_wl
@@ -562,7 +561,7 @@ def get_RV_from_xcorr_2(f, wl, f0, wl0, bc=0, bc0=0, mask=None, smoothed_flat=No
                     mu = np.nan
                     mu_err = np.nan
             else:
-                print('latest version OKOK')
+                print('latest version 20200417')
                 
 #                 # OLD VERSION: can only accommodate one peak, but same as below
 #                 # parameters: mu, sigma, amp, beta, offset
@@ -603,12 +602,11 @@ def get_RV_from_xcorr_2(f, wl, f0, wl0, bc=0, bc0=0, mask=None, smoothed_flat=No
                 except:
                     popt, pcov = (np.ones(4*npeaks+1)*np.nan, np.ones(4*npeaks+1)*np.nan)
                 popt_arr = np.reshape(popt[:-1], (npeaks, 4))
-                pcov_arr = np.reshape(pcov[:-1], (npeaks, 4))
-#                 offset = popt[-1]
                 mu = popt_arr[:,0]
-                mu_err = popt_arr[:,0]
+                offset = popt[-1]
+                # pcov_arr = np.reshape(pcov[:-1,:-1], (4*npeaks, 4*npeaks))
+                # mu_err = popt_arr[:,0]
                 ixs = np.arange(0,npeaks*4,4)
-                # pcov_dum =
                 mu_err = np.sqrt(np.array([pcov[ix,ix] for ix in ixs]))
                     
             # convert to RV in m/s
@@ -778,8 +776,8 @@ def make_ccfs(f, wl, f0, wl0, bc=0., bc0=0., smoothed_flat=None, delta_log_wl=1e
 #     if use_orders == 'all':
 #         use_orders = np.arange(1,39)
 #     if use_orders is None:
-    use_orders = [5, 6, 17, 25, 26, 27, 31, 34, 35, 36]         # at the moment 17 and 34 give the lowest scatter
-#     use_orders = [5, 17, 25, 26, 27, 31, 34, 35, 36]
+#     use_orders = [5, 6, 17, 25, 26, 27, 31, 34, 35, 36]         # at the moment 17 and 34 give the lowest scatter
+    use_orders = [17, 25, 26, 27, 31, 34, 35, 36]
 #     use_orders = [5, 17, 25, 26, 27, 28, 31, 32, 33, 34, 35, 36]    # for TOI192
 #     use_orders = [5, 6, 17, 25, 27, 31, 36]
 #     use_orders = [17]
@@ -789,7 +787,7 @@ def make_ccfs(f, wl, f0, wl0, bc=0., bc0=0., smoothed_flat=None, delta_log_wl=1e
 #     use_orders = np.arange(n_ord)
 
     print('Using ' + str(len(use_orders)) + ' orders for CCF...')
-    print("haehaehae_20191206")
+    print("haehaehae_20200417")
 
     for o in use_orders:         # at the moment 17 and 34 give the lowest scatter
 

@@ -806,7 +806,7 @@ def get_bias_and_readnoise_from_bias_frames(bias_list, degpol=5, clip=5, gain=No
         path = bias_list[0][0:-len(dum[-1])]
         date = path.split('/')[-2]
         # write median bias image to file
-        pyfits.writeto(path + date + '_median_bias.fits', medimg, clobber=True)
+        pyfits.writeto(path + date + '_median_bias.fits', medimg, overwrite=True)
         pyfits.setval(path + date + '_median_bias.fits', 'UNITS', value='ADU')
         pyfits.setval(path + date + '_median_bias.fits', 'HISTORY', value='   median BIAS frame - created ' + time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()) + ' (GMT)')
 
@@ -992,7 +992,7 @@ def old_get_bias_and_readnoise_from_bias_frames(bias_list, degpol=5, clip=5, gai
         dum = bias_list[0].split('/')
         path = bias_list[0][0:-len(dum[-1])]
         # write median bias image to file
-        pyfits.writeto(path+'median_bias.fits', medimg, clobber=True)
+        pyfits.writeto(path+'median_bias.fits', medimg, overwrite=True)
         pyfits.setval(path+'median_bias.fits', 'UNITS', value='ADU')
         pyfits.setval(path+'median_bias.fits', 'HISTORY', value='   master BIAS frame - created '+time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())+' (GMT)')
 
@@ -1048,7 +1048,7 @@ def make_ronmask(rons, nx, ny, nq=4, gain=None, savefile=False, path=None, timit
                 date = ''
                 
             # make read-out noise mask and save to fits file
-            pyfits.writeto(path + date + '_read_noise_mask.fits', ronmask, clobber=True)
+            pyfits.writeto(path + date + '_read_noise_mask.fits', ronmask, overwrite=True)
             pyfits.setval(path + date + '_read_noise_mask.fits', 'UNITS', value='ELECTRONS')
             pyfits.setval(path + date + '_read_noise_mask.fits', 'HISTORY', value='   read-noise frame - created ' + time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()) + ' (GMT)')
             if nq == 1:
@@ -1124,7 +1124,7 @@ def make_offmask_and_ronmask(offsets, rons, nx, ny, gain=None, savefiles=False, 
             return
         else:
             #write offmask to file
-            pyfits.writeto(path+'offmask.fits', offmask, clobber=True)
+            pyfits.writeto(path+'offmask.fits', offmask, overwrite=True)
             pyfits.setval(path+'offmask.fits', 'UNITS', value='ADU')
             pyfits.setval(path+'offmask.fits', 'HISTORY', value='   offset mask - created '+time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())+' (GMT)')
             if nq == 1:
@@ -1141,7 +1141,7 @@ def make_offmask_and_ronmask(offsets, rons, nx, ny, gain=None, savefiles=False, 
                 pyfits.setval(path+'offmask.fits', 'RNOISE_4', value=rons[3], comment='in ELECTRONS')
 
             #now make read-out noise mask
-            pyfits.writeto(path+'read_noise_mask.fits', ronmask, clobber=True)
+            pyfits.writeto(path+'read_noise_mask.fits', ronmask, overwrite=True)
             pyfits.setval(path+'read_noise_mask.fits', 'UNITS', value='ELECTRONS')
             pyfits.setval(path+'read_noise_mask.fits', 'HISTORY', value='   read-noise frame - created '+time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())+' (GMT)')
             if nq == 1:
@@ -1232,7 +1232,7 @@ def make_master_bias_from_coeffs(coeffs, nx, ny, savefile=False, path=None, timi
             h['UNITS'] = 'ADU'
             h['HISTORY'][0] = ('   master BIAS frame - created '+time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())+' (GMT)')
             #write master bias to file
-            pyfits.writeto(path+'master_bias.fits', master_bias, h, clobber=True)
+            pyfits.writeto(path+'master_bias.fits', master_bias, h, overwrite=True)
     
     
     if timit:
@@ -1336,7 +1336,7 @@ def make_master_dark(dark_list, MB, gain=None, scalable=False, noneg=False, save
             h['UNITS'] = 'ELECTRONS'
             h['COMMENT'] = 're-normalized to texp=1s to make it scalable'
             h['TOTALEXP'] = (1., 'exposure time [s]')
-            pyfits.writeto(outfn, MD, h, clobber=True)
+            pyfits.writeto(outfn, MD, h, overwrite=True)
         else:
             for i,submd in enumerate(MD):
                 outfn = path + date + '_master_dark_t'+str(int(unique_exp_times[i]))+'.fits'
@@ -1346,7 +1346,7 @@ def make_master_dark(dark_list, MB, gain=None, scalable=False, noneg=False, save
                 h['HISTORY'][0] = '   MASTER DARK frame - created '+time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())+' (GMT)'
                 h['TOTALEXP'] = (unique_exp_times[i], 'exposure time [s]')
                 h['UNITS'] = 'ELECTRONS'
-                pyfits.writeto(outfn, submd, h, clobber=True)
+                pyfits.writeto(outfn, submd, h, overwrite=True)
 
     if timit:
         print('Time elapsed: '+str(np.round(time.time() - start_time,1))+' seconds')
@@ -1428,7 +1428,7 @@ def make_master_darks(dark_list, MB, gain=None, noneg=False, savefile=True, path
             h['HISTORY'][0] = '   MASTER DARK frame - created ' + time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()) + ' (GMT)'
             h['TOTALEXP'] = (texp, 'exposure time [s]')
             h['UNITS'] = 'ELECTRONS'
-            pyfits.writeto(outfn, submd, h, clobber=True)
+            pyfits.writeto(outfn, submd, h, overwrite=True)
 
     if timit:
         print('Time elapsed: ' + str(np.round(time.time() - start_time, 1)) + ' seconds')
@@ -1543,10 +1543,10 @@ def correct_for_bias_and_dark_from_filename(imgname, MB, MD, gain=None, scalable
         h = pyfits.getheader(imgname)
         h['UNITS'] = 'ELECTRONS'
         h['HISTORY'] = '   BIAS- & DARK-corrected image - created ' + time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()) + ' (GMT)'
-        pyfits.writeto(outfn, dc_bc_img, h, clobber=True)
+        pyfits.writeto(outfn, dc_bc_img, h, overwrite=True)
 #         h_err = h.copy()
 #         h_err['HISTORY'] = 'estimated uncertainty in BIAS- & DARK-corrected image - created '+time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())+' (GMT)'
-#         pyfits.append(outfn, err_dc_bc_img, h_err, clobber=True)
+#         pyfits.append(outfn, err_dc_bc_img, h_err, overwrite=True)
 
     if timit:
         print('Time elapsed: ' + str(np.round(time.time() - start_time,1)) + ' seconds')
@@ -1736,7 +1736,7 @@ def make_master_calib(file_list, lamptype=None, MB=None, ronmask=None, MD=None, 
     # now save master frame to file
     if savefile:
         outfn = path + date + '_master_' + typestring + '.fits'
-        pyfits.writeto(outfn, master, clobber=True)
+        pyfits.writeto(outfn, master, overwrite=True)
         pyfits.setval(outfn, 'HISTORY', value='   MASTER ' + typestring.upper() + ' frame - created ' + time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()) + ' (GMT)')
         if lamptype == 'both':
             pyfits.setval(outfn, 'MED_T_LC', value=np.median(texp_list_lfc), comment='median exposure time of LFC [s]')
@@ -1748,7 +1748,7 @@ def make_master_calib(file_list, lamptype=None, MB=None, ronmask=None, MD=None, 
         h = pyfits.getheader(outfn)
         h_err = h.copy()
         h_err['HISTORY'] = 'estimated uncertainty in MASTER ' + typestring.upper() + ' frame - created ' + time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()) + ' (GMT)'
-        pyfits.append(outfn, err_master, h_err, clobber=True)
+        pyfits.append(outfn, err_master, h_err, overwrite=True)
 
     if timit:
         print('Total time elapsed: '+str(np.round(time.time() - start_time,1))+' seconds')
@@ -1826,7 +1826,7 @@ def bias_subtraction(imglist, MB, noneg=True, savefile=True):
             dum = file.split('/')
             path = file[:-len(dum[-1])]
             h = pyfits.getheader(file)
-            pyfits.writeto(path+'bc_'+dum[-1], mod_img, h, clobber=True)
+            pyfits.writeto(path+'bc_'+dum[-1], mod_img, h, overwrite=True)
     return
 
 
@@ -1844,7 +1844,7 @@ def dark_subtraction(imglist, MD, noneg=True, savefile=True):
             dum = file.split('/')
             path = file[:-len(dum[-1])]
             h = pyfits.getheader(file)
-            pyfits.writeto(path+'dc_'+dum[-1], mod_img, h, clobber=True)
+            pyfits.writeto(path+'dc_'+dum[-1], mod_img, h, overwrite=True)
     return
 
 

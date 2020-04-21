@@ -25,6 +25,7 @@ if starname.lower() == 'tauceti':
     path = '/Volumes/WORKING/data/veloce/reduced/tauceti/tauceti_with_LFC/'
 else:
     path = '/Volumes/WORKING/data/veloce/reduced/' + starname + '/with_lfc/'
+    # path = '/Users/christoph/data/reduced/' + starname + '/with_lfc/'
 
 
 file_list = glob.glob(path + '*optimal3a_extracted.fits')
@@ -34,6 +35,7 @@ wl_list.sort()   # this is not a proper sort, but consistent with file_list; pro
 # lfc_wl_list = glob.glob(path + '*vac_wl_lfc.fits*')
 # lfc_wl_list.sort()   # this is not a proper sort, but consistent with file_list; proper sort is done below
 assert len(file_list) == len(wl_list), 'ERROR: number of wl-solution files does not match the number of reduced spectra!!!'
+# assert len(file_list) == len(lfc_wl_list), 'ERROR: number of wl-solution files does not match the number of reduced spectra!!!'
 
 obsname_list = [fn.split('_')[-3] for fn in file_list]
 object_list = [pyfits.getval(fn, 'OBJECT').split('+')[0] for fn in file_list]
@@ -60,8 +62,8 @@ unique_dates = set(all_dates)
 
 all_snr = readcol(path + starname + '_all_snr.dat', twod=False)[0]
 
-# # get mean SNR per collapsed pixel
-# all_snr = []
+# # # get mean SNR per collapsed pixel
+# # all_snr = []
 # for i, file in enumerate(files):
 #     print('Estimating mean SNR for observation ' + str(i + 1) + '/' + str(len(files)))
 #     flux = pyfits.getdata(file, 0)
@@ -152,8 +154,8 @@ all_phi = [phi for phi,obsn in zip(vo_red[starname]['phase'], vo_red[starname]['
 # vers = 'v2d'
 
 all_xc = []
-all_rv = np.zeros((len(files), 12))
-# all_rv = np.zeros((len(files), 10, 19))
+# all_rv = np.zeros((len(files), 12))
+all_rv = np.zeros((len(files), 19))
 # all_rv = np.zeros((len(files), 11, 19))
 all_sumrv = []
 all_sumrverr = []
@@ -171,6 +173,9 @@ xcsums = np.zeros((len(files), 2*addrange + 1))
 # del Pav
 ix0 = 36
 date_0 = '20190518'
+# HD190248
+ix0 = 72
+date_0 = '20190524'
 
 f0 = pyfits.getdata(files[ix0], 0)
 err0 = pyfits.getdata(files[ix0], 1)
@@ -230,7 +235,7 @@ for i,filename in enumerate(files):
 #     f = pyfits.getdata(filename, 0)
     err = pyfits.getdata(filename, 1)
     wl = pyfits.getdata(wls[i])
-#     wl = pyfits.getdata(lfc_wls[i])
+    # wl = pyfits.getdata(lfc_wls[i])
     bc = pyfits.getval(filename, 'BARYCORR')
     f_clean = pyfits.getdata(path + '190248_' + obsname + '_optimal3a_extracted_cleaned.fits')
     # f_clean = pyfits.getdata(path + date + '_129.01_' + obsname + '_optimal3a_extracted_cleaned.fits')
@@ -249,14 +254,14 @@ for i,filename in enumerate(files):
 #     all_xc.append(old_make_ccfs(f, wl, f0, wl0, bc=all_bc[i], bc0=all_bc[6], mask=None, smoothed_flat=None, delta_log_wl=1e-6, relgrid=False,
 #                                flipped=False, individual_fibres=False, debug_level=1, timit=False))
     #     rv,rverr,xcsum = get_RV_from_xcorr_2(f, wl, f0, wl0, bc=all_bc[i], bc0=all_bc[6], individual_fibres=True, individual_orders=True, old_ccf=True, debug_level=1)
-    sumrv, sumrverr, xcsum = get_RV_from_xcorr_2(f_clean, wl, f0_clean, wl0, bc=bc, bc0=bc0, smoothed_flat=smoothed_flat, fitrange=35, addrange=1500, individual_fibres=False,
-                                                 individual_orders=True, deg_interp=3, norm_cont=True, fit_slope=False, old_ccf=False, debug_level=1)
+    sumrv, sumrverr, xcsum = get_RV_from_xcorr_2(f_clean, wl, f0_clean, wl0, bc=bc, bc0=bc0, smoothed_flat=smoothed_flat, fitrange=35, addrange=150, individual_fibres=False,
+                                                 individual_orders=False, deg_interp=3, norm_cont=True, fit_slope=False, old_ccf=False, debug_level=1)
     #     sumrv,sumrverr,xcsum = get_RV_from_xcorr_2(f_dblz, wl, f0_dblz, wl0, bc=all_bc[i], bc0=all_bc[6], individual_fibres=False, individual_orders=False, old_ccf=True, debug_level=1)
     #     all_rv[i,:,:] = rv
     all_sumrv.append(sumrv)
     all_sumrverr.append(sumrverr)
-#     all_rv[i,:] = sumrv[0,:]
-    all_rv[i,:] = sumrv
+    all_rv[i,:] = sumrv[0,:,0]
+#     all_rv[i,:] = sumrv
     xcsums[i, :] = xcsum
 #     all_xc.append(make_ccfs(f_clean, wl, f0_clean, wl0, bc=bc, bc0=bc0, smoothed_flat=smoothed_flat, delta_log_wl=1e-6, deg_interp=3, flipped=False,
 #                         individual_fibres=False, scrunch=False, synthetic_template=False, norm_cont=True, debug_level=0, timit=False))

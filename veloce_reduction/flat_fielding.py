@@ -8,7 +8,7 @@ import numpy as np
 from scipy.interpolate import UnivariateSpline
 from scipy.signal import medfilt
 from scipy import ndimage
-
+import astropy.io.fits as pyfits
 
 
 

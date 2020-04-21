@@ -316,7 +316,7 @@ def get_lfc_offset(date='20190503', return_median=False, norm=True):
     stellar_fibparms = np.load('/Users/christoph/OneDrive - UNSW/fibre_profiles/archive/fibre_profile_fits_' + date + '.npy').item()
     
     # read in fibparms for LFC fibre
-    lfc_fibparms = np.load('/Users/christoph/OneDrive - UNSW/fibre_profiles/laser/lfc_fibre_profile_fits_' + date + '.npy').item()
+    lfc_fibparms = np.load('/Users/christoph/OneDrive - UNSW/fibre_profiles/laser/lfc_fibre_profile_fits_20190503.npy').item()
     
     # prepare output array
     offsets = np.zeros((39,24,4112))    
@@ -342,7 +342,7 @@ def get_simthxe_offset(date='20190503', return_median=False, norm=True):
     stellar_fibparms = np.load('/Users/christoph/OneDrive - UNSW/fibre_profiles/archive/fibre_profile_fits_' + date + '.npy').item()
     
     # read in fibparms for simThXe fibre
-    simthxe_fibparms = np.load('/Users/christoph/OneDrive - UNSW/fibre_profiles/simthxe/sim_ThXe_fibre_profile_fits_' + date + '_nomask.npy').item()
+    simthxe_fibparms = np.load('/Users/christoph/OneDrive - UNSW/fibre_profiles/simthxe/sim_ThXe_fibre_profile_fits_20190503_nomask.npy').item()
     
     # prepare output array
     offsets = np.zeros((39,24,4112))    
@@ -374,12 +374,12 @@ def combine_fibparms(date, use_lfc=False, savefile=True):
     # read in fibparms for simThXe fibre and median offsets from stellar&sky fibres
     simthxe_fibparms = np.load(simthxe_path + 'sim_ThXe_fibre_profile_fits_20190503_nomask.npy').item()
 #     med_simthxe_offsets = get_simthxe_offset(return_median=True)
-    simthxe_offsets = get_simthxe_offset()
+    simthxe_offsets = get_simthxe_offset(date=date)
     
     # read in fibparms for LFC fibre and median offsets from stellar&sky fibres
     lfc_fibparms = np.load(lfc_path + 'lfc_fibre_profile_fits_20190503.npy').item()
 #     med_lfc_offsets = get_lfc_offset(return_median=True)
-    lfc_offsets = get_lfc_offset()
+    lfc_offsets = get_lfc_offset(date=date)
     
     # calculate a new simThXe trace based on the measured positions of the other fibres that night and the median offset as measured on the reference night (20190503)
     new_simthxe_traces  = np.zeros((39,24,4112))    

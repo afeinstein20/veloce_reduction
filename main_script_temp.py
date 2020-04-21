@@ -47,9 +47,9 @@ fibparms_path = '/Users/christoph/OneDrive - UNSW/fibre_profiles/archive/'
 
 
 ### (0) GET INFO FROM FITS HEADERS ##################################################################################################################
-acq_list, bias_list, dark_list, flat_list, skyflat_list, domeflat_list, arc_list, thxe_list, laser_list, laser_and_thxe_list, stellar_list, unknown_list = get_obstype_lists(path)
+acq_list, bias_list, dark_list, flat_list, arc_list, thxe_list, laser_list, laser_and_thxe_list, stellar_list, unknown_list = get_obstype_lists(path)
 assert len(unknown_list) == 0, "WARNING: unknown files encountered!!!"
-# q_acq_list, q_bias_list, q_dark_list, q_flat_list, q_skyflat_list, q_domeflat_list, q_arc_list, q_thxe_list, q_laser_list, q_laser_and_thxe_list, q_stellar_list, q_unknown_list = get_obstype_lists(path, quick=True)
+# q_acq_list, q_bias_list, q_dark_list, q_flat_list, q_arc_list, q_thxe_list, q_laser_list, q_laser_and_thxe_list, q_stellar_list, q_unknown_list = get_obstype_lists(path, quick=True)
 # assert len(q_unknown_list) == 0, "WARNING: unknown files encountered!!!"
 # obsnames = short_filenames(bias_list)
 dumimg = crop_overscan_region(correct_orientation(pyfits.getdata(bias_list[0])))
@@ -193,7 +193,6 @@ if choice_mw.lower() == 'r':
     MW,err_MW = process_whites(flat_list, MB=medbias, ronmask=ronmask, MD=MDS, gain=gain, scalable=True, fancy=False, P_id=P_id,
                                clip=5., savefile=True, saveall=False, diffimg=False, remove_bg=True, path=path, debug_level=1, timit=False)
 
-
 #####################################################################################################################################################
 
 
@@ -216,7 +215,7 @@ else:
     if sure == 'y':
         fp_in = fit_multiple_profiles_from_indices(P_id, MW, err_MW, MW_indices, slit_height=slit_height, timit=True, debug_level=1)
         np.save(fibparms_path + 'individual_fibre_profiles_' + date + '.npy', fp_in)
-        stellar_fibparms = make_real_fibparms_by_ord(fp_in, date=date)
+        stellar_fibparms = make_real_fibparms_by_ord(fp_in, date=date, path=fibparms_path)
         fibparms = combine_fibparms(date)
 #####################################################################################################################################################
 
