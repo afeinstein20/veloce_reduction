@@ -172,18 +172,39 @@ def get_obstype_lists(path, pattern=None, weeding=True, quick=False, raw_goodonl
             else:
                 unknown_list.append(file)
         
+    # sort all lists
+    acq_list.sort()
+    bias_list.sort()
+    dark_list.sort()
+    flat_list.sort()
+    arc_list.sort()
+    simth_only_list.sort()
+    laser_only_list.sort()
+    laser_and_simth_list.sort()
+    stellar_list.sort()
+    unknown_list.sort()
 
     if savefiles:
-        np.savetxt(path + date + '_acquire_list.txt', acq_list, fmt='%s')
-        np.savetxt(path + date + '_bias_list.txt', bias_list, fmt='%s')
-        np.savetxt(path + date + '_dark_list.txt', dark_list, fmt='%s')
-        np.savetxt(path + date + '_flat_list.txt', flat_list, fmt='%s')
-        np.savetxt(path + date + '_arc_list.txt', arc_list, fmt='%s')
-        np.savetxt(path + date + '_simth_only_list.txt', simth_only_list, fmt='%s')
-        np.savetxt(path + date + '_lfc_only_list.txt', laser_only_list, fmt='%s')
-        np.savetxt(path + date + '_lfc_and_simth_list.txt', laser_and_simth_list, fmt='%s')
-        np.savetxt(path + date + '_stellar_list.txt', stellar_list, fmt='%s')
-        np.savetxt(path + date + '_unknown_list.txt', unknown_list, fmt='%s')
+        shortfn_acq_list = [fn.split('/')[-1] for fn in acq_list]
+        np.savetxt(path + date + '_acquire_list.txt', shortfn_acq_list, fmt='%s')
+        shortfn_bias_list = [fn.split('/')[-1] for fn in bias_list]
+        np.savetxt(path + date + '_bias_list.txt', shortfn_bias_list, fmt='%s')
+        shortfn_dark_list = [fn.split('/')[-1] for fn in dark_list]
+        np.savetxt(path + date + '_dark_list.txt', shortfn_dark_list, fmt='%s')
+        shortfn_flat_list = [fn.split('/')[-1] for fn in flat_list]
+        np.savetxt(path + date + '_flat_list.txt', shortfn_flat_list, fmt='%s')
+        shortfn_arc_list = [fn.split('/')[-1] for fn in arc_list]
+        np.savetxt(path + date + '_arc_list.txt', shortfn_arc_list, fmt='%s')
+        shortfn_simth_only_list = [fn.split('/')[-1] for fn in simth_only_list]
+        np.savetxt(path + date + '_simth_only_list.txt', shortfn_simth_only_list, fmt='%s')
+        shortfn_laser_only_list = [fn.split('/')[-1] for fn in laser_only_list]
+        np.savetxt(path + date + '_lfc_only_list.txt', shortfn_laser_only_list, fmt='%s')
+        shortfn_laser_and_simth_list = [fn.split('/')[-1] for fn in laser_and_simth_list]
+        np.savetxt(path + date + '_lfc_and_simth_list.txt', shortfn_laser_and_simth_list, fmt='%s')
+        shortfn_stellar_list = [fn.split('/')[-1] for fn in stellar_list]
+        np.savetxt(path + date + '_stellar_list.txt', shortfn_stellar_list, fmt='%s')
+        shortfn_unknown_list = [fn.split('/')[-1] for fn in unknown_list]
+        np.savetxt(path + date + '_unknown_list.txt', shortfn_unknown_list, fmt='%s')
 
     # return acq_list, bias_list, dark_list, flat_list, skyflat_list, domeflat_list, arc_list, simth_only_list, laser_only_list, laser_and_simth_list, stellar_list, unknown_list
     return acq_list, bias_list, dark_list, flat_list, arc_list, simth_only_list, laser_only_list, laser_and_simth_list, stellar_list, unknown_list
