@@ -13,21 +13,22 @@ import astropy.io.fits as pyfits
 from veloce_reduction.veloce_reduction.helper_functions import polyfit2d, polyval2d, fit_poly_surface_2D, sigma_clip
 
 
-# # #make simulated background
-# ny, nx = img.shape
-# x = np.repeat(np.arange(nx) - nx/2,nx)
-# y = np.tile(np.arange(ny) - ny/2,ny)
-# xx, yy = np.meshgrid(np.linspace(x.min(), x.max(), nx), np.linspace(y.min(), y.max(), ny))
-# #m =    [a00,a01,a02,  a03  ,a10,a11,a12,a13,  a20 ,a21,a22,a23, a30 ,a31,a32,a33] for order=3
-# parms = [90., 0., 0., 1.5e-9, 0., 0., 0., 0., -4e-9, 0., 0., 0., 1e-9, 0., 0., 0.]
-# #parms = np.array([1000., 0., -5.e-5, 0., 0., 0., 0., 0., -5.e-5, 0., 0., 0., 0., 0., 0., 0.])
-# zz_nf = polyval2d(xx, yy, parms)
-# #add white noise
-# noise = np.resize(np.random.normal(0, 1, nx*ny),(ny,nx))
-# scaled_noise = noise * np.sqrt(zz_nf)
-# zz = zz_nf + scaled_noise
-# imgtest = img + zz
 
+def make_dummy_background(nx=4112, ny=4096):
+    # make simulated background
+    x = np.repeat(np.arange(nx) - nx/2,nx)
+    y = np.tile(np.arange(ny) - ny/2,ny)
+    xx, yy = np.meshgrid(np.linspace(x.min(), x.max(), nx), np.linspace(y.min(), y.max(), ny))
+    #m =    [a00,a01,a02,  a03  ,a10,a11,a12,a13,  a20 ,a21,a22,a23, a30 ,a31,a32,a33] for order=3
+    parms = [90., 0., 0., 1.5e-9, 0., 0., 0., 0., -4e-9, 0., 0., 0., 1e-9, 0., 0., 0.]
+    #parms = np.array([1000., 0., -5.e-5, 0., 0., 0., 0., 0., -5.e-5, 0., 0., 0., 0., 0., 0., 0.])
+    zz_nf = polyval2d(xx, yy, parms)
+    #add white noise
+    noise = np.resize(np.random.normal(0, 1, nx*ny),(ny,nx))
+    scaled_noise = noise * np.sqrt(zz_nf)
+    zz = zz_nf + scaled_noise
+    imgtest = img + zz
+    return imgtest
 
 
 

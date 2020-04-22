@@ -14,11 +14,7 @@ import matplotlib.pyplot as plt
 
 from veloce_reduction.veloce_reduction.helper_functions import sigma_clip
 
-# imgname = '/Users/christoph/UNSW/cosmics/image.fit'
-# img = pyfits.getdata(imgname)
-# 
-# xcenname = '/Users/christoph/UNSW/cosmics/xcen.fit'
-# xcen = pyfits.getdata(xcenname)
+
 
 
 

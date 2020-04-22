@@ -17,68 +17,6 @@ from veloce_reduction.veloce_reduction.helper_functions import xcorr, gausslike_
 from veloce_reduction.veloce_reduction.flat_fielding import deblaze_orders, onedim_pixtopix_variations
 
 
-
-# #speed of light in m/s
-# c = 2.99792458e8
-# 
-# #read dispersion solution from file
-# dispsol = np.load('/Users/christoph/OneDrive - UNSW/dispsol/mean_dispsol_by_orders_from_zemax.npy').item()
-# 
-# #read extracted spectrum from files (obviously this needs to be improved)
-# xx = np.arange(4096)
-# 
-# #for simulated data only
-# wl = get_simu_dispsol()
-#     
-# 
-# #re-bin into logarithmic wavelength space for cross-correlation, b/c delta_log_wl = c * delta_v
-# refdata = ascii.read('/Users/christoph/OneDrive - UNSW/rvtest/high_SNR_solar_template.txt', names=('pixnum','wl','flux','err'))
-# # flux1 = data1['flux']
-# # err1 = data1['err']
-# #data2 = ascii.read('/Users/christoph/OneDrive - UNSW/rvtest/solar_red100ms.txt', names=('pixnum','wl','flux','err'))
-# # flux2 = data2['flux']
-# # err2 = data2['err']
-# # obsdata = ascii.read('/Users/christoph/OneDrive - UNSW/rvtest/solar_0ms.txt', names=('pixnum','wl','flux','err'))
-# # obsdata = ascii.read('/Users/christoph/OneDrive - UNSW/rvtest/solar_red100ms.txt', names=('pixnum','wl','flux','err'))
-# obsdata = ascii.read('/Users/christoph/OneDrive - UNSW/rvtest/solar_red1000ms.txt', names=('pixnum','wl','flux','err'))
-# # flux3 = data3['flux']
-# # err3 = data3['err']
-# flatdata = ascii.read('/Users/christoph/OneDrive - UNSW/rvtest/tramline_extracted_flat.txt', names=('pixnum','wl','flux','err'))
-# # flatflux = flatdata['flux']
-# # flaterr = flatdata['err']
-# #wl1 = data1['wl']
-# #wl2 = data2['wl']
-# # wl = data1['wl']
-# # pixnum = data1['pixnum']
-
-
-
-
-
-# # f0 = template
-# f0 = {}
-# err0 = {}
-# # f = observation
-# f = {}
-# err = {}
-# # f_flat = master_white
-# f_flat = {}
-# err_flat = {}
-# 
-# ref_wl = {}
-# obs_wl = {}
-# flat_wl = {}
-# for m in range(len(wl)):
-#     ord = 'order_'+str(m+1).zfill(2)
-#     f0[ord] = np.array(refdata['flux'][m*4096:(m+1)*4096])[::-1]              # need to turn around if using Zemax dispsol, otherwise np.interp fails
-#     f[ord] = np.array(obsdata['flux'][m*4096:(m+1)*4096])[::-1]
-#     f_flat[ord] = np.array(flatdata['flux'][m*4096:(m+1)*4096])[::-1]
-#     err0[ord] = np.array(refdata['err'][m*4096:(m+1)*4096])[::-1]
-#     err[ord] = np.array(obsdata['err'][m*4096:(m+1)*4096])[::-1]
-#     err_flat[ord] = np.array(flatdata['err'][m*4096:(m+1)*4096])[::-1]
-#     ref_wl[ord] = np.array(refdata['wl'][m*4096:(m+1)*4096])[::-1]            # units do not matter, as log(x) - log(y) = log(ax) - log(ay) = log(a) + log(x) - log(a) - log(y)
-#     obs_wl[ord] = np.array(obsdata['wl'][m*4096:(m+1)*4096])[::-1]
-#     flat_wl[ord] = np.array(flatdata['wl'][m*4096:(m+1)*4096])[::-1]
     
     
 
@@ -646,7 +584,8 @@ def get_RV_from_xcorr_2(f, wl, f0, wl0, bc=0, bc0=0, mask=None, smoothed_flat=No
 
 
 def make_ccfs(f, wl, f0, wl0, bc=0., bc0=0., smoothed_flat=None, delta_log_wl=1e-6, deg_interp=1, flipped=False, individual_fibres=True, scrunch=False,
-              norm_cont=True, taper=True, taper_width=0.05, use_orders=None, synthetic_template=False, n_stellar_fibs=19, debug_level=0, timit=False):
+              norm_cont=True, taper=True, taper_width=0.05, use_orders=None, synthetic_template=False, n_stellar_fibs=19,
+              dispsol_path='/Users/christoph/OneDrive - UNSW/dispsol/', debug_level=0, timit=False):
     """
     This routine calculates the CCFs of an observed spectrum and a template spectrum for each order.
     Note that input spectra should be de-blazed for the cross-correlation, so can do that either externally, or internally
@@ -671,6 +610,7 @@ def make_ccfs(f, wl, f0, wl0, bc=0., bc0=0., smoothed_flat=None, delta_log_wl=1e
     'use_orders'         : which orders do you want to use for the xcorr?
     'synthetic_template' : boolean - are you using a synthetic template?
     'n_stellar_fibs'     : number of stellar fibres - sholud always be 19, except for testing purposes
+    'dispsol_path'       : path to the directory where "good" wl-ranges are defined in a file
     'debug_level'        : for debugging...
     'timit'              : boolean - do you want to measure execution run time?
 
@@ -736,7 +676,7 @@ def make_ccfs(f, wl, f0, wl0, bc=0., bc0=0., smoothed_flat=None, delta_log_wl=1e
 
     # read min and max of the wl ranges for the logwlgrid for the xcorr
     # HARD-CODED...UGLY!!!
-    dumord, min_wl_arr, max_wl_arr = readcol('/Users/christoph/OneDrive - UNSW/dispsol/veloce_xcorr_wlrange.txt', twod=False, verbose=False)
+    dumord, min_wl_arr, max_wl_arr = readcol(dispsol_path + 'veloce_xcorr_wlrange.txt', twod=False, verbose=False)
     # index -723 is the last non-NaN one for order_38 (WTF???), which is ~5956.2 A, so allow enough room
     min_wl_arr[37] = 5958.5
 
@@ -1010,8 +950,9 @@ def make_ccfs(f, wl, f0, wl0, bc=0., bc0=0., smoothed_flat=None, delta_log_wl=1e
 
 def old_make_ccfs(f, wl, f0, wl0, bc=0., bc0=0., mask=None, smoothed_flat=None, delta_log_wl=1e-6, relgrid=False, osf=5,
               filter_width=25, bad_threshold=0.05, flipped=False, individual_fibres=True, synthetic_template=False,
-              debug_level=0, timit=False):
+                  dispsol_path='/Users/christoph/OneDrive - UNSW/dispsol/', debug_level=0, timit=False):
     """
+    OLD ROUTINE, NOT CURRENTLY IN USE!!!
     This routine calculates the CCFs of an observed spectrum and a template spectrum for each order.
     Note that input spectra should be de-blazed already!!!
     If the mask from "find_stripes" has gaps, do the filtering for each segment independently. If no mask is provided, create a simple one on the fly.
@@ -1032,6 +973,7 @@ def old_make_ccfs(f, wl, f0, wl0, bc=0., bc0=0., mask=None, smoothed_flat=None, 
     'bad_threshold'      : if no mask is provided, create a mask that requires the flux in the extracted white to be larger than this fraction of the maximum flux in that order
     'flipped'            : boolean - reverse order of inputs to xcorr routine?
     'individual_fibres'  : boolean - do you want to return the CCFs for individual fibres? (if FALSE, then the sum of the ind. fib. CCFs is returned)
+    'dispsol_path'       : path to the directory where "good" wl-ranges are defined in a file
     'debug_level'        : for debugging...
     'timit'              : boolean - do you want to measure execution run time?
 
@@ -1073,7 +1015,7 @@ def old_make_ccfs(f, wl, f0, wl0, bc=0., bc0=0., mask=None, smoothed_flat=None, 
 
     # read min and max of the wl ranges for the logwlgrid for the xcorr
     # HARD-CODED...UGLY!!!
-    dumord, min_wl_arr, max_wl_arr = readcol('/Users/christoph/OneDrive - UNSW/dispsol/veloce_xcorr_wlrange.txt', twod=False)
+    dumord, min_wl_arr, max_wl_arr = readcol(dispsol_path + 'veloce_xcorr_wlrange.txt', twod=False)
 
     # prepare output variable
     xcs = []
@@ -1239,7 +1181,8 @@ def old_make_ccfs(f, wl, f0, wl0, bc=0., bc0=0., mask=None, smoothed_flat=None, 
 
 
 
-def make_ccfs_quick(f, wl, f0, wl0, smoothed_flat, bc=0., bc0=0., rvabs=0., rvabs0=0., delta_log_wl=1e-6, synthetic_template=False, debug_level=0, timit=False):
+def make_ccfs_quick(f, wl, f0, wl0, smoothed_flat, bc=0., bc0=0., rvabs=0., rvabs0=0., delta_log_wl=1e-6, synthetic_template=False,
+                    dispsol_path='/Users/christoph/OneDrive - UNSW/dispsol/', debug_level=0, timit=False):
     """
     This routine calculates the CCFs of a quick-extracted observed spectrum and a quick-extracted template spectrum for each order.
     Note that input spectra should be de-blazed and cosmic-cleaned already!!!
@@ -1256,6 +1199,7 @@ def make_ccfs_quick(f, wl, f0, wl0, smoothed_flat, bc=0., bc0=0., rvabs=0., rvab
     'rvabs0'             : absolute RV of template star [in km/s]
     'delta_log_wl'       : stepsize of the log-wl grid (only used if 'relgrid' is FALSE)
     'synthetic_template' : boolean - are you using a synthetic template?
+    'dispsol_path'       : path to the directory where "good" wl-ranges are defined in a file
     'debug_level'        : for debugging...
     'timit'              : boolean - do you want to measure execution run time?
 
@@ -1295,9 +1239,7 @@ def make_ccfs_quick(f, wl, f0, wl0, smoothed_flat, bc=0., bc0=0., rvabs=0., rvab
 
 
     # read min and max of the wl ranges for the logwlgrid for the xcorr
-    # HARD-CODED...UGLY!!!
-#     min_wl_arr, max_wl_arr = np.loadtxt('C:\\veloce_data\\veloce_xcorr_wlrange.txt', usecols = (1,2), unpack=True)
-    dumord, min_wl_arr, max_wl_arr = readcol('/Users/christoph/OneDrive - UNSW/dispsol/veloce_xcorr_wlrange.txt', twod=False)
+    dumord, min_wl_arr, max_wl_arr = readcol(dispsol_path + 'veloce_xcorr_wlrange.txt', twod=False)
    
     # prepare output variable
     xcs = []

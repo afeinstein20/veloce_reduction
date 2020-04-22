@@ -321,7 +321,7 @@ def collapse_extract_from_indices(img, err_img, stripe_indices, tramlines, slit_
 
 
 
-def optimal_extraction(stripes, err_stripes=None, ron_stripes=None, slit_height=30, date=None, fibs='all', relints=None, skip_first_order=False,
+def optimal_extraction(stripes, err_stripes=None, ron_stripes=None, slit_height=30, date=None, pathdict=None, fibs='all', relints=None, skip_first_order=False,
                        simu=False, phi_onthefly=False, individual_fibres=True, combined_profiles=False, integrate_profiles=False,
                        slope=False, offset=False, collapse=False, debug_level=0, timit=False):
 
@@ -336,6 +336,7 @@ def optimal_extraction(stripes, err_stripes=None, ron_stripes=None, slit_height=
     'ron_stripes'        : dictionary (keys = orders) containing the read-out noise in the 2-dim stripes (ie the to-be-extracted regions centred on the orders) of the spectrum
     'slit_height'        : height of the extraction slit (ie the pixel columns are 2*slit_height pixels long)
     'date'               : the date ('YYYYMMDD') the obervations were taken (so that the sorresponding (pre-determined) fibre profiles can be loaded)
+    'pathdict'           : dictionary containing all directories relevant to the reduction
     'fibs'               : which fibres are you using? ['all', 'stellar', 'sky2', 'sky3', 'allsky']
     'relints'            : an array of the relative intensities in the stellar fibres (only needed if 'individual_fibres' == FALSE and 'combined_profiles' == TRUE)
     'skip_first_order'   : boolean - do you want to skip order 01 (causes problems as not fully on chip, and especially b/c LFC trace is rubbish)
@@ -393,28 +394,23 @@ def optimal_extraction(stripes, err_stripes=None, ron_stripes=None, slit_height=
 
     # read in polynomial coefficients of best-fit individual-fibre-profile parameters
     if simu:
-        fibparms = np.load('/Users/christoph/OneDrive - UNSW/fibre_profiles/sim/fibparms_by_ord.npy').item()
+        fibparms = np.load(pathdict['fp'] + 'sim/fibparms_by_ord.npy').item()
     else:
-        # fibparms = np.load('/Users/christoph/OneDrive - UNSW/fibre_profiles/real/first_real_veloce_test_fps.npy').item()
-        # fibparms = np.load('/Users/christoph/OneDrive - UNSW/fibre_profiles/real/from_master_white_40orders.npy').item()
-        # fibparms = np.load('/Users/christoph/OneDrive - UNSW/fibre_profiles/fibre_profile_fits_20180925.npy').item()
-        # fibparms = np.load('/Users/christoph/OneDrive - UNSW/fibre_profiles/fibre_profile_fits_20181107.npy').item()
         if date not in ['20181116', '20190127', '20190201']:
-#             fibparms = np.load('/Users/christoph/OneDrive - UNSW/fibre_profiles/archive/fibre_profile_fits_' + date + '.npy').item()
-            fibparms = np.load('/Users/christoph/OneDrive - UNSW/fibre_profiles/archive/combined_fibre_profile_fits_' + date + '.npy').item()
+#             fibparms = np.load(pathdict['fp'] + 'archive/fibre_profile_fits_' + date + '.npy').item()
+            fibparms = np.load(pathdict['fp'] + 'archive/combined_fibre_profile_fits_' + date + '.npy').item()
             if debug_level > 0:
                 print('OK, loading fibre profiles for ' + date + '...')
         else:
             # have to laod this crutch, as the first order fits were crap for 20181116 / 20190127 / 20190201, so just for order 01 I replaced them with the parms from the following night
-#             fibparms = np.load('/Users/christoph/OneDrive - UNSW/fibre_profiles/archive/fibre_profile_fits_' + date + '_crutch.npy').item()
-            fibparms = np.load('/Users/christoph/OneDrive - UNSW/fibre_profiles/archive/combined_fibre_profile_fits_' + date + '_crutch.npy').item()
+#             fibparms = np.load(pathdict['fp'] + 'archive/fibre_profile_fits_' + date + '_crutch.npy').item()
+            fibparms = np.load(pathdict['fp'] + 'archive/combined_fibre_profile_fits_' + date + '_crutch.npy').item()
             if debug_level > 0:
                 print('OK, loading fibre profiles (CRUTCH!!!) for ' + date + '...')
 
     flux = {}
     err = {}
     pix = {}
-
 
     useful_orders = sorted(stripes.keys())
     if skip_first_order:
@@ -644,7 +640,7 @@ def optimal_extraction(stripes, err_stripes=None, ron_stripes=None, slit_height=
 
 
 
-def optimal_extraction_from_indices(img, stripe_indices, err_img=None, ronmask=None, slit_height=30, date=None, fibs='all',
+def optimal_extraction_from_indices(img, stripe_indices, err_img=None, ronmask=None, slit_height=30, date=None, pathdict=None, fibs='all',
                                     relints=None, skip_first_order=False, simu=False, phi_onthefly=False, individual_fibres=True,
                                     combined_profiles=False, integrate_profiles=False, slope=False, offset=False,
                                     collapse=False, debug_level=0, timit=False):
@@ -660,6 +656,7 @@ def optimal_extraction_from_indices(img, stripe_indices, err_img=None, ronmask=N
     'ronmask'            : read-noise mask (same dimension as img) in e-/pix
     'slit_height'        : height of the extraction slit (ie the pixel columns are 2*slit_height pixels long)
     'date'               : the date ('YYYYMMDD') the obervations were taken (so that the sorresponding (pre-determined) fibre profiles can be loaded)
+    'pathdict'           : dictionary containing all directories relevant to the reduction
     'fibs'               : which fibres are you using? ['all', 'stellar', 'sky2', 'sky3', 'allsky']
     'relints'            : an array of the relative intensities in the stellar fibres (only needed if 'individual_fibres' == FALSE and 'combined_profiles' == TRUE)
     'simu'               : boolean - are you using simulated spectra?
@@ -719,21 +716,17 @@ def optimal_extraction_from_indices(img, stripe_indices, err_img=None, ronmask=N
 
     # read in polynomial coefficients of best-fit individual-fibre-profile parameters
     if simu:
-        fibparms = np.load('/Users/christoph/OneDrive - UNSW/fibre_profiles/sim/fibparms_by_ord.npy').item()
+        fibparms = np.load(pathdict['fp'] + 'sim/fibparms_by_ord.npy').item()
     else:
-        # fibparms = np.load('/Users/christoph/OneDrive - UNSW/fibre_profiles/real/first_real_veloce_test_fps.npy').item()
-        # fibparms = np.load('/Users/christoph/OneDrive - UNSW/fibre_profiles/real/from_master_white_40orders.npy').item()
-        # fibparms = np.load('/Users/christoph/OneDrive - UNSW/fibre_profiles/fibre_profile_fits_20180925.npy').item()
-        # fibparms = np.load('/Users/christoph/OneDrive - UNSW/fibre_profiles/fibre_profile_fits_20181107.npy').item()
         if date not in ['20181116', '20190127', '20190201']:
-#             fibparms = np.load('/Users/christoph/OneDrive - UNSW/fibre_profiles/archive/fibre_profile_fits_' + date + '.npy').item()
-            fibparms = np.load('/Users/christoph/OneDrive - UNSW/fibre_profiles/archive/combined_fibre_profile_fits_' + date + '.npy').item()
+#             fibparms = np.load(pathdict['fp'] + 'archive/fibre_profile_fits_' + date + '.npy').item()
+            fibparms = np.load(pathdict['fp'] + 'archive/combined_fibre_profile_fits_' + date + '.npy').item()
             if debug_level > 0:
                 print('OK, loading fibre profiles for ' + date + '...')
         else:
             # have to laod this crutch, as the first order fits were crap for 20181116 / 20190127 / 20190201, so just for order 01 I replaced them with the parms from the following night
-#             fibparms = np.load('/Users/christoph/OneDrive - UNSW/fibre_profiles/archive/fibre_profile_fits_' + date + '_crutch.npy').item()
-            fibparms = np.load('/Users/christoph/OneDrive - UNSW/fibre_profiles/archive/combined_fibre_profile_fits_' + date + '_crutch.npy').item()
+#             fibparms = np.load(pathdict['fp'] + 'archive/fibre_profile_fits_' + date + '_crutch.npy').item()
+            fibparms = np.load(pathdict['fp'] + 'archive/combined_fibre_profile_fits_' + date + '_crutch.npy').item()
             if debug_level > 0:
                 print('OK, loading fibre profiles (CRUTCH!!!) for ' + date + '...')
 
@@ -976,7 +969,7 @@ def optimal_extraction_from_indices(img, stripe_indices, err_img=None, ronmask=N
 
 
 def extract_spectrum(stripes, err_stripes, ron_stripes, method='optimal', individual_fibres=True, combined_profiles=False, integrate_profiles=False, slope=False,
-                     offset=False, fibs='all', slit_height=30, savefile=False, filetype='fits', obsname=None, date=None, path=None, skip_first_order=False, 
+                     offset=False, fibs='all', slit_height=30, savefile=False, filetype='fits', obsname=None, date=None, pathdict=None, skip_first_order=False,
                      simu=False, verbose=False, timit=False, debug_level=0):
     """
     This routine is simply a wrapper code for the different extraction methods. There are a total FIVE (1,2,3a,3b,3c) different extraction methods implemented, 
@@ -1022,7 +1015,7 @@ def extract_spectrum(stripes, err_stripes, ron_stripes, method='optimal', indivi
     'filetype'           : if 'savefile' is set to TRUE: do you want to save it as a 'fits' file, or as a 'dict' (python disctionary), or 'both'
     'obsname'            : (short) name of observation file
     'date'               : the date of the observations to be extracted in format 'YYYYMMDD' (needed for the optimal extraction routine to select the right fibre profiles/traces)
-    'path'               : directory to the destination of the output file
+    'pathdict'           : dictionary containing all directories relevant to the reduction
     'skip_first_order'   : boolean - do you want to skip order 01 (causes problems as not fully on chip, and especially b/c LFC trace is rubbish)
     'simu'               : boolean - are you using ES-simulated spectra???
     'verbose'            : boolean - for debugging...
@@ -1039,8 +1032,12 @@ def extract_spectrum(stripes, err_stripes, ron_stripes, method='optimal', indivi
     MODHIST:
     13/07/18 - CMB create
     02/08/18 - added 'savefile', 'path', and 'obsname' keywords - save output as FITS file
+    22/04/20 - using pathdict instead of single path variable
     """
-    
+
+    assert pathdict is not None, 'ERROR: pathdict nor provided!!!'
+    path = pathdict['raw']
+
     if date is None:
         date = raw_input("Please enter date of observations 'YYYYMMDD': ")
     
@@ -1058,7 +1055,7 @@ def extract_spectrum(stripes, err_stripes, ron_stripes, method='optimal', indivi
     elif method.lower() == 'optimal':
         pix,flux,err = optimal_extraction(stripes, err_stripes=err_stripes, ron_stripes=ron_stripes, slit_height=slit_height, individual_fibres=individual_fibres,
                                           skip_first_order=skip_first_order, combined_profiles=combined_profiles, integrate_profiles=integrate_profiles, slope=slope, 
-                                          offset=offset, fibs=fibs, date=date, simu=simu, timit=timit, debug_level=debug_level)
+                                          offset=offset, fibs=fibs, date=date, pathdict=pathdict, simu=simu, timit=timit, debug_level=debug_level)
     else:
         print('ERROR: Nightmare! That should never happen  --  must be an error in the Matrix...')
         return    
@@ -1150,7 +1147,7 @@ def extract_spectrum(stripes, err_stripes, ron_stripes, method='optimal', indivi
 
 
 def extract_spectrum_from_indices(img, err_img, stripe_indices, ronmask=None, method='optimal', individual_fibres=True, combined_profiles=False, integrate_profiles=False, slope=False,
-                                  offset=False, fibs='all', slit_height=30, savefile=False, filetype='fits', obsname=None, date=None, path=None, skip_first_order=False, 
+                                  offset=False, fibs='all', slit_height=30, savefile=False, filetype='fits', obsname=None, date=None, pathdict=None, skip_first_order=False,
                                   simu=False, verbose=False, timit=False, debug_level=0):
     """
     CLONE OF 'extract_spectrum'! 
@@ -1197,7 +1194,7 @@ def extract_spectrum_from_indices(img, err_img, stripe_indices, ronmask=None, me
     'filetype'           : if 'savefile' is set to TRUE: do you want to save it as a 'fits' file, or as a 'dict' (python disctionary)
     'obsname'            : (short) name of observation file
     'date'               : the date of the observations to be extracted in format 'YYYYMMDD' (needed for the optimal extraction routine to select the right fibre profiles/traces)
-    'path'               : directory to the destination of the output file
+    'pathdict'           : dictionary containing all directories relevant to the reduction
     'skip_first_order'   : boolean - do you want to skip order 01 (causes problems as not fully on chip, and especially b/c LFC trace is rubbish)
     'simu'               : boolean - are you using ES-simulated spectra???
     'verbose'            : boolean - for debugging...
@@ -1213,7 +1210,11 @@ def extract_spectrum_from_indices(img, err_img, stripe_indices, ronmask=None, me
     
     MODHIST:
     17/07/18 - CMB create
+    22/04/20 - using pathdict instead of single path variable
     """
+
+    assert pathdict is not None, 'ERROR: pathdict nor provided!!!'
+    path = pathdict['raw']
 
     if date is None:
         date = raw_input("Please enter date of observations 'YYYYMMDD': ")        
@@ -1232,7 +1233,7 @@ def extract_spectrum_from_indices(img, err_img, stripe_indices, ronmask=None, me
     elif method.lower() == 'optimal':
         pix,flux,err = optimal_extraction_from_indices(img, stripe_indices, err_img=err_img, ronmask=ronmask, slit_height=slit_height, individual_fibres=individual_fibres,
                                                        combined_profiles=combined_profiles, integrate_profiles=integrate_profiles, slope=slope, offset=offset, fibs=fibs, 
-                                                       skip_first_order=skip_first_order, date=date, simu=simu, timit=timit, debug_level=debug_level)
+                                                       skip_first_order=skip_first_order, date=date, pathdict=pathdict, simu=simu, timit=timit, debug_level=debug_level)
     else:
         print('ERROR: Nightmare! That should never happen  --  must be an error in the Matrix...')
         return    

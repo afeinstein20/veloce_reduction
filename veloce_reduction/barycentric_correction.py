@@ -251,8 +251,15 @@ def get_bc_from_gaia_coords(ra, dec, pmra, pmdec, px, jd, rvabs=0):
 
 
 
-def append_bc_to_reduced_files(date, rawpath='/Volumes/BERGRAID/data/veloce/raw_goodonly/', redpath='/Volumes/BERGRAID/data/veloce/reduced/'):
-    
+def append_bc_to_reduced_files(date, pathdict=None):
+
+    if pathdict is None:
+        pathdict = {}
+        pathdict['raw'] = '/Volumes/BERGRAID/data/veloce/raw_goodonly/' + date + '/'
+        pathdict['red'] = '/Volumes/BERGRAID/data/veloce/reduced/' + date + '/'
+    rawpath = pathdict['raw']
+    redpath = pathdict['red']
+
     print('Appending barycentric corrections to the reduced spectra of ' + str(date) + '...')
     
     acq_list, bias_list, dark_list, flat_list, skyflat_list, domeflat_list, arc_list, thxe_list, laser_list, laser_and_thxe_list, stellar_list, unknown_list = get_obstype_lists(rawpath + date + '/')

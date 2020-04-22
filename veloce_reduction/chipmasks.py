@@ -9,8 +9,6 @@ from scipy.ndimage import label
 
 
 
-# fibparms = np.load('/Users/christoph/OneDrive - UNSW/fibre_profiles/fibre_profile_fits_20180925.npy').item()
-# meansep = get_mean_fibre_separation(fibparms)
 
 
 def make_single_chipmask(fibparms, meansep, masktype='stellar', exclude_top_and_bottom=True, nx=4112, ny=4096,
@@ -146,6 +144,9 @@ def make_single_chipmask(fibparms, meansep, masktype='stellar', exclude_top_and_
 
 
 def old_make_single_chipmask(fibparms, meansep, masktype='stellar', exclude_top_and_bottom=False, nx=4112, ny=4096):
+
+    """OLD ROUTINE, NOT CURRENTLY IN USE!!!"""
+
     # some housekeeping...
     while masktype.lower() not in ["stellar", "sky2", "sky3", "lfc", "thxe", "background", "bg"]:
         print('ERROR: chipmask "type" not recognized!!!')
@@ -270,7 +271,9 @@ def get_mean_fibre_separation(fibparms, nx=4112):
 
 
 
-def make_chipmask(date, savefile=False, combined_fibparms=True, timit=False):
+def make_chipmask(date, pathdict=None, savefile=False, combined_fibparms=True, timit=False):
+
+    assert pathdict is not None, 'ERROR: path dictionary not provided!!!'
 
     print('Creating chipmask for ' + date + '...')
 
@@ -281,8 +284,8 @@ def make_chipmask(date, savefile=False, combined_fibparms=True, timit=False):
 
     chipmask = {}
 
-    archive_path = '/Users/christoph/OneDrive - UNSW/fibre_profiles/archive/'
-    outpath = '/Users/christoph/OneDrive - UNSW/chipmasks/archive/'
+    archive_path = pathdict['fp'] + 'archive/'
+    outpath = pathdict['cm']
 
     if combined_fibparms:
         fibparms = np.load(archive_path + 'combined_fibre_profile_fits_' + date + '.npy').item()

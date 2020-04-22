@@ -367,7 +367,8 @@ def get_relints(P_id, stripes, err_stripes, mask=None, sampling_size=25, slit_he
     'stripes'        : dictionary containing the flux in the extracted stripes (keys = orders)
     'err_stripes'    : dictionary containing the errors in the extracted stripes (keys = orders)
     'mask'           : dictionary of boolean masks (keys = orders) from "find_stripes" (masking out regions of very low signal)
-    'sampling_size'  : 'sampling_size'  : how many pixels (in dispersion direction) either side of current i-th pixel do you want to consider? 
+    'pathdict'       : dictionary containing all directories relevant to the reduction
+    'sampling_size'  : 'sampling_size'  : how many pixels (in dispersion direction) either side of current i-th pixel do you want to consider?
                        (ie stack profiles for a total of 2*sampling_size+1 pixels in dispersion direction...)
     'slit_height'    : height of the extraction slit (ie the pixel columns are 2*slit_height pixels long)
     'return_full'    : boolean - do you want to return the full model as well?
@@ -382,15 +383,18 @@ def get_relints(P_id, stripes, err_stripes, mask=None, sampling_size=25, slit_he
     'fmodel'        : full model (only if 'return_full' is set to TRUE)
     'model_grid'    : "x-grid" for the full model (only if 'return_full' is set to TRUE)
     """
-    
+
+    assert pathdict is not None, 'ERROR: pathdict not provided!!!'
+    fibparms_path = pathdict['fp']
+
     print('Fitting relative intensities of fibres...')
     
     #read in polynomial coefficients of best-fit individual-fibre-profile parameters
     if simu:
-        fibparms = np.load('/Users/christoph/OneDrive - UNSW/fibre_profiles/sim/fibparms_by_ord.npy').item()
+        fibparms = np.load(fibparms_path + 'sim/fibparms_by_ord.npy').item()
     else:
-        #fibparms = np.load('/Users/christoph/OneDrive - UNSW/fibre_profiles/real/first_real_veloce_test_fps.npy').item()
-        fibparms = np.load('/Users/christoph/OneDrive - UNSW/fibre_profiles/real/from_master_white_40orders.npy').item()
+        #fibparms = np.load(fibparms_path + 'real/first_real_veloce_test_fps.npy').item()
+        fibparms = np.load(fibparms_path + 'real/from_master_white_40orders.npy').item()
     
     if timit:
         start_time = time.time()
@@ -476,7 +480,7 @@ def get_relints(P_id, stripes, err_stripes, mask=None, sampling_size=25, slit_he
 
 
 
-def get_relints_from_indices(P_id, img, err_img, stripe_indices, mask=None, sampling_size=25, slit_height=32, return_full=False, simu=False, debug_level=0, timit=False):
+def get_relints_from_indices(P_id, img, err_img, stripe_indices, mask=None, pathdict=None, sampling_size=25, slit_height=32, return_full=False, simu=False, debug_level=0, timit=False):
     """
     This routine computes the relative intensities in the individual fibres of a Veloce spectrum.
     
@@ -488,7 +492,8 @@ def get_relints_from_indices(P_id, img, err_img, stripe_indices, mask=None, samp
     'err_img'        : estimated uncertainties in the 2-dim input array/image
     'stripe_indices' : dictionary (keys = orders) containing the indices of the pixels that are identified as the "stripes" (ie the to-be-extracted regions centred on the orders)
     'mask'           : dictionary of boolean masks (keys = orders) from "find_stripes" (masking out regions of very low signal)
-    'sampling_size'  : 'sampling_size'  : how many pixels (in dispersion direction) either side of current i-th pixel do you want to consider? 
+    'pathdict'       : dictionary containing all directories relevant to the reduction
+    'sampling_size'  : 'sampling_size'  : how many pixels (in dispersion direction) either side of current i-th pixel do you want to consider?
                        (ie stack profiles for a total of 2*sampling_size+1 pixels in dispersion direction...)
     'slit_height'    : height of the extraction slit (ie the pixel columns are 2*slit_height pixels long)
     'return_full'    : boolean - do you want to return the full model as well?
@@ -503,19 +508,21 @@ def get_relints_from_indices(P_id, img, err_img, stripe_indices, mask=None, samp
     'fmodel'        : full model (only if 'return_full' is set to TRUE)
     'model_grid'    : "x-grid" for the full model (only if 'return_full' is set to TRUE)
     """
-    
-    
+
+    assert pathdict is not None, 'ERROR: pathdict not provided!!!'
+    fibparms_path = pathdict['fp']
+
     print('Fitting relative intensities of fibres...')
-    
+
     if timit:
         start_time = time.time()
         
     #read in polynomial coefficients of best-fit individual-fibre-profile parameters
     if simu:
-        fibparms = np.load('/Users/christoph/OneDrive - UNSW/fibre_profiles/sim/fibparms_by_ord.npy').item()
+        fibparms = np.load(fibparms_path + 'sim/fibparms_by_ord.npy').item()
     else:
-        #fibparms = np.load('/Users/christoph/OneDrive - UNSW/fibre_profiles/real/first_real_veloce_test_fps.npy').item()
-        fibparms = np.load('/Users/christoph/OneDrive - UNSW/fibre_profiles/real/from_master_white_40orders.npy').item() 
+        #fibparms = np.load(fibparms_path + 'real/first_real_veloce_test_fps.npy').item()
+        fibparms = np.load(fibparms_path + 'real/from_master_white_40orders.npy').item()
         
     #create output dictionaries
     relints = {}
@@ -868,13 +875,6 @@ def get_relints_from_indices_gaussian(P_id, img, err_img, stripe_indices, mask=N
 
     if timit:
         start_time = time.time()
-
-    # # read in polynomial coefficients of best-fit individual-fibre-profile parameters
-    # if simu:
-    #     fibparms = np.load('/Users/christoph/OneDrive - UNSW/fibre_profiles/sim/fibparms_by_ord.npy').item()
-    # else:
-    #     # fibparms = np.load('/Users/christoph/OneDrive - UNSW/fibre_profiles/real/first_real_veloce_test_fps.npy').item()
-    #     fibparms = np.load('/Users/christoph/OneDrive - UNSW/fibre_profiles/real/from_master_white_40orders.npy').item()
 
     # create output dictionaries
     pos = {}

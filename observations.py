@@ -565,9 +565,8 @@ def get_reduced_obslist(laptop=False):
 
 
 
-def get_raw_obslist(return_targets=False, laptop=False, verbose=True):
+def get_raw_obslist(return_targets=False, rawpath='/Volumes/BERGRAID/data/veloce/raw_goodonly/', verbose=True):
 
-    rawpath = '/Volumes/BERGRAID/data/veloce/raw_goodonly/'
     assert os.path.isdir(rawpath), "ERROR: directory containing the RAW data does not exist!!!"
 
     # count all the nightly directories only (ie not the other ones like "tauceti")
@@ -693,6 +692,8 @@ def update_redobs(starname, starpath=None, pattern=None, overwrite=False):
     
     redpath = '/Volumes/BERGRAID/data/veloce/reduced/'
     working_redpath = '/Volumes/WORKING/data/veloce/reduced/'
+    rawpath = '/Volumes/BERGRAID/data/veloce/raw_goodonly/'
+    chipmask_path = '/Users/christoph/OneDrive - UNSW/chipmasks/archive/'
     
     # create target directory if not provided
     if starpath is None:
@@ -733,7 +734,6 @@ def update_redobs(starname, starpath=None, pattern=None, overwrite=False):
             os.system("find " + redpath + "20* -name '" + "*" + syn + "*optimal*' -exec cp '{}' " + starpath + " \;")
     
     # some more housekeeping...
-    chipmask_path = '/Users/christoph/OneDrive - UNSW/chipmasks/archive/'
     all_files = glob.glob(starpath + "*" + pattern + '*.fits')
 
     for i,file in enumerate(all_files):
@@ -743,7 +743,7 @@ def update_redobs(starname, starpath=None, pattern=None, overwrite=False):
         date = utdate[:4] + utdate[5:7] + utdate[8:]
         print('Processing file ' + str(i+1) + '/' + str(len(all_files)) + '   (' + obsname + ')')
         chipmask = np.load(chipmask_path + 'chipmask_' + date + '.npy').item()
-        img = crop_overscan_region(correct_orientation(pyfits.getdata('/Volumes/BERGRAID/data/veloce/raw_goodonly/' + date + '/' + obsname + '.fits')))
+        img = crop_overscan_region(correct_orientation(pyfits.getdata(rawpath + date + '/' + obsname + '.fits')))
         lc = laser_on(img, chipmask)
         thxe = thxe_on(img, chipmask)
         if lc:

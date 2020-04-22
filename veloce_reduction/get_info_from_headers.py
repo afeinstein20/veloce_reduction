@@ -16,13 +16,13 @@ from veloce_reduction.veloce_reduction.calibration import correct_for_bias_and_d
 
 
 
-def get_obstype_lists(path, pattern=None, weeding=True, quick=False, raw_goodonly=True, savefiles=True):
+def get_obstype_lists(pathdict, pattern=None, weeding=True, quick=False, raw_goodonly=True, savefiles=True):
     """
     This routine performs the "INGEST" step, ie for all files in a given night it identifies the type of observation and sorts the files into lists.
     For simcalib exposures it also determines which lamps were actually firing, no matter what the header says, as that can often be wrong (LC / SimTh / LC+SimTh).
 
     INPUT:
-    "path"          : the directory containing the data
+    "pathdict"      : dictionary containing all directories relevant to the reduction
     "pattern"       : if provided, only files containing a certain string pattern will be included
     "weeding"       : boolean - do you want to weed out binned observations?
     "quick"         : boolean - if TRUE, simcalib status in determined from headers alone (not from 2-dim images)
@@ -35,6 +35,9 @@ def get_obstype_lists(path, pattern=None, weeding=True, quick=False, raw_goodonl
     MODHIST:
     20200421 - CMB removed domeflat and skyflat lists (not used with Veloce)
     """
+
+    path = pathdict['raw']
+    chipmask_path = pathdict['cm']
 
     if raw_goodonly:
         date = path[-9:-1]
@@ -122,7 +125,6 @@ def get_obstype_lists(path, pattern=None, weeding=True, quick=False, raw_goodonl
         checkdate = '1' + date[1:]
     
     if int(checkdate) < 20190503:
-        chipmask_path = '/Users/christoph/OneDrive - UNSW/chipmasks/archive/'
         # check if chipmask for that night already exists (if not revert to the closest one in time (preferably earlier in time))
         if os.path.isfile(chipmask_path + 'chipmask_' + date + '.npy'):
             chipmask = np.load(chipmask_path + 'chipmask_' + date + '.npy').item()
@@ -136,7 +138,7 @@ def get_obstype_lists(path, pattern=None, weeding=True, quick=False, raw_goodonl
             
         # look at the actual 2D image (using chipmasks for LFC and simThXe) to determine which calibration lamps fired
         for file in calib_list:
-            img = correct_for_bias_and_dark_from_filename(file, np.zeros((4096,4112)), np.zeros((4096,4112)), gain=[1., 1.095, 1.125, 1.], scalable=False, savefile=False, path=path)
+            img = correct_for_bias_and_dark_from_filename(file, np.zeros((4096,4112)), np.zeros((4096,4112)), gain=[1., 1.095, 1.125, 1.], scalable=False, savefile=False, pathdict=pathdict)
             lc = laser_on(img, chipmask)
             thxe = thxe_on(img, chipmask)
             if (not lc) and (not thxe):

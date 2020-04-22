@@ -342,6 +342,7 @@ def find_gaps(flat, deg_polynomial=2, gauss_filter_sigma=3., min_peak=0.05, mask
 
 
 def make_P_id_old(P):
+    """OLD ROUTINE, NOT CURRENTLY IN USE!!!"""
     Ptemp = {}
     ordernames = []
     for i in range(1,10):
@@ -358,6 +359,7 @@ def make_P_id_old(P):
 
 
 def make_P_id(P):
+    '''This routine brings the results from "find_stripes" into the right format (python dictionary, orders=keys)!'''
     P_id = {}
     ordernames = []
     for i in range(len(P)):    

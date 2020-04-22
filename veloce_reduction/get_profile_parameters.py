@@ -18,10 +18,8 @@ from veloce_reduction.veloce_reduction.chipmasks import get_mean_fibre_separatio
 
 
 
-# fp_in = np.load('/Users/christoph/OneDrive - UNSW/fibre_profiles/individual_fibre_profiles_20180924.npy').item()
 
-def make_real_fibparms_by_ord(fp_in, degpol=7, savefile=True, date=None, simthxe=False, lfc=False, nx=4112,
-                              path = '/Users/christoph/OneDrive - UNSW/fibre_profiles/archive/'):
+def make_real_fibparms_by_ord(fp_in, degpol=7, savefile=True, date=None, simthxe=False, lfc=False, nx=4112, path=None):
     
     '''
     PURPOSE:
@@ -36,11 +34,14 @@ def make_real_fibparms_by_ord(fp_in, degpol=7, savefile=True, date=None, simthxe
     'simthxe'  : boolean - set to TRUE if creating the fibre profiles for the sim ThXe fibre
     'lfc'      : boolean - set to TRUE if creating the fibre profiles for the sim LFC fibre
     'nx'       : number of pixels in dispersion direction
+    'path'     : path to the location where fibparms are archived
 
     OUTPUT:
     'fibparms' : dictionary containing the smoothed fibre profiles and traces in the right format for "make_norm_profiles_5"
     '''
-    
+
+    assert path is not None, 'ERROR: fibre profile directory not provided!!!'
+
     xx = np.arange(nx)
 
     fibparms = {}
@@ -146,7 +147,7 @@ def make_real_fibparms_by_ord(fp_in, degpol=7, savefile=True, date=None, simthxe
 
 
 def old_make_real_fibparms_by_ord(fp_in, savefile=True, degpol=6):
-
+    """OLD ROUTINE, NOT CURRENTLY IN USE!!!"""
     path = '/Users/christoph/OneDrive - UNSW/fibre_profiles/'
 
     fibparms = {}
@@ -226,6 +227,7 @@ def old_make_real_fibparms_by_ord(fp_in, savefile=True, degpol=6):
 
 
 def make_fibparms_by_fib(savefile=True):
+    """OLD ROUTINE, NOT CURRENTLY IN USE!!!"""
 
     path = '/Users/christoph/OneDrive - UNSW/fibre_profiles/'
     fp_files = glob.glob(path+"sim/"+"fibre_profiles*.npy")
@@ -291,7 +293,7 @@ def make_fibparms_by_fib(savefile=True):
 
 
 def make_fibparms_by_ord(by_fib, savefile=True):
-    
+    """OLD ROUTINE, NOT CURRENTLY IN USE!!!"""
     by_orders = {}
     for fibkey in by_fib.keys():
         for ord in by_fib[fibkey].keys():
@@ -310,13 +312,16 @@ def make_fibparms_by_ord(by_fib, savefile=True):
     
     
 
-def get_lfc_offset(date='20190503', return_median=False, norm=True):
-    
+def get_lfc_offset(date=None, path=None, return_median=False, norm=True):
+
+    assert date is not None, 'ERROR: date not provided!!!'
+    assert path is not None, 'ERROR: fibre profile directory not provided!!!'
+
     # read in fibparms for stellar & sky fibres
-    stellar_fibparms = np.load('/Users/christoph/OneDrive - UNSW/fibre_profiles/archive/fibre_profile_fits_' + date + '.npy').item()
+    stellar_fibparms = np.load(path + 'archive/fibre_profile_fits_' + date + '.npy').item()
     
     # read in fibparms for LFC fibre
-    lfc_fibparms = np.load('/Users/christoph/OneDrive - UNSW/fibre_profiles/laser/lfc_fibre_profile_fits_20190503.npy').item()
+    lfc_fibparms = np.load(path + 'laser/lfc_fibre_profile_fits_20190503.npy').item()
     
     # prepare output array
     offsets = np.zeros((39,24,4112))    
@@ -336,13 +341,16 @@ def get_lfc_offset(date='20190503', return_median=False, norm=True):
 
 
     
-def get_simthxe_offset(date='20190503', return_median=False, norm=True):
-    
+def get_simthxe_offset(date=None, path=None, return_median=False, norm=True):
+
+    assert date is not None, 'ERROR: date not provided!!!'
+    assert path is not None, 'ERROR: fibre profile directory not provided!!!'
+
     # read in fibparms for stellar & sky fibres
-    stellar_fibparms = np.load('/Users/christoph/OneDrive - UNSW/fibre_profiles/archive/fibre_profile_fits_' + date + '.npy').item()
+    stellar_fibparms = np.load(path + 'archive/fibre_profile_fits_' + date + '.npy').item()
     
     # read in fibparms for simThXe fibre
-    simthxe_fibparms = np.load('/Users/christoph/OneDrive - UNSW/fibre_profiles/simthxe/sim_ThXe_fibre_profile_fits_20190503_nomask.npy').item()
+    simthxe_fibparms = np.load(path + 'simthxe/sim_ThXe_fibre_profile_fits_20190503_nomask.npy').item()
     
     # prepare output array
     offsets = np.zeros((39,24,4112))    
@@ -362,11 +370,14 @@ def get_simthxe_offset(date='20190503', return_median=False, norm=True):
     
     
     
-def combine_fibparms(date, use_lfc=False, savefile=True):
-    
-    archive_path = '/Users/christoph/OneDrive - UNSW/fibre_profiles/archive/'
-    simthxe_path = '/Users/christoph/OneDrive - UNSW/fibre_profiles/simthxe/'
-    lfc_path = '/Users/christoph/OneDrive - UNSW/fibre_profiles/laser/'
+def combine_fibparms(date=None, path=None, use_lfc=False, savefile=True):
+
+    assert date is not None, 'ERROR: date not provided!!!'
+    assert path is not None, 'ERROR: fibre profile directory not provided!!!'
+
+    archive_path = path + 'archive/'
+    simthxe_path = path + 'simthxe/'
+    lfc_path = path + 'laser/'
     
     # read in fibparms for stellar & sky fibres
     stellar_fibparms = np.load(archive_path + 'fibre_profile_fits_' + date + '.npy').item()

@@ -22,7 +22,7 @@ from veloce_reduction.veloce_reduction.barycentric_correction import get_barycen
 
 
 
-def process_whites(white_list, MB=None, ronmask=None, MD=None, gain=None, P_id=None, scalable=False, fancy=False, remove_bg=True, clip=5., savefile=True, saveall=False, diffimg=False, path=None, debug_level=0, timit=False):
+def process_whites(white_list, MB=None, ronmask=None, MD=None, gain=None, P_id=None, scalable=False, fancy=False, remove_bg=True, clip=5., savefile=True, saveall=False, diffimg=False, pathdict=None, debug_level=0, timit=False):
     """
     This routine processes all whites from a given list of files. It corrects the orientation of the image and crops the overscan regions,
     and subtracts both the MASTER BIAS frame [in ADU], and the MASTER DARK frame [in e-] from every image before combining them to create a MASTER WHITE frame.
@@ -51,7 +51,10 @@ def process_whites(white_list, MB=None, ronmask=None, MD=None, gain=None, P_id=N
     'err_master'  : the corresponding uncertainty array [e-]    
     
     """
-    
+
+    assert pathdict is not None, 'ERROR: pathdict is not provided!!!'
+    path = pathdict['raw']
+
     if timit:
         start_time = time.time()
 
@@ -378,8 +381,7 @@ def process_science_images(imglist, P_id, chipmask, mask=None, stripe_indices=No
                         elif thxe:
                             epoch_sublists['thxe'].append(file)
                 # now check the calibration lamp configuration for the main observation in question
-                img = correct_for_bias_and_dark_from_filename(filename, MB, MD, gain=gain, scalable=scalable,
-                                                              savefile=saveall, path=path)
+                img = correct_for_bias_and_dark_from_filename(filename, MB, MD, gain=gain, scalable=scalable, savefile=saveall, path=path)
                 lc = laser_on(img, chipmask)
                 thxe = thxe_on(img, chipmask)
                 if (not lc) and (not thxe):
@@ -392,7 +394,7 @@ def process_science_images(imglist, P_id, chipmask, mask=None, stripe_indices=No
                     elif thxe:
                         lamp_config = 'thxe'
             else:
-                # since May 2019 the header keywords are correct, so check for LFC / ThXe in header, as that is MUCH faster
+                # since May 2019 the header keywords are (mostly) correct, so could just check for LFC / ThXe in header, as that is MUCH faster
                 for file in epoch_list:
                     lc = 0
                     thxe = 0
@@ -590,14 +592,14 @@ def process_science_images(imglist, P_id, chipmask, mask=None, stripe_indices=No
         # (6) perform extraction of 1-dim spectrum
         if from_indices:
             pix,flux,err = extract_spectrum_from_indices(final_img, err_img, quick_indices, method='quick', slit_height=qsh, ronmask=ronmask, savefile=True,
-                                                         filetype='fits', obsname=obsname, date=date, path=path, timit=True)
+                                                         filetype='fits', obsname=obsname, date=date, pathdict=pathdict, timit=True)
             pix,flux,err = extract_spectrum_from_indices(final_img, err_img, stripe_indices, method=ext_method, slope=slope, offset=offset, fibs=fibs, slit_height=slit_height, 
-                                                         ronmask=ronmask, savefile=True, filetype='fits', obsname=obsname, date=date, path=path, timit=True)
+                                                         ronmask=ronmask, savefile=True, filetype='fits', obsname=obsname, date=date, pathdict=pathdict, timit=True)
         else:
             pix,flux,err = extract_spectrum(stripes, err_stripes=err_stripes, ron_stripes=ron_stripes, method='quick', slit_height=qsh, ronmask=ronmask, savefile=True,
-                                            filetype='fits', obsname=obsname, date=date, path=path, timit=True)
+                                            filetype='fits', obsname=obsname, date=date, pathdict=pathdict, timit=True)
             pix,flux,err = extract_spectrum(stripes, err_stripes=err_stripes, ron_stripes=ron_stripes, method=ext_method, slope=slope, offset=offset, fibs=fibs, 
-                                            slit_height=slit_height, ronmask=ronmask, savefile=True, filetype='fits', obsname=obsname, date=date, path=path, timit=True)
+                                            slit_height=slit_height, ronmask=ronmask, savefile=True, filetype='fits', obsname=obsname, date=date, pathdict=pathdict, timit=True)
     
 #         # (7) get relative intensities of different fibres
 #         if from_indices:

@@ -1109,13 +1109,13 @@ def quick_bg_fix(raw_data, npix=4112):
 
 
 def get_arc_dispsol(thflux, satmask=None, polytype='chebyshev', lamptype=None, deg_spectral=5, deg_spatial=3,
-                    return_full=True, savetables=True, debug_level=0, timit=False):
+                    return_full=True, savetables=True, root='/Users/christoph/OneDrive - UNSW/', debug_level=0, timit=False):
 
     if lamptype.lower() not in ['thar', 'thxe']:
         lamptype = raw_input('Please enter valid lamp type ["thar" / "thxe"]: ')
 
     # read the sacred Michael Murphy ThAr line list 
-    wn, wlair, relint, species1, species2, reference = readcol('/Users/christoph/OneDrive - UNSW/linelists/thar_mm_new.txt', twod=False, skipline=1)
+    wn, wlair, relint, species1, species2, reference = readcol(root + 'linelists/thar_mm_new.txt', twod=False, skipline=1)
     wlvac = 1.e8 / wn
     
     if debug_level >= 1:
@@ -1125,18 +1125,16 @@ def get_arc_dispsol(thflux, satmask=None, polytype='chebyshev', lamptype=None, d
         # mm_grid, mm_spec_unit_vac = make_gaussmask_from_linelist(wlvac, relint=None)
     
     # read best existing wavelength solution
-    # p = np.load('/Users/christoph/OneDrive - UNSW/dispsol/veloce_thar_dispsol_coeffs_20180921.npy').item()
-    # thar_dispsol = pyfits.getdata('/Users/christoph/OneDrive - UNSW/dispsol/veloce_thar_dispsol_20180916.fits')
-    p = np.load('/Users/christoph/OneDrive - UNSW/dispsol/veloce_thar_dispsol_coeffs_air_as_of_20180923.npy').item()
-    thar_dispsol = pyfits.getdata('/Users/christoph/OneDrive - UNSW/dispsol/veloce_thar_dispsol_17sep30080_7x7_air.fits')
-    ref_linenum, ref_ordnum, ref_m, ref_pix, ref_wl, _, _, _, _, _ = readcol('/Users/christoph/OneDrive - UNSW/linelists/thar_lines_used_in_7x7_fit_as_of_2018-10-19.dat', twod=False, skipline=2)
+    p = np.load(root + 'dispsol/veloce_thar_dispsol_coeffs_air_as_of_20180923.npy').item()
+    thar_dispsol = pyfits.getdata(root + 'dispsol/veloce_thar_dispsol_17sep30080_7x7_air.fits')
+    ref_linenum, ref_ordnum, ref_m, ref_pix, ref_wl, _, _, _, _, _ = readcol(root + 'linelists/thar_lines_used_in_7x7_fit_as_of_2018-10-19.dat', twod=False, skipline=2)
     
     # prepare output file
     if savetables:
         now = datetime.datetime.now()
         #model_wl = p(x_norm, order_norm)
         #resid = wl - model_wl
-        outfn = '/Users/christoph/OneDrive - UNSW/linelists/'+lamptype+'_lines_found_as_of_'+str(now)[:10]+'.dat'
+        outfn = root + 'linelists/' + lamptype + '_lines_found_as_of_'+str(now)[:10]+'.dat'
         outfile = open(outfn, 'w')
         outfile.write('line number   order_number   physical_order_number     pixel       air_ref_wl[A]   vac_ref_wl[A] \n')
         outfile.write('=================================================================================================\n')
@@ -1332,7 +1330,7 @@ def get_arc_dispsol(thflux, satmask=None, polytype='chebyshev', lamptype=None, d
         resid_air = ref_wl_air - model_wl_air
         resid_vac = ref_wl_vac - model_wl_vac
         now = datetime.datetime.now()
-        outfn2 = '/Users/christoph/OneDrive - UNSW/linelists/'+lamptype+'_lines_used_in_' + str(deg_spectral) + 'x' + str(deg_spatial) + '_fit_as_of_'+str(now)[:10]+'.dat'
+        outfn2 = root + 'linelists/'+lamptype+'_lines_used_in_' + str(deg_spectral) + 'x' + str(deg_spatial) + '_fit_as_of_'+str(now)[:10]+'.dat'
         outfile2 = open(outfn2, 'w')
         outfile2.write('line number   order_number   physical_order_number     pixel       air_ref_wl[A]   vac_ref_wl[A]   air_model_wl[A]   vac_model_wl[A]   air_resid[A]   vac_resid[A] \n')
         outfile2.write('===================================================================================================================================================================\n')
@@ -1570,7 +1568,7 @@ def xcorr_thflux(thflux, thflux2, scale=300., masking=True, satmask=None, lampty
 
 def get_dispsol_from_known_lines(thflux, fibre=None, date=None, fitwidth=4, search_width=None, satmask=None, lamptype='thxe', minsigma=0.4, maxsigma=2.,
                                  sigma_0=0.85, minamp=0., maxamp=np.inf, return_all_pars=False, deg_spectral=7, deg_spatial=7,
-                                 polytype='chebyshev', return_full=True, savetable=True, outpath=None, debug_level=0, timit=False):
+                                 root = '/Users/christoph/OneDrive - UNSW/', polytype='chebyshev', return_full=True, savetable=True, outpath=None, debug_level=0, timit=False):
 
     '''
     thflux   -   shape (n_ord, n_pix), ie for each fibre individually, or quick-extracted format
@@ -1580,7 +1578,7 @@ def get_dispsol_from_known_lines(thflux, fibre=None, date=None, fitwidth=4, sear
         start_time = time.time()
 
     #read master table
-    linenum, order, m, pix, wlref, vac_wlref, _, _, _, _ = readcol('/Users/christoph/OneDrive - UNSW/linelists/thar_lines_used_in_7x7_fit_as_of_2018-10-19.dat', twod=False, skipline=2)
+    linenum, order, m, pix, wlref, vac_wlref, _, _, _, _ = readcol(root + 'linelists/thar_lines_used_in_7x7_fit_as_of_2018-10-19.dat', twod=False, skipline=2)
     del _
    
     xx = np.arange(thflux.shape[1])
@@ -1730,14 +1728,14 @@ def get_dispsol_from_known_lines(thflux, fibre=None, date=None, fitwidth=4, sear
         if date is None:
             now = datetime.datetime.now()
             if outpath is None:
-                outpath = '/Users/christoph/OneDrive - UNSW/linelists/'
+                outpath = root + 'linelists/'
             if fibre is None:
                 outfn = outpath + lamptype + '_lines_as_of_'+str(now)[:10]+'.dat'
             else:
                 outfn = outpath + lamptype + '_lines_fibre_' + fibre + '_as_of_'+str(now)[:10]+'.dat'
         else:
             if outpath is None:
-                outpath = '/Users/christoph/OneDrive - UNSW/dispsol/fibth_line_tables/'
+                outpath = root + 'dispsol/fibth_line_tables/'
             if fibre is None:
                 outfn = outpath + lamptype + '_lines_quick_for_' + date + '.dat'
             else:
@@ -1770,13 +1768,13 @@ def get_dispsol_from_known_lines(thflux, fibre=None, date=None, fitwidth=4, sear
     
 
 def define_pixel_offsets_between_fibres(date, relto='S1', savedict=False, saveplots=False, extra_lfc_offset=True,
-                                        return_all=False, debug_level=0, timit=False):
+                                        return_all=False, root='/Users/christoph/OneDrive - UNSW', debug_level=0, timit=False):
     if timit:
         start_time = time.time()
 
     # difference in pixel space (ie peak locations)
-    refpath = '/Users/christoph/OneDrive - UNSW/dispsol/fibth_line_tables/'
-    path = '/Users/christoph/OneDrive - UNSW/dispsol/pixfit_coeffs/'
+    refpath = root + 'dispsol/fibth_line_tables/'
+    path = root + 'dispsol/pixfit_coeffs/'
     xx = np.arange(4112)
     fibslot = [0, 1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 23, 24, 25]
     fibname = ['S5', 'S2', '07', '18', '17', '06', '16', '15', '05', '14', '13', '01', '12', '11', '04', '10', '09',
@@ -1797,7 +1795,7 @@ def define_pixel_offsets_between_fibres(date, relto='S1', savedict=False, savepl
 
         ref_filename = refpath + lamptype + '_lines_fibre_' + relto + '_for_' + date + '.dat'
         linenum, order, m, pix, wlref, vac_wlref = readcol(ref_filename, twod=False, skipline=2)
-        # linenum, order, m, pix, wlref, vac_wlref, _, _, _, _ = readcol('/Users/christoph/OneDrive - UNSW/linelists/thar_lines_used_in_7x7_fit_as_of_2018-10-19.dat', twod=False, skipline=2)
+        # linenum, order, m, pix, wlref, vac_wlref, _, _, _, _ = readcol(root + 'linelists/thar_lines_used_in_7x7_fit_as_of_2018-10-19.dat', twod=False, skipline=2)
         ix = np.argwhere(order == o + 1).flatten()
         ref_x = pix[ix]
         ref_wlref = wlref[ix]
@@ -1915,7 +1913,8 @@ def old_get_dispsol_for_all_fibs(obsname, date=None, relto='LFC', twod=False, de
                              polytype='chebyshev', refit=False, debug_level=0, timit=False, fudge=1., signflip_shift=True,
                              signflip_slope=True, signflip_secord=True, nightly_coeffs=True):
 
-    '''using Duncan's xcorrs to measure LFC shifts'''
+    '''OLD ROUTINE, NOT CURRENTLY IN USE!!!
+    using Duncan's xcorrs to measure LFC shifts'''
 
     if timit:
         start_time = time.time()
@@ -2117,7 +2116,7 @@ def old_get_dispsol_for_all_fibs(obsname, date=None, relto='LFC', twod=False, de
 
 
 def get_dispsol_for_all_fibs(obsname, date=None, relto='LFC', twod=False, degpol=7, deg_spectral=7, deg_spatial=7, fibs='stellar', nx=4112,
-                             polytype='chebyshev', refit=False, debug_level=0, timit=False, fudge=1., fibtofib=True, nightly_coeffs=True):
+                             root='/Users/christoph/OneDrive - UNSW/', polytype='chebyshev', refit=False, debug_level=0, timit=False, fudge=1., fibtofib=True, nightly_coeffs=True):
 
     '''using Duncan's xcorrs to measure LFC shifts'''
 
@@ -2141,13 +2140,13 @@ def get_dispsol_for_all_fibs(obsname, date=None, relto='LFC', twod=False, degpol
     if fibtofib:
         if nightly_coeffs:
             # need to do this b/c not all nights have a pixfit coeffs file
-            pc_fn = '/Users/christoph/OneDrive - UNSW/dispsol/pixfit_coeffs/pixfit_coeffs_relto_' + relto + '_for_' + date + '.npy'
+            pc_fn = root + 'dispsol/pixfit_coeffs/pixfit_coeffs_relto_' + relto + '_for_' + date + '.npy'
             while not os.path.isfile(pc_fn):
                 date = str(int(date) - 1)
-                pc_fn = '/Users/christoph/OneDrive - UNSW/dispsol/pixfit_coeffs/pixfit_coeffs_relto_' + relto + '_for_' + date + '.npy'
+                pc_fn = root + 'dispsol/pixfit_coeffs/pixfit_coeffs_relto_' + relto + '_for_' + date + '.npy'
         else:
             # load default coefficients
-            pc_fn = '/Users/christoph/OneDrive - UNSW/dispsol_tests/20180917/pixfit_coeffs_relto_' + relto + '_as_of_2018-11-14.npy'
+            pc_fn = root + 'dispsol_tests/20180917/pixfit_coeffs_relto_' + relto + '_as_of_2018-11-14.npy'
         pixfit_coeffs = np.load(pc_fn).item()
 
     # fibslot = [0,1,   3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,   23,24,25]
@@ -2156,12 +2155,12 @@ def get_dispsol_for_all_fibs(obsname, date=None, relto='LFC', twod=False, degpol
     nfib = len(fibname)
 
     # read master LFC linelist
-    lfc_ord, lfc_pix, lfc_wl = readcol('/Users/christoph/OneDrive - UNSW/dispsol/laser_dispsol_20181015/PeakPos.txt', twod=False)
+    lfc_ord, lfc_pix, lfc_wl = readcol(root + 'dispsol/laser_dispsol_20181015/PeakPos.txt', twod=False)
     lfc_pix = 4112 - lfc_pix   # b/c DW is using Matlab, which starts indexing at 1 not at 0, and also his pixels increase with wl, mine decrease
 
     # read file containing slope and offset as measured from LFC peak positions
     # read file and see how many coefficients are provided
-    fn = '/Users/christoph/OneDrive - UNSW/dispsol/laser_offsets/relto_21sep30019/' + obsname + '_Slope_and_Offset.txt'
+    fn = root + 'dispsol/laser_offsets/relto_21sep30019/' + obsname + '_Slope_and_Offset.txt'
     dum = readcol(fn)
     n_coeffs = dum.shape[1]
     assert n_coeffs in [2,3], "ERROR: DW's LFC drift coefficient files do not have exactly two or three colums!!!"
@@ -2316,13 +2315,14 @@ def get_dispsol_for_all_fibs(obsname, date=None, relto='LFC', twod=False, degpol
 
 
 
-def get_dispsol_for_all_fibs_2(obsname, date=None, relto='LFC', degpol=7, fibs='stellar', nx=4112, eps=0.5, fudge=1., refit=False, debug_level=0, timit=False):
+def get_dispsol_for_all_fibs_2(obsname, date=None, relto='LFC', degpol=7, fibs='stellar', nx=4112, eps=0.5, fudge=1.,
+                               root='/Users/christoph/OneDrive - UNSW/', refit=False, debug_level=0, timit=False):
     '''using CGT's DAOPHOT results to measure LFC shifts'''
 
     # TODO: instead of reading P_id for the LFC, do a divide into orders and fit new x-y-traces
     # TODO: use meansep - get_mean_fibre_separation instead of 1.97
 
-    lfc_path = '/Users/christoph/OneDrive - UNSW/lfc_peaks/'
+    lfc_path = root + 'lfc_peaks/'
 
     if timit:
         start_time = time.time()
@@ -2333,17 +2333,17 @@ def get_dispsol_for_all_fibs_2(obsname, date=None, relto='LFC', degpol=7, fibs='
     if fibtofib:
         if nightly_coeffs:
             # need to do this b/c not all nights have a pixfit coeffs file
-            pc_fn = '/Users/christoph/OneDrive - UNSW/dispsol/pixfit_coeffs/pixfit_coeffs_relto_' + relto + '_for_' + date + '.npy'
+            pc_fn = root + 'dispsol/pixfit_coeffs/pixfit_coeffs_relto_' + relto + '_for_' + date + '.npy'
             while not os.path.isfile(pc_fn):
                 date = str(int(date) - 1)
-                pc_fn = '/Users/christoph/OneDrive - UNSW/dispsol/pixfit_coeffs/pixfit_coeffs_relto_' + relto + '_for_' + date + '.npy'
+                pc_fn = root + 'dispsol/pixfit_coeffs/pixfit_coeffs_relto_' + relto + '_for_' + date + '.npy'
         else:
             # load default coefficients
-            pc_fn = '/Users/christoph/OneDrive - UNSW/dispsol_tests/20180917/pixfit_coeffs_relto_' + relto + '_as_of_2018-11-14.npy'
+            pc_fn = root + 'dispsol_tests/20180917/pixfit_coeffs_relto_' + relto + '_as_of_2018-11-14.npy'
         pixfit_coeffs = np.load(pc_fn).item()
 
     # load default coefficients
-    pixfit_coeffs = np.load('/Users/christoph/OneDrive - UNSW/dispsol_tests/20180917/pixfit_coeffs_relto_' + relto + '_as_of_2018-11-14.npy').item()
+    pixfit_coeffs = np.load(root + 'dispsol_tests/20180917/pixfit_coeffs_relto_' + relto + '_as_of_2018-11-14.npy').item()
 
     # fibslot = [0,1,   3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,   23,24,25]
     fibname = ['S5', 'S2', '07', '18', '17', '06', '16', '15', '05', '14', '13', '01', '12', '11', '04', '10', '09',
@@ -2355,7 +2355,7 @@ def get_dispsol_for_all_fibs_2(obsname, date=None, relto='LFC', degpol=7, fibs='
     nfib = len(fibname)
 
     # read master LFC linelist
-    lfc_ord, lfc_pix, lfc_wl = readcol('/Users/christoph/OneDrive - UNSW/dispsol/laser_dispsol_20181015/PeakPos.txt',
+    lfc_ord, lfc_pix, lfc_wl = readcol(root + 'dispsol/laser_dispsol_20181015/PeakPos.txt',
                                        twod=False)
     lfc_pix -= 1.  # b/c DW is using Matlab, which starts indexing at 1 not at 0!!!!!!!
 
@@ -2474,7 +2474,7 @@ def get_dispsol_for_all_fibs_2(obsname, date=None, relto='LFC', degpol=7, fibs='
 
 
 def get_dispsol_for_all_fibs_3(obsname, date=None, relto='LFC', degpol=7, nx=4112, refit=True, fibtofib=True, return_auxdata=False, 
-                               norm_coords=False, laptop=False, debug_level=0, timit=False):
+                               norm_coords=False, pathdict=None, debug_level=0, timit=False):
     '''using CGT's new DAOPHOT results to measure LFC shifts; anchor using the wl-solution from the master ARC that night'''
 
     # TODO: IDEA: instead of reading P_id for the LFC, do a divide into orders and fit new x-y-traces
@@ -2483,24 +2483,25 @@ def get_dispsol_for_all_fibs_3(obsname, date=None, relto='LFC', degpol=7, nx=411
     # make sure a date is provided
     assert date is not None, 'ERROR: "date" not provided'
     year = str(date)[:4]
-    
-    if laptop:
-        raw_path = '/Users/christoph/data/raw_goodonly/' + date + '/'
-        red_path = '/Users/christoph/data/reduced/' + date + '/'
-        lfc_path = '/Users/christoph/data/lfc_peaks/'
-    else:
-        raw_path = '/Volumes/BERGRAID/data/veloce/raw_goodonly/' + date + '/'
-        red_path = '/Volumes/BERGRAID/data/veloce/reduced/' + date + '/'
-        lfc_path = '/Volumes/BERGRAID/data/veloce/lfc_peaks/'
+
+    if pathdict is None:
+        pathdict['raw'] = '/Volumes/BERGRAID/data/veloce/raw_goodonly/' + date + '/'
+        pathdict['red'] = '/Volumes/BERGRAID/data/veloce/reduced/' + date + '/'
+        pathdict['lfc'] = '/Volumes/BERGRAID/data/veloce/lfc_peaks/'
+        pathdict['root'] = '/Users/christoph/OneDrive - UNSW/'
+    raw_path = pathdict['raw']
+    red_path = pathdict['red']
+    lfc_path = pathdict['lfc']
+    root = pathdict['root']
         
     # read in LFC vac wls (f0 = 9.56 GHz   &   f_rep = 25 GHz)    
-    lfc_vac_wls = np.squeeze(np.array(readcol('/Users/christoph/OneDrive - UNSW/dispsol/lfc_vac_wls_nm.txt', twod=False))) * 10.    # in Angstroms
+    lfc_vac_wls = np.squeeze(np.array(readcol(root + 'dispsol/lfc_vac_wls_nm.txt', twod=False))) * 10.    # in Angstroms
     
     if timit:
         start_time = time.time()
 
     # load default coefficients
-    pixfit_coeffs = np.load('/Users/christoph/OneDrive - UNSW/dispsol_tests/20180917/pixfit_coeffs_relto_' + relto + '_as_of_2018-11-14.npy').item()
+    pixfit_coeffs = np.load(root + 'dispsol_tests/20180917/pixfit_coeffs_relto_' + relto + '_as_of_2018-11-14.npy').item()
 
     # fibslot = [(0),1,2,   3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,   22,23,24,(25)]
     fibname = ['S5', 'S2', '07', '18', '17', '06', '16', '15', '05', '14', '13', '01', '12', '11', '04', '10', '09', '03', '08', '19', '02', 'S4', 'S3', 'S1']
@@ -2526,7 +2527,6 @@ def get_dispsol_for_all_fibs_3(obsname, date=None, relto='LFC', degpol=7, nx=411
     except:
         # air_wl = pyfits.getdata(raw_path + lamptype + '_dispsol_' + date + '.fits', 0)
         vac_wl = pyfits.getdata(raw_path + date + '_' + lamptype + '_dispsol_' + '.fits', 1)
-#         vac_wl = pyfits.getdata('/Volumes/BERGRAID/data/veloce/reduced/20190621/thxe_dispsol_20190621.fits', 1)
             
     # read file containing LFC peak positions of observation
 #     _, yref, xref, _, _, _, _, _, _, _, _ = readcol(lfc_path + '21sep30019olc.nst', twod=False, skipline=2)
@@ -2678,7 +2678,7 @@ def get_dispsol_for_all_fibs_3(obsname, date=None, relto='LFC', degpol=7, nx=411
 
 
 
-def make_master_fibth(date=None, savefile=True, overwrite=False, laptop=False):
+def make_master_fibth(date=None, savefile=True, overwrite=False, redpath='/Volumes/BERGRAID/data/veloce/reduced/'):
     
     # make sure we have an existing date
     if date is None:
@@ -2688,12 +2688,9 @@ def make_master_fibth(date=None, savefile=True, overwrite=False, laptop=False):
             # check if file directory exists
             if os.path.isdir("/Volumes/BERGRAID/data/veloce/reduced/" + date + "/"):
                 ok = 1
-    
-    if laptop:
-        path = "/Users/christoph/data/reduced/" + date + "/"
-    else:
-        path = "/Volumes/BERGRAID/data/veloce/reduced/" + date + "/"
-                
+
+    path = redpath + date + "/"
+
     # list of all Fibre Thoriums (ThAr for 20180917; ThXe for all later nights)
     arc_list = glob.glob(path + '*ARC*optimal*')
     if len(arc_list) == 0:
@@ -2729,7 +2726,7 @@ def make_master_fibth(date=None, savefile=True, overwrite=False, laptop=False):
 
 
 def make_arc_dispsols(date, deg_spectral=7, deg_spatial=7, polytype='chebyshev', savetable=False, savefits=True, overwrite=False, 
-                      save_individual=False, laptop=False, debug_level=0, timit=False):
+                      save_individual=False, redpath='/Volumes/BERGRAID/data/veloce/reduced/'debug_level=0, timit=False):
 
     """
     for making the one per night fibre ThAr/ThXe dispsols
@@ -2744,17 +2741,14 @@ def make_arc_dispsols(date, deg_spectral=7, deg_spatial=7, polytype='chebyshev',
 
     print('Creating ARC wavelength solution for ' + date + ' ...')
 
-    if laptop:
-        path = "/Users/christoph/data/reduced/" + date + "/"
-    else:
-        path = "/Volumes/BERGRAID/data/veloce/reduced/" + date + "/"
+    path = redpath + date + "/"
     
     # check if master arc file already exists
     if os.path.isfile(path + date + '_master_ARC' + '.fits'):
         master_arc = pyfits.getdata(path + date + '_master_ARC' + '.fits')
     else:
         # make master arc for that night
-        master_arc, err_master_arc = make_master_fibth(date=date, savefile=True, laptop=laptop)
+        master_arc, err_master_arc = make_master_fibth(date=date, savefile=True)
 #     # assert master_arc != [], 'ERROR: No FibThs found for '+date
 #     if master_arc == []:
 #         print('ERROR: No FibThs found for ' + date)
@@ -2807,11 +2801,11 @@ def make_arc_dispsols(date, deg_spectral=7, deg_spatial=7, polytype='chebyshev',
 
 
 
-def make_arc_dispsols_for_all_nights(outpath='/Users/christoph/OneDrive - UNSW/dispsol/arc_dispsols/', deg_spectral=7, deg_spatial=7,
-                                     polytype='chebyshev', savetable=False, savefits=True, overwrite=False, save_individual=False):
+def make_arc_dispsols_for_all_nights(outpath='/Users/christoph/OneDrive - UNSW/dispsol/arc_dispsols/', redpath='/Volumes/BERGRAID/data/veloce/reduced/',
+                                     deg_spectral=7, deg_spatial=7, polytype='chebyshev', savetable=False, savefits=True, overwrite=False, save_individual=False):
     
     # get list of all nights
-    datedir_list = glob.glob('/Volumes/BERGRAID/data/veloce/reduced/2019*')
+    datedir_list = glob.glob(redpath + '20*')
     datedir_list.sort()
 
 #     fibslot = [0,1,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,23,24,25]

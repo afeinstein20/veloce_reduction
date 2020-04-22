@@ -1559,7 +1559,7 @@ def correct_for_bias_and_dark_from_filename(imgname, MB, MD, gain=None, scalable
 
 
 def make_master_calib(file_list, lamptype=None, MB=None, ronmask=None, MD=None, gain=None, chipmask=None, scalable=False, remove_bg=True,
-                      savefile=True, saveall=False, path=None, debug_level=0, timit=False):
+                      savefile=True, saveall=False, pathdict=None, debug_level=0, timit=False):
     """
     Simplified CLONE OF "process_whites".
     This routine processes all calibration lamp images from a given list of files. It corrects the orientation of the image and crops the overscan regions,
@@ -1578,7 +1578,7 @@ def make_master_calib(file_list, lamptype=None, MB=None, ronmask=None, MD=None, 
     'remove_bg'   : boolean - do you want to remove the background from the output master white?
     'savefile'    : boolean - do you want to save the master white frame as a FITS file?
     'saveall'     : boolean - do you want to save all individual bias- & dark-corrected images as well?
-    'path'        : path to the output file directory (only needed if savefile is set to TRUE)
+    'pathdict'    : dictionary containing all directories relevant to the reduction
     'debug_level' : for debugging...
     'timit'       : boolean - do you want to measure execution run time?
     
@@ -1587,7 +1587,11 @@ def make_master_calib(file_list, lamptype=None, MB=None, ronmask=None, MD=None, 
     'err_master'  : the corresponding uncertainty array [e-]    
     
     """
-    
+
+    assert pathdict is not None, 'ERROR: pathdict not provided!!!'
+    path = pathdict['raw']
+    chipmask_path = pathdict['cm']
+
     if timit:
         start_time = time.time()
 
@@ -1711,7 +1715,7 @@ def make_master_calib(file_list, lamptype=None, MB=None, ronmask=None, MD=None, 
     # now subtract background (errors remain unchanged)
     if remove_bg:
         if chipmask is None:
-            chipmask = np.load('/Users/christoph/OneDrive - UNSW/chipmasks/archive/' + 'chipmask_' + date + '.npy').item()
+            chipmask = np.load(chipmask_path + 'chipmask_' + date + '.npy').item()
             
         if lamptype.lower() == 'simth':
             lampmask = chipmask['thxe']

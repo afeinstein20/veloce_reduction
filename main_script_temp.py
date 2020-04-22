@@ -46,10 +46,19 @@ chipmask_path = '/Users/christoph/OneDrive - UNSW/chipmasks/archive/'
 fibparms_path = '/Users/christoph/OneDrive - UNSW/fibre_profiles/archive/'
 
 
+pathdict = {}
+pathdict['raw'] = '/Volumes/BERGRAID/data/veloce/raw_goodonly/' + date + '/'
+pathdict['red'] = '/Volumes/BERGRAID/data/veloce/reduced/' + date + '/'
+pathdict['cm'] = '/Users/christoph/OneDrive - UNSW/chipmasks/archive/'
+pathdict['fp'] = '/Users/christoph/OneDrive - UNSW/fibre_profiles/'
+pathdict['lfc'] = '/Volumes/BERGRAID/data/veloce/lfc_peaks/'
+pathdict['dispsol'] = '/Users/christoph/OneDrive - UNSW/dispsol/'
+
+
 ### (0) GET INFO FROM FITS HEADERS ##################################################################################################################
-acq_list, bias_list, dark_list, flat_list, arc_list, thxe_list, laser_list, laser_and_thxe_list, stellar_list, unknown_list = get_obstype_lists(path)
+acq_list, bias_list, dark_list, flat_list, arc_list, thxe_list, laser_list, laser_and_thxe_list, stellar_list, unknown_list = get_obstype_lists(pathdict)
 assert len(unknown_list) == 0, "WARNING: unknown files encountered!!!"
-# q_acq_list, q_bias_list, q_dark_list, q_flat_list, q_arc_list, q_thxe_list, q_laser_list, q_laser_and_thxe_list, q_stellar_list, q_unknown_list = get_obstype_lists(path, quick=True)
+# q_acq_list, q_bias_list, q_dark_list, q_flat_list, q_arc_list, q_thxe_list, q_laser_list, q_laser_and_thxe_list, q_stellar_list, q_unknown_list = get_obstype_lists(pathdict['raw'], quick=True)
 # assert len(q_unknown_list) == 0, "WARNING: unknown files encountered!!!"
 # obsnames = short_filenames(bias_list)
 dumimg = crop_overscan_region(correct_orientation(pyfits.getdata(bias_list[0])))
@@ -61,7 +70,7 @@ del dumimg
         
 for file in flat_list:
 #     fimg = crop_overscan_region(correct_orientation(pyfits.getdata(file)))
-    fimg = correct_for_bias_and_dark_from_filename(file, np.zeros((4096,4112)), np.zeros((4096,4112)), gain=[1., 1.095, 1.125, 1.], scalable=False, savefile=False, path=path)
+    fimg = correct_for_bias_and_dark_from_filename(file, np.zeros((4096,4112)), np.zeros((4096,4112)), gain=[1., 1.095, 1.125, 1.], scalable=False, savefile=False, path=pathdict['raw'])
 #     plt.plot(fimg[165:230,3327])
 #     plt.plot(fimg[1735:1802,2000])   # Q1
 #     plt.plot(fimg[1650:1717,2709])   # Q2
@@ -70,11 +79,11 @@ for file in flat_list:
 
 
 ### (1) BAD PIXEL MASK ##############################################################################################################################
-# bpm_list = glob.glob(path + '*bad_pixel_mask*')
+# bpm_list = glob.glob(pathdict['raw'] + '*bad_pixel_mask*')
 # # read most recent bad pixel mask
 # bpm_dates = [x[-12:-4] for x in bpm_list]
 # most_recent_datestring = sorted(bpm_dates)[-1]
-# bad_pixel_mask = np.load(path + 'bad_pixel_mask_' + most_recent_datestring + '.npy')
+# bad_pixel_mask = np.load(pathdict['raw'] + 'bad_pixel_mask_' + most_recent_datestring + '.npy')
 # 
 # # update the pixel mask
 # #blablabla
@@ -83,7 +92,7 @@ for file in flat_list:
 # now = datetime.datetime.now()
 # dumstring = str(now)[:10].split('-')
 # datestring = ''.join(dumstring)
-# np.save(path+'bad_pixel_mask_'+datestring+'.npy', bad_pixel_mask)
+# np.save(pathdict['raw']+'bad_pixel_mask_'+datestring+'.npy', bad_pixel_mask)
 # ###################################################################################################################################################
 
 
@@ -96,11 +105,11 @@ gain = [1., 1.095, 1.125, 1.]   # eye-balled from extracted flat fields
 # (i) BIAS and READ NOISE
 # check if MEDIAN BIAS already exists
 choice = 'r'
-if os.path.isfile(path + date + '_median_bias.fits'):
+if os.path.isfile(pathdict['raw'] + date + '_median_bias.fits'):
     choice = raw_input("MEDIAN BIAS image for " + date + " already exists! Do you want to skip this step or recreate it? ['s' / 'r']")
 if choice.lower() == 's':
     print('Loading MASTER BIAS for ' + date + '...')
-    medbias = pyfits.getdata(path + date + '_median_bias.fits')
+    medbias = pyfits.getdata(pathdict['raw'] + date + '_median_bias.fits')
 else:
     # get offsets and read-out noise from bias frames (units: [offsets] = ADUs; [RON] = e-)
     if len(bias_list) > 9:
@@ -111,17 +120,17 @@ else:
 
 # check if read noise mask already exists
 choice = 'r'
-if os.path.isfile(path + date + '_read_noise_mask.fits'):
+if os.path.isfile(pathdict['raw'] + date + '_read_noise_mask.fits'):
     choice = raw_input("READ NOISE FRAME for " + date + " already exists! Do you want to skip this step or recreate it? ['s' / 'r']")
 if choice.lower() == 's':
     print('Loading READ NOISE FRAME for ' + date + '...')
-    ronmask = pyfits.getdata(path + date + '_read_noise_mask.fits')
+    ronmask = pyfits.getdata(pathdict['raw'] + date + '_read_noise_mask.fits')
 else:
-    ronmask = make_ronmask(rons, nx, ny, gain=gain, savefile=True, path=path, timit=True)
+    ronmask = make_ronmask(rons, nx, ny, gain=gain, savefile=True, path=pathdict['raw'], timit=True)
 
 
 
-# MB = make_master_bias_from_coeffs(coeffs, nx, ny, savefile=True, path=path, timit=True)
+# MB = make_master_bias_from_coeffs(coeffs, nx, ny, savefile=True, path=pathdict['raw'], timit=True)
 # or
 # MB = offmask.copy()
 # #or
@@ -131,8 +140,8 @@ else:
 
 # (ii) DARKS
 # create (bias-subtracted) MASTER DARK frame (units = electrons)
-# MD = make_master_dark(dark_list, MB=MB, gain=gain, scalable=False, savefile=True, path=path, timit=True)
-# MDS = make_master_dark(dark_list, MB=medbias, gain=gain, scalable=True, savefile=True, path=path, debug_level=1, timit=True)
+# MD = make_master_dark(dark_list, MB=MB, gain=gain, scalable=False, savefile=True, path=pathdict['raw'], timit=True)
+# MDS = make_master_dark(dark_list, MB=medbias, gain=gain, scalable=True, savefile=True, path=pathdict['raw'], debug_level=1, timit=True)
 # use make_master_darks (ie plural) from now on!!!!!
 # make_master_darks(dark_list, MB=medbias, gain=gain)
 MDS = np.zeros(medbias.shape)
@@ -142,16 +151,16 @@ MDS = np.zeros(medbias.shape)
 # (iii) WHITES 
 # create (bias- & dark-subtracted) MASTER WHITE frame and corresponding error array (units = electrons)
 choice_mw = 'r'
-if os.path.isfile(path + date + '_master_white.fits'):
+if os.path.isfile(pathdict['raw'] + date + '_master_white.fits'):
     choice_mw = raw_input("MASTER WHITE image for " + date + " already exists! Do you want to skip this step or recreate it? ['s' / 'r']")
 if choice_mw.lower() == 's':
     print('Loading MASTER WHITE for ' + date + '...')
-    MW = pyfits.getdata(path + date + '_master_white.fits', 0)
-    err_MW = pyfits.getdata(path + date + '_master_white.fits', 1)
+    MW = pyfits.getdata(pathdict['raw'] + date + '_master_white.fits', 0)
+    err_MW = pyfits.getdata(pathdict['raw'] + date + '_master_white.fits', 1)
 else:
     # this is a first iteration without background removal - just so we can do the tracing; then we come back and do it properly later
     MW,err_MW = process_whites(flat_list, MB=medbias, ronmask=ronmask, MD=MDS, gain=gain, scalable=True, fancy=False, P_id=None,
-                               clip=5., savefile=False, saveall=False, diffimg=False, remove_bg=False, path=path, debug_level=1, timit=False)
+                               clip=5., savefile=False, saveall=False, diffimg=False, remove_bg=False, path=pathdict['raw'], debug_level=1, timit=False)
     
 #####################################################################################################################################################
 
@@ -159,12 +168,12 @@ else:
 
 ### (3) INITIAL ORDER TRACING #######################################################################################################################
 choice = 'r'
-if os.path.isfile(path + 'P_id.npy') and os.path.isfile(path + 'mask.npy'):
+if os.path.isfile(pathdict['raw'] + 'P_id.npy') and os.path.isfile(pathdict['raw'] + 'mask.npy'):
     choice = raw_input("INITIAL ORDER TRACING has already been done for " + date + " ! Do you want to skip this step or recreate it? ['s' / 'r']")
 if choice.lower() == 's':
     print('Loading initial order traces for ' + date + '...')
-    P_id = np.load(path + date + '_P_id.npy').item()
-    mask = np.load(path + date + '_mask.npy').item()
+    P_id = np.load(pathdict['raw'] + date + '_P_id.npy').item()
+    mask = np.load(pathdict['raw'] + date + '_mask.npy').item()
 else:
     # find rough order locations
     #P,tempmask = find_stripes(MW, deg_polynomial=2, min_peak=0.05, gauss_filter_sigma=3., simu=False)
@@ -184,14 +193,14 @@ else:
     elif (int(date) <= 20190203) or (int(date) >= 20190619):
         for o in P_id.keys():
             P_id[o][0] -= 2.
-    np.save(path + date + '_P_id.npy', P_id)
-    np.save(path + date + '_mask.npy', mask)
+    np.save(pathdict['raw'] + date + '_P_id.npy', P_id)
+    np.save(pathdict['raw'] + date + '_mask.npy', mask)
     
 
 # now redo the master white properly, incl background removal, and save to file
 if choice_mw.lower() == 'r':
     MW,err_MW = process_whites(flat_list, MB=medbias, ronmask=ronmask, MD=MDS, gain=gain, scalable=True, fancy=False, P_id=P_id,
-                               clip=5., savefile=True, saveall=False, diffimg=False, remove_bg=True, path=path, debug_level=1, timit=False)
+                               clip=5., savefile=True, saveall=False, diffimg=False, remove_bg=True, path=pathdict['raw'], debug_level=1, timit=False)
 
 #####################################################################################################################################################
 
@@ -203,43 +212,43 @@ del MW_stripes     # save memory
 # err_MW_stripes = extract_stripes(err_MW, P_id, return_indices=False, slit_height=slit_height)
 
 choice_fp = 'r'
-if os.path.isfile(fibparms_path + 'combined_fibre_profile_fits_' + date + '.npy'):
+if os.path.isfile(pathdict['fp'] + 'archive/' + 'combined_fibre_profile_fits_' + date + '.npy'):
     choice_fp = raw_input("FIBRE PROFILES for " + date + " already exists! Do you want to skip this step or recreate it? ['s' / 'r']")
 if choice_fp.lower() == 's':
     print('Loading fibre profiles for ' + date + '...')
-    fibparms = np.load(fibparms_path + 'combined_fibre_profile_fits_' + date + '.npy').item()
+    fibparms = np.load(pathdict['fp'] + 'archive/' + 'combined_fibre_profile_fits_' + date + '.npy').item()
 else:
     sure = 'x'
     while sure.lower() not in ['y','n']:
         sure = raw_input("Are you sure you want to create fibre profiles for " + date + "??? This may take several hours!!! ['y' / 'n']")
     if sure == 'y':
         fp_in = fit_multiple_profiles_from_indices(P_id, MW, err_MW, MW_indices, slit_height=slit_height, timit=True, debug_level=1)
-        np.save(fibparms_path + 'individual_fibre_profiles_' + date + '.npy', fp_in)
-        stellar_fibparms = make_real_fibparms_by_ord(fp_in, date=date, path=fibparms_path)
-        fibparms = combine_fibparms(date)
+        np.save(pathdict['fp'] + 'archive/' + 'individual_fibre_profiles_' + date + '.npy', fp_in)
+        stellar_fibparms = make_real_fibparms_by_ord(fp_in, date=date, path=pathdict['fp']+'archive/')
+        fibparms = combine_fibparms(date=date, path=pathdict['fp'])
 #####################################################################################################################################################
 
 
 ### (5) CREATE CHIPMASKS, FINAL ORDER TRACES, AND DETERMINE SLIT HEIGHTS FOR OPTIMAL EXTRACTION #####################################################
 choice = 'r'
-if os.path.isfile(chipmask_path + 'chipmask_' + date + '.npy'):
+if os.path.isfile(pathdict['cm'] + 'chipmask_' + date + '.npy'):
     choice = raw_input("CHIPMASK for " + date + " already exists! Do you want to skip this step or recreate it? ['s' / 'r']")
 if choice.lower() == 's':
     print('Loading chipmask for ' + date + '...')
-    chipmask = np.load(chipmask_path + 'chipmask_' + date + '.npy').item()
+    chipmask = np.load(pathdict['cm'] + 'chipmask_' + date + '.npy').item()
 else:
-    chipmask = make_chipmask(date, combined_fibparms=False, savefile=True, timit=True)   # use combined_fibparms=True if you trust the simThXe and especially LFC traces (not for now!!!)
+    chipmask = make_chipmask(date, pathdict=pathdict, combined_fibparms=False, savefile=True, timit=True)   # use combined_fibparms=True if you trust the simThXe and especially LFC traces (not for now!!!)
 
 # make proper order traces from fibre profiles (this can now be used instead of "P_id", as it is exactly the same format, ie no need to change any subsequent routines!!!)
 choice = 'r'
-if os.path.isfile(path + date + '_traces.npy'):
+if os.path.isfile(pathdict['raw'] + date + '_traces.npy'):
     choice = raw_input("FINAL ORDER TRACING has already been done for " + date + " ! Do you want to skip this step or recreate it? ['s' / 'r']")
 if choice.lower() == 's':
     print('Loading final order traces for ' + date + '...')
-    traces = np.load(path + date + '_traces.npy').item()
+    traces = np.load(pathdict['raw'] + date + '_traces.npy').item()
 else:
     traces = make_order_traces_from_fibparms(fibparms)
-    np.save(path + date + '_traces.npy', traces)
+    np.save(pathdict['raw'] + date + '_traces.npy', traces)
 
 # determine slit_heights from fibre profiles
 slit_heights = []
@@ -264,63 +273,63 @@ simth_stripes, simth_indices = extract_stripes(MW, traces['simth'], return_indic
 
 # (6b) extract Master Whites
 pix_q,flux_q,err_q = extract_spectrum_from_indices(MW, err_MW, indices, method='quick', slit_height=slit_height, ronmask=ronmask, savefile=True,
-                                                   date=date, filetype='fits', obsname=date+'_master_white', path=path, timit=True)
+                                                   date=date, filetype='fits', obsname=date+'_master_white', pathdict=pathdict, timit=True)
 pix,flux,err = extract_spectrum_from_indices(MW, err_MW, indices, method='optimal', slit_height=slit_height, fibs='all', slope=True, offset=True, date=date,
-                                             individual_fibres=True, ronmask=ronmask, savefile=True, filetype='fits', obsname=date+'_master_white', path=path, timit=True)
+                                             individual_fibres=True, ronmask=ronmask, savefile=True, filetype='fits', obsname=date+'_master_white', pathdict=pathdict, timit=True)
 
 # # get a smoothed Master White and a pixel-to-pixel sensitivity map (no, need to do that to 1-dim spectrum)
-# smoothed_flat, pix_sens = onedim_pixtopix_variations_spline(MW, knots=9, savefits=True, path=path, debug_level=1)
+# smoothed_flat, pix_sens = onedim_pixtopix_variations_spline(MW, knots=9, savefits=True, path=pathdict['raw'], debug_level=1)
 
 
 # (6c) MAKE MASTER FRAMES FOR EACH OF THE SIMULTANEOUS CALIBRATION SOURCES AND EXTRACT THEM
 # TODO: use different traces and smaller slit_height for LFC only and lfc only???
 if len(thxe_list) > 0:
     choice = 'r'
-    if os.path.isfile(path + date + '_master_simth.fits'):
+    if os.path.isfile(pathdict['raw'] + date + '_master_simth.fits'):
         choice = raw_input("Master SimThXe frame for " + date + " already exists! Do you want to skip this step or recreate it? ['s' / 'r']")
     if choice.lower() == 's':
         print('Loading MASTER SimThXe frame for ' + date + '...')
-        master_simth = pyfits.getdata(path + date + '_master_simth.fits', 0)
-        err_master_simth = pyfits.getdata(path + date + '_master_simth.fits', 1)
+        master_simth = pyfits.getdata(pathdict['raw'] + date + '_master_simth.fits', 0)
+        err_master_simth = pyfits.getdata(pathdict['raw'] + date + '_master_simth.fits', 1)
     else:
-        master_simth, err_master_simth = make_master_calib(thxe_list, lamptype='simth', MB=medbias, ronmask=ronmask, MD=MDS, gain=gain, chipmask=chipmask, remove_bg=True, savefile=True, path=path)
+        master_simth, err_master_simth = make_master_calib(thxe_list, lamptype='simth', MB=medbias, ronmask=ronmask, MD=MDS, gain=gain, chipmask=chipmask, remove_bg=True, savefile=True, path=pathdict['raw'])
     # now do the extraction    
     pix_q,flux_q,err_q = extract_spectrum_from_indices(master_simth, err_master_simth, simth_indices, method='quick', slit_height=calsh, ronmask=ronmask, savefile=True,
-                                                       date=date, filetype='fits', obsname='master_simth', path=path, timit=True)
+                                                       date=date, filetype='fits', obsname='master_simth', pathdict=pathdict, timit=True)
     pix,flux,err = extract_spectrum_from_indices(master_simth, err_master_simth, indices, method='optimal', slit_height=slit_height, fibs='simth', slope=True, offset=True, date=date,
-                                                 individual_fibres=True, ronmask=ronmask, savefile=True, filetype='fits', obsname='master_simth', path=path, timit=True)
+                                                 individual_fibres=True, ronmask=ronmask, savefile=True, filetype='fits', obsname='master_simth', pathdict=pathdict, timit=True)
     
 if len(laser_list) > 0:
     choice = 'r'
-    if os.path.isfile(path + date + '_master_lfc.fits'):
+    if os.path.isfile(pathdict['raw'] + date + '_master_lfc.fits'):
         choice = raw_input("Master LFC frame for " + date + " already exists! Do you want to skip this step or recreate it? ['s' / 'r']")
     if choice.lower() == 's':
         print('Loading MASTER LFC frame for ' + date + '...')
-        master_lfc = pyfits.getdata(path + date + '_master_lfc.fits', 0)
-        err_master_lfc = pyfits.getdata(path + date + '_master_lfc.fits', 1)
+        master_lfc = pyfits.getdata(pathdict['raw'] + date + '_master_lfc.fits', 0)
+        err_master_lfc = pyfits.getdata(pathdict['raw'] + date + '_master_lfc.fits', 1)
     else:
-        master_lfc, err_master_lfc = make_master_calib(laser_list, lamptype='lfc', MB=medbias, ronmask=ronmask, MD=MDS, gain=gain, chipmask=chipmask, remove_bg=True, savefile=True, path=path)
+        master_lfc, err_master_lfc = make_master_calib(laser_list, lamptype='lfc', MB=medbias, ronmask=ronmask, MD=MDS, gain=gain, chipmask=chipmask, remove_bg=True, savefile=True, path=pathdict['raw'])
     # now do the extraction
     pix_q,flux_q,err_q = extract_spectrum_from_indices(master_lfc, err_master_lfc, lfc_indices, method='quick', slit_height=calsh, ronmask=ronmask, savefile=True,
-                                                       date=date, filetype='fits', obsname='master_lfc', path=path, timit=True)
+                                                       date=date, filetype='fits', obsname='master_lfc', pathdict=pathdict, timit=True)
     pix,flux,err = extract_spectrum_from_indices(master_lfc, err_master_lfc, indices, method='optimal', slit_height=slit_height, fibs='lfc', slope=True, offset=True, date=date,
-                                                 individual_fibres=True, ronmask=ronmask, savefile=True, filetype='fits', obsname='master_lfc', path=path, timit=True)
+                                                 individual_fibres=True, ronmask=ronmask, savefile=True, filetype='fits', obsname='master_lfc', pathdict=pathdict, timit=True)
     
 if len(laser_and_thxe_list) > 0:
     choice = 'r'
-    if os.path.isfile(path + date + '_master_lfc_plus_simth.fits'):
+    if os.path.isfile(pathdict['raw'] + date + '_master_lfc_plus_simth.fits'):
         choice = raw_input("Master LFC_PLUS_SIMTH frame for " + date + " already exists! Do you want to skip this step or recreate it? ['s' / 'r']")
     if choice.lower() == 's':
         print('Loading MASTER LFC + SimThXe frame for ' + date + '...')
-        master_both = pyfits.getdata(path + date + '_master_lfc_plus_simth.fits', 0)
-        err_master_both = pyfits.getdata(path + date + '_master_lfc_plus_simth.fits', 1)
+        master_both = pyfits.getdata(pathdict['raw'] + date + '_master_lfc_plus_simth.fits', 0)
+        err_master_both = pyfits.getdata(pathdict['raw'] + date + '_master_lfc_plus_simth.fits', 1)
     else:
-        master_both, err_master_both = make_master_calib(laser_and_thxe_list, lamptype='both', MB=medbias, ronmask=ronmask, MD=MDS, gain=gain, chipmask=chipmask, remove_bg=True, savefile=True, path=path)
+        master_both, err_master_both = make_master_calib(laser_and_thxe_list, lamptype='both', MB=medbias, ronmask=ronmask, MD=MDS, gain=gain, chipmask=chipmask, remove_bg=True, savefile=True, path=pathdict['raw'])
     # now do the extraction
     pix_q,flux_q,err_q = extract_spectrum_from_indices(master_both, err_master_both, indices, method='quick', slit_height=slit_height, ronmask=ronmask, savefile=True,
-                                                       date=date, filetype='fits', obsname='master_lfc_plus_simth', path=path, timit=True)
+                                                       date=date, filetype='fits', obsname='master_lfc_plus_simth', pathdict=pathdict, timit=True)
     pix,flux,err = extract_spectrum_from_indices(master_both, err_master_both, indices, method='optimal', slit_height=slit_height, fibs='calibs', slope=True, offset=True, date=date,
-                                                 individual_fibres=True, ronmask=ronmask, savefile=True, filetype='fits', obsname='master_lfc_plus_simth', path=path, timit=True)
+                                                 individual_fibres=True, ronmask=ronmask, savefile=True, filetype='fits', obsname='master_lfc_plus_simth', pathdict=pathdict, timit=True)
 #####################################################################################################################################################    
 
 
@@ -335,7 +344,7 @@ checkdate = '1' + date[1:]
 if int(checkdate) < 20190503:
     # look at the actual 2D image (using chipmasks for LFC and simThXe) to determine which calibration lamps fired
     for file in arc_list:
-        img = correct_for_bias_and_dark_from_filename(file, medbias, MDS, gain=gain, scalable=False, savefile=False, path=path)
+        img = correct_for_bias_and_dark_from_filename(file, medbias, MDS, gain=gain, scalable=False, savefile=False, path=pathdict['raw'])
         lc = laser_on(img, chipmask)
         thxe = thxe_on(img, chipmask)
         if (not lc) and (not thxe):
@@ -376,7 +385,7 @@ for subl in arc_sublists.keys():
     if len(arc_sublists[subl]) > 0:
         dum = process_science_images(arc_sublists[subl], traces['allfib'], chipmask, mask=mask, stripe_indices=indices, quick_indices=indices, sampling_size=25,
                                      slit_height=slit_height, qsh=slit_height, gain=gain, MB=medbias, ronmask=ronmask, MD=MDS, scalable=True, saveall=False,
-                                     path=path, ext_method='optimal', fibs='all', offset=True, slope=True, date=date, from_indices=True, timit=True)
+                                     path=pathdict['raw'], ext_method='optimal', fibs='all', offset=True, slope=True, date=date, from_indices=True, timit=True)
 #####################################################################################################################################################
 
 
@@ -386,19 +395,19 @@ if len(thxe_list) > 0:
     print('Processing sim-ThXe images...')
     dum = process_science_images(thxe_list, traces['simth'], chipmask, mask=mask, stripe_indices=indices, quick_indices=simth_indices,
                                  sampling_size=25, slit_height=slit_height, qsh=calsh, gain=gain, MB=medbias,
-                                 ronmask=ronmask, MD=MDS, scalable=True, saveall=False, path=path, ext_method='optimal',
+                                 ronmask=ronmask, MD=MDS, scalable=True, saveall=False, path=pathdict['raw'], ext_method='optimal',
                                  offset=True, slope=True, fibs='simth', date=date, from_indices=True, timit=True)
 if len(laser_list) > 0:
     print('Processing LFC images...')
     dum = process_science_images(laser_list, traces['lfc'], chipmask, mask=mask, stripe_indices=indices, quick_indices=lfc_indices,
                                  sampling_size=25, slit_height=slit_height, qsh=calsh, gain=gain, MB=medbias,
-                                 ronmask=ronmask, MD=MDS, scalable=True, saveall=False, path=path, ext_method='optimal',
+                                 ronmask=ronmask, MD=MDS, scalable=True, saveall=False, path=pathdict['raw'], ext_method='optimal',
                                  offset=True, slope=True, fibs='lfc', date=date, from_indices=True, timit=True)
 if len(laser_and_thxe_list) > 0:
     print('Processing LFC+sim-ThXe images...')
     dum = process_science_images(laser_and_thxe_list, traces['allfib'], chipmask, mask=mask, stripe_indices=indices, quick_indices=indices,
                                  sampling_size=25, slit_height=slit_height, qsh=slit_height, gain=gain, MB=medbias,
-                                 ronmask=ronmask, MD=MDS, scalable=True, saveall=False, path=path, ext_method='optimal',
+                                 ronmask=ronmask, MD=MDS, scalable=True, saveall=False, path=pathdict['raw'], ext_method='optimal',
                                  offset=True, slope=True, fibs='calibs', date=date, from_indices=True, timit=True)
 #####################################################################################################################################################
 
@@ -408,7 +417,7 @@ if len(stellar_list) > 0:
     print('Processing stellar images...')
     dum = process_science_images(stellar_list, traces['stellar'], chipmask, mask=mask, stripe_indices=indices, quick_indices=st_indices,
                                  sampling_size=25, slit_height=slit_height, qsh=stsh, gain=gain, MB=medbias,
-                                 ronmask=ronmask, MD=MDS, scalable=True, saveall=False, path=path, ext_method='optimal',
+                                 ronmask=ronmask, MD=MDS, scalable=True, saveall=False, path=pathdict['raw'], ext_method='optimal',
                                  offset=True, slope=True, fibs='all', date=date, from_indices=True, timit=True)
 #####################################################################################################################################################
 

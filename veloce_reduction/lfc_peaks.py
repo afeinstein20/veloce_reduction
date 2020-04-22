@@ -200,10 +200,9 @@ def unfinished_find_manual_transformation_matrix(x, y, x0, y0, nx=4112, ny=4202,
 
 
 
-def divide_lfc_peaks_into_orders(x, y, tol=5):
+def divide_lfc_peaks_into_orders(x, y, tol=5, lfc_path='/Users/christoph/OneDrive - UNSW/lfc_peaks/'):
 
     # read rough LFC traces
-    lfc_path = '/Users/christoph/OneDrive - UNSW/lfc_peaks/'
     pid = np.load(lfc_path + 'lfc_P_id.npy').item()
 
     peaks = {}
