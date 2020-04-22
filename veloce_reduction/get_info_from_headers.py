@@ -138,7 +138,7 @@ def get_obstype_lists(pathdict, pattern=None, weeding=True, quick=False, raw_goo
             
         # look at the actual 2D image (using chipmasks for LFC and simThXe) to determine which calibration lamps fired
         for file in calib_list:
-            img = correct_for_bias_and_dark_from_filename(file, np.zeros((4096,4112)), np.zeros((4096,4112)), gain=[1., 1.095, 1.125, 1.], scalable=False, savefile=False, pathdict=pathdict)
+            img = correct_for_bias_and_dark_from_filename(file, np.zeros((4096,4112)), np.zeros((4096,4112)), gain=[1., 1.095, 1.125, 1.], scalable=False, savefile=False, path=pathdict['raw'])
             lc = laser_on(img, chipmask)
             thxe = thxe_on(img, chipmask)
             if (not lc) and (not thxe):
