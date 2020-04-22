@@ -159,7 +159,7 @@ else:
 
 ### (3) INITIAL ORDER TRACING #######################################################################################################################
 choice = 'r'
-if os.path.isfile(pathdict['raw'] + 'P_id.npy') and os.path.isfile(pathdict['raw'] + 'mask.npy'):
+if os.path.isfile(pathdict['raw'] + date + '_P_id.npy') and os.path.isfile(pathdict['raw'] + date + '_mask.npy'):
     choice = raw_input("INITIAL ORDER TRACING has already been done for " + date + " ! Do you want to skip this step or recreate it? ['s' / 'r']")
 if choice.lower() == 's':
     print('Loading initial order traces for ' + date + '...')
