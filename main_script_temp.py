@@ -36,15 +36,6 @@ from process_scripts import process_whites, process_science_images
 
 date = '20191023'
 
-# desktop:
-path = '/Volumes/BERGRAID/data/veloce/raw_goodonly/' + date + '/'
-# laptop:
-# path = '/Users/christoph/data/raw_goodonly/' + date + '/'
-
-# some hard-coded file directories
-chipmask_path = '/Users/christoph/OneDrive - UNSW/chipmasks/archive/'
-fibparms_path = '/Users/christoph/OneDrive - UNSW/fibre_profiles/archive/'
-
 
 pathdict = {}
 pathdict['raw'] = '/Volumes/BERGRAID/data/veloce/raw_goodonly/' + date + '/'

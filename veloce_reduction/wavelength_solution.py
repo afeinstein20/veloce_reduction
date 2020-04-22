@@ -2726,7 +2726,7 @@ def make_master_fibth(date=None, savefile=True, overwrite=False, redpath='/Volum
 
 
 def make_arc_dispsols(date, deg_spectral=7, deg_spatial=7, polytype='chebyshev', savetable=False, savefits=True, overwrite=False, 
-                      save_individual=False, redpath='/Volumes/BERGRAID/data/veloce/reduced/'debug_level=0, timit=False):
+                      save_individual=False, redpath='/Volumes/BERGRAID/data/veloce/reduced/', debug_level=0, timit=False):
 
     """
     for making the one per night fibre ThAr/ThXe dispsols
