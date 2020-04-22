@@ -376,7 +376,7 @@ for subl in arc_sublists.keys():
     if len(arc_sublists[subl]) > 0:
         dum = process_science_images(arc_sublists[subl], traces['allfib'], chipmask, mask=mask, stripe_indices=indices, quick_indices=indices, sampling_size=25,
                                      slit_height=slit_height, qsh=slit_height, gain=gain, MB=medbias, ronmask=ronmask, MD=MDS, scalable=True, saveall=False,
-                                     path=pathdict['raw'], ext_method='optimal', fibs='all', offset=True, slope=True, date=date, from_indices=True, timit=True)
+                                     pathdict=pathdict, ext_method='optimal', fibs='all', offset=True, slope=True, date=date, from_indices=True, timit=True)
 #####################################################################################################################################################
 
 
@@ -386,19 +386,19 @@ if len(thxe_list) > 0:
     print('Processing sim-ThXe images...')
     dum = process_science_images(thxe_list, traces['simth'], chipmask, mask=mask, stripe_indices=indices, quick_indices=simth_indices,
                                  sampling_size=25, slit_height=slit_height, qsh=calsh, gain=gain, MB=medbias,
-                                 ronmask=ronmask, MD=MDS, scalable=True, saveall=False, path=pathdict['raw'], ext_method='optimal',
+                                 ronmask=ronmask, MD=MDS, scalable=True, saveall=False, pathdict=pathdict, ext_method='optimal',
                                  offset=True, slope=True, fibs='simth', date=date, from_indices=True, timit=True)
 if len(laser_list) > 0:
     print('Processing LFC images...')
     dum = process_science_images(laser_list, traces['lfc'], chipmask, mask=mask, stripe_indices=indices, quick_indices=lfc_indices,
                                  sampling_size=25, slit_height=slit_height, qsh=calsh, gain=gain, MB=medbias,
-                                 ronmask=ronmask, MD=MDS, scalable=True, saveall=False, path=pathdict['raw'], ext_method='optimal',
+                                 ronmask=ronmask, MD=MDS, scalable=True, saveall=False, pathdict=pathdict, ext_method='optimal',
                                  offset=True, slope=True, fibs='lfc', date=date, from_indices=True, timit=True)
 if len(laser_and_thxe_list) > 0:
     print('Processing LFC+sim-ThXe images...')
     dum = process_science_images(laser_and_thxe_list, traces['allfib'], chipmask, mask=mask, stripe_indices=indices, quick_indices=indices,
                                  sampling_size=25, slit_height=slit_height, qsh=slit_height, gain=gain, MB=medbias,
-                                 ronmask=ronmask, MD=MDS, scalable=True, saveall=False, path=pathdict['raw'], ext_method='optimal',
+                                 ronmask=ronmask, MD=MDS, scalable=True, saveall=False, pathdict=pathdict, ext_method='optimal',
                                  offset=True, slope=True, fibs='calibs', date=date, from_indices=True, timit=True)
 #####################################################################################################################################################
 
@@ -408,7 +408,7 @@ if len(stellar_list) > 0:
     print('Processing stellar images...')
     dum = process_science_images(stellar_list, traces['stellar'], chipmask, mask=mask, stripe_indices=indices, quick_indices=st_indices,
                                  sampling_size=25, slit_height=slit_height, qsh=stsh, gain=gain, MB=medbias,
-                                 ronmask=ronmask, MD=MDS, scalable=True, saveall=False, path=pathdict['raw'], ext_method='optimal',
+                                 ronmask=ronmask, MD=MDS, scalable=True, saveall=False, pathdict=pathdict, ext_method='optimal',
                                  offset=True, slope=True, fibs='all', date=date, from_indices=True, timit=True)
 #####################################################################################################################################################
 

@@ -224,7 +224,7 @@ def process_whites(white_list, MB=None, ronmask=None, MD=None, gain=None, P_id=N
 
 
 def process_science_images(imglist, P_id, chipmask, mask=None, stripe_indices=None, quick_indices=None, sampling_size=25, slit_height=32, qsh=23, gain=[1.,1.,1.,1.], MB=None, ronmask=None, 
-                           MD=None, scalable=False, saveall=False, path=None, ext_method='optimal', from_indices=True, slope=True, offset=True, fibs='all', date=None, timit=False):
+                           MD=None, scalable=False, saveall=False, pathdict=None, ext_method='optimal', from_indices=True, slope=True, offset=True, fibs='all', date=None, timit=False):
     """
     Process all science / calibration lamp images. This includes:
     
@@ -244,6 +244,9 @@ def process_science_images(imglist, P_id, chipmask, mask=None, stripe_indices=No
     # cont = raw_input('Do you still want to continue?')
     cont='y'
     assert cont.lower() == 'y', 'You chose to quit!'
+
+    assert pathdict is not None, 'ERROR: pathdict not provided!!!'
+    path = pathdict['raw']
 
     if timit:
         start_time = time.time()
