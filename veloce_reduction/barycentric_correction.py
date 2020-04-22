@@ -4,9 +4,9 @@ from astroquery.gaia import Gaia
 import astropy.io.fits as pyfits
 import barycorrpy
 import numpy as np
-from readcol import readcol
 import glob
 
+from veloce_reduction.readcol import readcol
 from veloce_reduction.veloce_reduction.get_info_from_headers import get_obstype_lists
 from veloce_reduction.veloce_reduction.helper_functions import short_filenames
 

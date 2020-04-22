@@ -1,12 +1,11 @@
 import numpy as np
 import time
-from readcol import readcol
 import os
 import glob
 import astropy.io.fits as pyfits
 import matplotlib.pyplot as plt
 
-
+from veloce_reduction.readcol import readcol
 from veloce_reduction.veloce_reduction.calibration import correct_orientation, crop_overscan_region
 from veloce_reduction.veloce_reduction.helper_functions import laser_on, thxe_on
 
