@@ -1668,7 +1668,9 @@ def make_master_calib(file_list, lamptype=None, MB=None, ronmask=None, MD=None, 
             tscale = np.array(texp_list) / np.median(texp_list)
         except:
             print("WARNING: FITS keyword 'LCTEXPTM' does not exist - cannot scale by actual LFC exposure times!")
+            print("WARNING: FITS keyword 'LCTEXP' does not exist - cannot scale by actual LFC exposure times!")
             tscale = np.ones(len(file_list))
+            texp_list = []
     elif lamptype.lower() == 'simth':
         try:
             texp_list = [pyfits.getval(file, 'SIMCALTT') for file in file_list]
@@ -1677,6 +1679,7 @@ def make_master_calib(file_list, lamptype=None, MB=None, ronmask=None, MD=None, 
         except:
             print("WARNING: FITS keyword 'SIMCALTT' does not exist - cannot scale by actual SimThXe exposure times!")
             tscale = np.ones(len(file_list))
+            texp_list = []
     else:
         try:
             texp_list_lfc = [pyfits.getval(file, 'LCTEXPTM') for file in file_list]
