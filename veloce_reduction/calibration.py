@@ -1746,10 +1746,19 @@ def make_master_calib(file_list, lamptype=None, MB=None, ronmask=None, MD=None, 
         pyfits.writeto(outfn, master, overwrite=True)
         pyfits.setval(outfn, 'HISTORY', value='   MASTER ' + typestring.upper() + ' frame - created ' + time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()) + ' (GMT)')
         if lamptype == 'both':
-            pyfits.setval(outfn, 'MED_T_LC', value=np.median(texp_list_lfc), comment='median exposure time of LFC [s]')
-            pyfits.setval(outfn, 'MED_T_TH', value=np.median(texp_list_simth), comment='median exposure time of SimThXe [s]')
+            if not np.isnan(np.median(texp_list_lfc)):
+                pyfits.setval(outfn, 'MED_T_LC', value=np.median(texp_list_lfc), comment='median exposure time of LFC [s]')
+            else:
+                pyfits.setval(outfn, 'MED_T_LC', value='N/A', comment='median exposure time of LFC [s]')
+            if not np.isnan(np.median(texp_list_simth)):
+                pyfits.setval(outfn, 'MED_T_TH', value=np.median(texp_list_simth), comment='median exposure time of SimThXe [s]')
+            else:
+                pyfits.setval(outfn, 'MED_T_TH', value='N/A', comment='median exposure time of SimThXe [s]')
         else:
-            pyfits.setval(outfn, 'MED_TEXP', value=np.median(texp_list), comment='median exposure time [s]')
+            if not np.isnan(np.median(texp_list)):
+                pyfits.setval(outfn, 'MED_TEXP', value=np.median(texp_list), comment='median exposure time [s]')
+            else:
+                pyfits.setval(outfn, 'MED_TEXP', value='N/A', comment='median exposure time [s]')
         pyfits.setval(outfn, 'UNITS', value='ELECTRONS')
         pyfits.setval(outfn, 'METHOD', value='median', comment='method to create master ' + typestring + ' and remove outliers')
         h = pyfits.getheader(outfn)
