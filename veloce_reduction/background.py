@@ -77,7 +77,7 @@ def remove_background(img, bgmask, obsname, path, degpol=5, save_bg=True, savefi
                 h = pyfits.getheader(path+obsname+'.fits')
                 h['UNITS'] = 'ELECTRONS'
         h['HISTORY'] = '   BACKGROUND image - created '+time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())+' (GMT)'
-        pyfits.writeto(outfn, bg_img, h, overwrite=True)
+        pyfits.writeto(outfn, np.float32(bg_img), h, overwrite=True)
         
     #save background-corrected image
     if savefile:
@@ -93,20 +93,20 @@ def remove_background(img, bgmask, obsname, path, degpol=5, save_bg=True, savefi
                 h = pyfits.getheader(path+obsname+'.fits')
                 h['UNITS'] = 'ELECTRONS'
         h['HISTORY'] = '   BACKGROUND-corrected image - created '+time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())+' (GMT)'
-        pyfits.writeto(outfn, corrected_image, h, overwrite=True)
+        pyfits.writeto(outfn, np.float32(corrected_image), h, overwrite=True)
         #also save the error array if desired
         if save_err:
             try:
                 err = pyfits.getdata(path+obsname+'_BD_CR.fits', 1)
                 h_err = h.copy()
                 h_err['HISTORY'] = 'estimated uncertainty in BACKGROUND-corrected image - created '+time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())+' (GMT)'
-                pyfits.append(outfn, err, h_err, overwrite=True)
+                pyfits.append(outfn, np.float32(err), h_err, overwrite=True)
             except:
                 try:
                     err = pyfits.getdata(path+obsname+'_BD.fits', 1)
                     h_err = h.copy()
                     h_err['HISTORY'] = 'estimated uncertainty in BACKGROUND-corrected image - created '+time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())+' (GMT)'
-                    pyfits.append(outfn, err, h_err, overwrite=True)
+                    pyfits.append(outfn, np.float32(err), h_err, overwrite=True)
                 except:
                     print('WARNING: error array not found - cannot save error array')
     
@@ -164,7 +164,7 @@ def remove_background_pid(img, P_id, obsname, path, degpol=5, slit_height=25, sa
                 h = pyfits.getheader(path+obsname+'.fits')
                 h['UNITS'] = 'ELECTRONS'
         h['HISTORY'] = '   BACKGROUND image - created '+time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())+' (GMT)'
-        pyfits.writeto(outfn, bg_img, h, overwrite=True)
+        pyfits.writeto(outfn, np.float32(bg_img), h, overwrite=True)
         
     #save background-corrected image
     if savefile:
@@ -180,20 +180,20 @@ def remove_background_pid(img, P_id, obsname, path, degpol=5, slit_height=25, sa
                 h = pyfits.getheader(path+obsname+'.fits')
                 h['UNITS'] = 'ELECTRONS'
         h['HISTORY'] = '   BACKGROUND-corrected image - created '+time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())+' (GMT)'
-        pyfits.writeto(outfn, corrected_image, h, overwrite=True)
+        pyfits.writeto(outfn, np.float32(corrected_image), h, overwrite=True)
         #also save the error array if desired
         if save_err:
             try:
                 err = pyfits.getdata(path+obsname+'_BD_CR.fits', 1)
                 h_err = h.copy()
                 h_err['HISTORY'] = 'estimated uncertainty in BACKGROUND-corrected image - created '+time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())+' (GMT)'
-                pyfits.append(outfn, err, h_err, overwrite=True)
+                pyfits.append(outfn, np.float32(err), h_err, overwrite=True)
             except:
                 try:
                     err = pyfits.getdata(path+obsname+'_BD.fits', 1)
                     h_err = h.copy()
                     h_err['HISTORY'] = 'estimated uncertainty in BACKGROUND-corrected image - created '+time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())+' (GMT)'
-                    pyfits.append(outfn, err, h_err, overwrite=True)
+                    pyfits.append(outfn, np.float32(err), h_err, overwrite=True)
                 except:
                     print('WARNING: error array not found - cannot save error array')
     

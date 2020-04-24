@@ -1125,11 +1125,11 @@ def extract_spectrum(stripes, err_stripes, ron_stripes, method='optimal', indivi
                     outfn = path + date + '_' + starname + obsname + '_' + method.lower() + submethod + '_extracted.fits'
                 else:
                     outfn = path + date + '_' + starname + '_' + obsname + '_' + method.lower() + submethod + '_extracted.fits'
-                pyfits.writeto(outfn, fluxarr, h, overwrite=True)
+                pyfits.writeto(outfn, np.float32(fluxarr), h, overwrite=True)
                 # now append the corresponding error array
                 h_err = h.copy()
                 h_err['HISTORY'] = 'estimated uncertainty in EXTRACTED SPECTRUM - created ' + time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()) + ' (GMT)'
-                pyfits.append(outfn, errarr, h_err, overwrite=True)
+                pyfits.append(outfn, np.float32(errarr), h_err, overwrite=True)
                 
             if filetype in ['dict', 'both']:
                 # OK, save as a python dictionary
@@ -1312,11 +1312,11 @@ def extract_spectrum_from_indices(img, err_img, stripe_indices, ronmask=None, me
                     outfn = path + obsname + '_' + method.lower() + submethod + '_extracted.fits'
                 else:
                     outfn = path + date + '_' + starname + '_' + obsname + '_' + method.lower() + submethod + '_extracted.fits'
-                pyfits.writeto(outfn, fluxarr, h, overwrite=True)
+                pyfits.writeto(outfn, np.float32(fluxarr), h, overwrite=True)
                 # now append the corresponding error array
                 h_err = h.copy()
                 h_err['HISTORY'] = 'estimated uncertainty in EXTRACTED SPECTRUM - created ' + time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()) + ' (GMT)'
-                pyfits.append(outfn, errarr, h_err, overwrite=True)
+                pyfits.append(outfn, np.float32(errarr), h_err, overwrite=True)
                 
             if filetype in ['dict', 'both']:
                 # OK, save as a python dictionary

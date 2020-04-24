@@ -2716,8 +2716,8 @@ def make_master_fibth(date=None, savefile=True, overwrite=False, redpath='/Volum
     err_medspec = 1.253 * np.std(allspec, axis=0) / np.sqrt(n_arc-1)     # normally it would be sigma/sqrt(n), but np.std is dividing by sqrt(n), not by sqrt(n-1)
     
     if savefile:
-        pyfits.writeto(path + date + '_master_ARC' + '.fits', medspec, overwrite=overwrite)
-        pyfits.append(path + date + '_master_ARC' + '.fits', err_medspec, overwrite=overwrite)
+        pyfits.writeto(path + date + '_master_ARC' + '.fits', np.float32(medspec), overwrite=overwrite)
+        pyfits.append(path + date + '_master_ARC' + '.fits', np.float32(err_medspec), overwrite=overwrite)
     
     return medspec, err_medspec
 
@@ -2783,13 +2783,13 @@ def make_arc_dispsols(date, deg_spectral=7, deg_spatial=7, polytype='chebyshev',
             all_air_wl[:, fib, :] = air_wl[:-1, :].copy()  # do NOT include the blue-most order
             all_vac_wl[:, fib, :] = vac_wl[:-1, :].copy()
             if save_individual:
-                pyfits.writeto(path + date + lamptype + '_dispsol_fibre_' + fibname[fib] + '.fits', air_wl, overwrite=overwrite)
-                pyfits.append(path + date + lamptype + '_dispsol_fibre_' + fibname[fib] + '.fits', vac_wl)
+                pyfits.writeto(path + date + lamptype + '_dispsol_fibre_' + fibname[fib] + '.fits', np.float32(air_wl), overwrite=overwrite)
+                pyfits.append(path + date + lamptype + '_dispsol_fibre_' + fibname[fib] + '.fits', np.float32(vac_wl))
 
     # save to all-fibres-combined fits file
     if savefits:
-        pyfits.writeto(path + date + '_' + lamptype + '_dispsol.fits', all_air_wl, overwrite=overwrite)
-        pyfits.append(path + date + '_' + lamptype + '_dispsol.fits', all_vac_wl)
+        pyfits.writeto(path + date + '_' + lamptype + '_dispsol.fits', np.float32(all_air_wl), overwrite=overwrite)
+        pyfits.append(path + date + '_' + lamptype + '_dispsol.fits', np.float32(all_vac_wl))
 
     if timit:
         delta_t = time.time() - start_time
@@ -2849,11 +2849,11 @@ def make_arc_dispsols_for_all_nights(outpath='/Users/christoph/OneDrive - UNSW/d
             # save to individual-fibre fits file(s)
             if savefits:
                 if save_individual:
-                    pyfits.writeto(outpath + date + lamptype + '_dispsol_fibre_' + fibname[fib] + '.fits', air_wl, overwrite=overwrite)
+                    pyfits.writeto(outpath + date + lamptype + '_dispsol_fibre_' + fibname[fib] + '.fits', np.float32(air_wl), overwrite=overwrite)
                 
         # save to all-fibres-combined fits file
         if savefits:
-            pyfits.writeto(outpath + date + lamptype + '_dispsol.fits', all_air_wl, overwrite=overwrite)
+            pyfits.writeto(outpath + date + lamptype + '_dispsol.fits', np.float32(all_air_wl), overwrite=overwrite)
         
     return
 
@@ -2916,7 +2916,7 @@ def get_dispsol_for_all_fibs_from_fibth(fn, date=None, path=None, deg_spectral=7
         all_vac_wl[:, fib, :] = vac_wl[:-1, :].copy()  # do NOT include the blue-most order
         
 #         if save_individual:
-#             pyfits.writeto(outpath + lamptype + '_dispsol_' + date + '_fibre_' + fibname[fib] + '.fits', air_wl, overwrite=overwrite)
+#             pyfits.writeto(outpath + lamptype + '_dispsol_' + date + '_fibre_' + fibname[fib] + '.fits', np.float32(air_wl), overwrite=overwrite)
     
 
     # save to all-fibres-combined fits file
@@ -2924,8 +2924,8 @@ def get_dispsol_for_all_fibs_from_fibth(fn, date=None, path=None, deg_spectral=7
         shortname = fn.split('/')[-1]
         obsname = shortname.split('_')[-3]
         obj = 'ARC_'
-        pyfits.writeto(path + date + '_' + obj + lamptype + '_' + obsname + '_air_dispsol.fits', all_air_wl, overwrite=True)
-        pyfits.writeto(path + date + '_' + obj + lamptype + '_' + obsname + '_vac_dispsol.fits', all_vac_wl, overwrite=True)
+        pyfits.writeto(path + date + '_' + obj + lamptype + '_' + obsname + '_air_dispsol.fits', np.float32(all_air_wl), overwrite=True)
+        pyfits.writeto(path + date + '_' + obj + lamptype + '_' + obsname + '_vac_dispsol.fits', np.float32(all_vac_wl), overwrite=True)
     
     if timit:
         delta_t = time.time() - start_time
@@ -2949,7 +2949,7 @@ def make_lfc_only_wl_files_for_all_fibs(wlfile, savefile=True, return_full=False
         short_fn = wlfile.split('/')[-1]
         path = wlfile[:-len(short_fn)]
         new_fn = path + short_fn.split('.fits')[0] + '_lfc.fits'
-        pyfits.writeto(new_fn, lfc_wl)
+        pyfits.writeto(new_fn, np.float32(lfc_wl))
     
     if return_full:
         return lfc_wl

@@ -252,14 +252,14 @@ def remove_cosmics(img, ronmask, obsname, path, Flim=3.0, siglim=5.0, maxiter=20
             h = pyfits.getheader(path+obsname+'.fits')
             h['UNITS'] = 'ELECTRONS'
         h['HISTORY'] = '   COSMIC-RAY corrected image - created '+time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())+' (GMT)'
-        pyfits.writeto(outfn, cleaned, h, overwrite=True)
+        pyfits.writeto(outfn, np.float32(cleaned), h, overwrite=True)
         #also save the error array if desired
         if save_err:
             try:
                 err = pyfits.getdata(path+obsname+'_BD.fits', 1)
                 h_err = h.copy()
                 h_err['HISTORY'] = 'estimated uncertainty in COSMIC-RAY corrected image - created '+time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())+' (GMT)'
-                pyfits.append(outfn, err, h_err, overwrite=True)
+                pyfits.append(outfn, np.float32(err), h_err, overwrite=True)
             except:
                 print('WARNING: error array not found - cannot save error array')
             

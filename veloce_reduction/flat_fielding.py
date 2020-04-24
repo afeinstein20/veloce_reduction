@@ -122,8 +122,8 @@ def onedim_pixtopix_variations_spline(flat, knots=9, guess=13, savefits=True, pa
             h = pyfits.getheader(path + date + '_master_white.fits')
             # add requested number of knots to header
             h['N_KNOTS'] = (knots, 'number of knots used in smoothing spline')
-            pyfits.writeto(path + date + '_smoothed_flat.fits', smoothed_flat, h)
-            pyfits.writeto(path + date + '_pixel_sensitivity.fits', pix_sens, h)
+            pyfits.writeto(path + date + '_smoothed_flat.fits', np.float32(smoothed_flat), h)
+            pyfits.writeto(path + date + '_pixel_sensitivity.fits', np.float32(pix_sens), h)
                 
     elif flat.__class__ == dict:
         print('This has not been implemented yet for dictionaries...')

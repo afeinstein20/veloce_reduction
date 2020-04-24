@@ -8,7 +8,6 @@ import glob
 import time
 import numpy as np
 import matplotlib.pyplot as plt
-# import astropy.io.fits as pyfits
 
 from veloce_reduction.readcol import readcol
 from veloce_reduction.veloce_reduction.helper_functions import find_nearest

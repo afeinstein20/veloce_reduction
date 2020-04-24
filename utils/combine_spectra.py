@@ -515,7 +515,7 @@ def main_script_for_sarah(date = '20190722', skysub=False):
         # do a linear interpolation to find the wl-solution at t=tobs
         wl = interpolate_dispsols(wl1, wl2, t1, t2, tobs)
         # append this wavelength solution to the extracted spectrum FITS files
-        pyfits.append(file, wl, overwrite=True)
+        pyfits.append(file, np.float32(wl), overwrite=True)
     
     
     ### STEP 2: append barycentric correction!?!?!?
@@ -580,13 +580,13 @@ def main_script_for_sarah(date = '20190722', skysub=False):
         outpath = path + 'fibres_combined/'
         fname = file.split('/')[-1]
         new_fn = outpath + fname.split('.')[0] + '_stellar_fibres_combined.fits'
-        pyfits.writeto(new_fn, comb_f, h, overwrite=True)
-        pyfits.append(new_fn, comb_err, h_err, overwrite=True)
-        pyfits.append(new_fn, ref_wl, overwrite=True)
+        pyfits.writeto(new_fn, np.float32(comb_f), h, overwrite=True)
+        pyfits.append(new_fn, np.float32(comb_err), h_err, overwrite=True)
+        pyfits.append(new_fn, np.float32(ref_wl), overwrite=True)
         sky_fn = outpath + fname.split('.')[0] + '_median_sky.fits'
-        pyfits.writeto(sky_fn, comb_f_sky, h, overwrite=True)
-        pyfits.append(sky_fn, comb_err_sky, h_err, overwrite=True)
-        pyfits.append(sky_fn, ref_wl_sky, overwrite=True)
+        pyfits.writeto(sky_fn, np.float32(comb_f_sky), h, overwrite=True)
+        pyfits.append(sky_fn, np.float32(comb_err_sky), h_err, overwrite=True)
+        pyfits.append(sky_fn, np.float32(ref_wl_sky), overwrite=True)
     
     
     ### STEP 4: combine all single-shot exposures for each target and do sky-subtraction, and flux-weighting of barycentric correction
@@ -654,9 +654,9 @@ def main_script_for_sarah(date = '20190722', skysub=False):
         # save to new FITS file(s)
 #         outpath = path + 'final_combined_spectra/'
 #         new_fn = outpath + object + '_final_combined.fits'
-#         pyfits.writeto(new_fn, comb_f, h, overwrite=True)
-#         pyfits.append(new_fn, comb_err, h_err, overwrite=True)
-#         pyfits.append(new_fn, ref_wl, overwrite=True)
+#         pyfits.writeto(new_fn, np.float32(comb_f), h, overwrite=True)
+#         pyfits.append(new_fn, np.float32(comb_err), h_err, overwrite=True)
+#         pyfits.append(new_fn, np.float32(ref_wl), overwrite=True)
         # write the barycentric correction into the FITS header of both the quick-extracted and the optimal-extracted reduced spectrum files
 #         pyfits.setval(new_fn, 'BARYCORR', value=wm_bc, comment='barycentric velocity correction [m/s]')
 
@@ -668,9 +668,9 @@ def main_script_for_sarah(date = '20190722', skysub=False):
         else:
             new_fn = outpath + object + '_final_combined.fits'
             h['SKYSUB'] = 'FALSE'
-        pyfits.writeto(new_fn, comb_f, h, overwrite=True)
-        pyfits.append(new_fn, comb_err, h_err, overwrite=True)
-        pyfits.append(new_fn, ref_wl, overwrite=True)
+        pyfits.writeto(new_fn, np.float32(comb_f), h, overwrite=True)
+        pyfits.append(new_fn, np.float32(comb_err), h_err, overwrite=True)
+        pyfits.append(new_fn, np.float32(ref_wl), overwrite=True)
         # write the barycentric correction into the FITS header of both the quick-extracted and the optimal-extracted reduced spectrum files
         pyfits.setval(new_fn, 'BARYCORR', value=wm_bc, comment='barycentric velocity correction [m/s]')
 
@@ -726,7 +726,7 @@ def main_script_for_timtim(date = '20190621'):
         # do a linear interpolation to find the wl-solution at t=tobs
         wl = interpolate_dispsols(wl1, wl2, t1, t2, tobs)
         # append this wavelength solution to the extracted spectrum FITS files
-        pyfits.append(file, wl, overwrite=True)
+        pyfits.append(file, np.float32(wl), overwrite=True)
     
     
     #     ### STEP 2: append barycentric correction!?!?!?
@@ -809,13 +809,13 @@ def main_script_for_timtim(date = '20190621'):
         outpath = path + 'fibres_combined/'
         fname = file.split('/')[-1]
         new_fn = outpath + fname.split('.')[0] + '_stellar_fibres_combined.fits'
-        pyfits.writeto(new_fn, comb_f, h, overwrite=True)
-        pyfits.append(new_fn, comb_err, h_err, overwrite=True)
-        pyfits.append(new_fn, ref_wl, overwrite=True)
+        pyfits.writeto(new_fn, np.float32(comb_f), h, overwrite=True)
+        pyfits.append(new_fn, np.float32(comb_err), h_err, overwrite=True)
+        pyfits.append(new_fn, np.float32(ref_wl), overwrite=True)
         sky_fn = outpath + fname.split('.')[0] + '_median_sky.fits'
-        pyfits.writeto(sky_fn, comb_f_sky, h, overwrite=True)
-        pyfits.append(sky_fn, comb_err_sky, h_err, overwrite=True)
-        pyfits.append(sky_fn, ref_wl_sky, overwrite=True)
+        pyfits.writeto(sky_fn, np.float32(comb_f_sky), h, overwrite=True)
+        pyfits.append(sky_fn, np.float32(comb_err_sky), h_err, overwrite=True)
+        pyfits.append(sky_fn, np.float32(ref_wl_sky), overwrite=True)
     
     
     ### STEP 4: combine all single-shot exposures for each target and do sky-subtraction, and flux-weighting of barycentric correction
@@ -878,9 +878,9 @@ def main_script_for_timtim(date = '20190621'):
         # save to new FITS file(s)
         outpath = path + 'final_combined_spectra/'
         new_fn = outpath + object + '_final_combined.fits'
-        pyfits.writeto(new_fn, comb_f, h, overwrite=True)
-        pyfits.append(new_fn, comb_err, h_err, overwrite=True)
-        pyfits.append(new_fn, ref_wl, overwrite=True)
+        pyfits.writeto(new_fn, np.float32(comb_f), h, overwrite=True)
+        pyfits.append(new_fn, np.float32(comb_err), h_err, overwrite=True)
+        pyfits.append(new_fn, np.float32(ref_wl), overwrite=True)
         # write the barycentric correction into the FITS header of both the quick-extracted and the optimal-extracted reduced spectrum files
         pyfits.setval(new_fn, 'BARYCORR', value=bc, comment='barycentric velocity correction [m/s]')
 
@@ -937,16 +937,16 @@ def main_script_for_bouma(date = '30200130', skysub=False):
         # do a linear interpolation to find the wl-solution at t=tobs
         wl = interpolate_dispsols(wl1, wl2, t1, t2, tobs)
         # append this wavelength solution to the extracted spectrum FITS files
-        pyfits.append(file, wl, overwrite=True)
+        pyfits.append(file, np.float32(wl), overwrite=True)
     
 # #     # alternatively, if there are LFC wl-solutions available
 #     for filename,obsname in zip(stellar_list[:5], stellar_obsnames[:5]):
 #         wldict, wl = get_dispsol_for_all_fibs_3(obsname, date='20190126')
-#         pyfits.append(filename, wl[:-1,:,:])
+#         pyfits.append(filename, np.float32(wl[:-1,:,:]))
 #  
 #     for filename,obsname in zip(stellar_list[5:], stellar_obsnames[5:]):
 #         wldict, wl = get_dispsol_for_all_fibs_3(obsname, date='20190522')
-#         pyfits.append(filename, wl[:-1,:,:])
+#         pyfits.append(filename, np.float32(wl[:-1,:,:]))
     
     
     
@@ -1009,14 +1009,14 @@ def main_script_for_bouma(date = '30200130', skysub=False):
         fname = file.split('/')[-1]
         new_fn = outpath + fname.split('.')[0] + '.' + fname.split('.')[1] + '_stellar_fibres_combined.fits'
 #         new_fn = outpath + fname.split('.')[0] + '_stellar_fibres_combined.fits'
-        pyfits.writeto(new_fn, comb_f, h, overwrite=True)
-        pyfits.append(new_fn, comb_err, h_err, overwrite=True)
-        pyfits.append(new_fn, ref_wl, overwrite=True)
+        pyfits.writeto(new_fn, np.float32(comb_f), h, overwrite=True)
+        pyfits.append(new_fn, np.float32(comb_err), h_err, overwrite=True)
+        pyfits.append(new_fn, np.float32(ref_wl), overwrite=True)
         sky_fn = outpath + fname.split('.')[0] + '.' + fname.split('.')[1] + '_median_sky.fits'
 #         sky_fn = outpath + fname.split('.')[0] + '_median_sky.fits'
-        pyfits.writeto(sky_fn, f_sky, h, overwrite=True)
-        pyfits.append(sky_fn, err_sky, h_err, overwrite=True)
-        pyfits.append(sky_fn, wl_sky, overwrite=True)
+        pyfits.writeto(sky_fn, np.float32(f_sky), h, overwrite=True)
+        pyfits.append(sky_fn, np.float32(err_sky), h_err, overwrite=True)
+        pyfits.append(sky_fn, np.float32(wl_sky), overwrite=True)
     
     
     ### STEP 4: combine all single-shot exposures for each target and do sky-subtraction, and flux-weighting of barycentric correction
@@ -1097,9 +1097,9 @@ def main_script_for_bouma(date = '30200130', skysub=False):
         else:
             new_fn = outpath + object + '_final_combined.fits'
             h['SKYSUB'] = 'FALSE'
-        pyfits.writeto(new_fn, comb_f, h, overwrite=True)
-        pyfits.append(new_fn, comb_err, h_err, overwrite=True)
-        pyfits.append(new_fn, ref_wl, overwrite=True)
+        pyfits.writeto(new_fn, np.float32(comb_f), h, overwrite=True)
+        pyfits.append(new_fn, np.float32(comb_err), h_err, overwrite=True)
+        pyfits.append(new_fn, np.float32(ref_wl), overwrite=True)
         # write the barycentric correction into the FITS header of both the quick-extracted and the optimal-extracted reduced spectrum files
         pyfits.setval(new_fn, 'BARYCORR', value=bc, comment='barycentric velocity correction [m/s]')
 
