@@ -1667,7 +1667,7 @@ def make_master_calib(file_list, lamptype=None, MB=None, ronmask=None, MD=None, 
             # scale to the median exposure time
             tscale = np.array(texp_list) / np.median(texp_list)
         except:
-            print("WARNING: FITS keyword 'LCTEXPTM' does not exist - cannot scale by actual LFC exposure times!")
+            # print("WARNING: FITS keyword 'LCTEXPTM' does not exist - cannot scale by actual LFC exposure times!")
             print("WARNING: FITS keyword 'LCTEXP' does not exist - cannot scale by actual LFC exposure times!")
             tscale = np.ones(len(file_list))
             texp_list = []
