@@ -283,12 +283,12 @@ if len(thxe_list) > 0:
         master_simth = pyfits.getdata(pathdict['raw'] + date + '_master_simth.fits', 0)
         err_master_simth = pyfits.getdata(pathdict['raw'] + date + '_master_simth.fits', 1)
     else:
-        master_simth, err_master_simth = make_master_calib(thxe_list, lamptype='simth', MB=medbias, ronmask=ronmask, MD=MDS, gain=gain, chipmask=chipmask, remove_bg=True, savefile=True, path=pathdict['raw'])
+        master_simth, err_master_simth = make_master_calib(thxe_list, lamptype='simth', MB=medbias, ronmask=ronmask, MD=MDS, gain=gain, chipmask=chipmask, remove_bg=True, savefile=True, pathdict=pathdict)
     # now do the extraction    
     pix_q,flux_q,err_q = extract_spectrum_from_indices(master_simth, err_master_simth, simth_indices, method='quick', slit_height=calsh, ronmask=ronmask, savefile=True,
-                                                       date=date, filetype='fits', obsname='master_simth', pathdict=pathdict, timit=True)
+                                                       date=date, filetype='fits', obsname=date+'_master_simth', pathdict=pathdict, timit=True)
     pix,flux,err = extract_spectrum_from_indices(master_simth, err_master_simth, indices, method='optimal', slit_height=slit_height, fibs='simth', slope=True, offset=True, date=date,
-                                                 individual_fibres=True, ronmask=ronmask, savefile=True, filetype='fits', obsname='master_simth', pathdict=pathdict, timit=True)
+                                                 individual_fibres=True, ronmask=ronmask, savefile=True, filetype='fits', obsname=date+'_master_simth', pathdict=pathdict, timit=True)
     
 if len(laser_list) > 0:
     choice = 'r'
@@ -299,12 +299,12 @@ if len(laser_list) > 0:
         master_lfc = pyfits.getdata(pathdict['raw'] + date + '_master_lfc.fits', 0)
         err_master_lfc = pyfits.getdata(pathdict['raw'] + date + '_master_lfc.fits', 1)
     else:
-        master_lfc, err_master_lfc = make_master_calib(laser_list, lamptype='lfc', MB=medbias, ronmask=ronmask, MD=MDS, gain=gain, chipmask=chipmask, remove_bg=True, savefile=True, path=pathdict['raw'])
+        master_lfc, err_master_lfc = make_master_calib(laser_list, lamptype='lfc', MB=medbias, ronmask=ronmask, MD=MDS, gain=gain, chipmask=chipmask, remove_bg=True, savefile=True, pathdict=pathdict)
     # now do the extraction
     pix_q,flux_q,err_q = extract_spectrum_from_indices(master_lfc, err_master_lfc, lfc_indices, method='quick', slit_height=calsh, ronmask=ronmask, savefile=True,
-                                                       date=date, filetype='fits', obsname='master_lfc', pathdict=pathdict, timit=True)
+                                                       date=date, filetype='fits', obsname=date+'_master_lfc', pathdict=pathdict, timit=True)
     pix,flux,err = extract_spectrum_from_indices(master_lfc, err_master_lfc, indices, method='optimal', slit_height=slit_height, fibs='lfc', slope=True, offset=True, date=date,
-                                                 individual_fibres=True, ronmask=ronmask, savefile=True, filetype='fits', obsname='master_lfc', pathdict=pathdict, timit=True)
+                                                 individual_fibres=True, ronmask=ronmask, savefile=True, filetype='fits', obsname=date+'_master_lfc', pathdict=pathdict, timit=True)
     
 if len(laser_and_thxe_list) > 0:
     choice = 'r'
@@ -315,12 +315,12 @@ if len(laser_and_thxe_list) > 0:
         master_both = pyfits.getdata(pathdict['raw'] + date + '_master_lfc_plus_simth.fits', 0)
         err_master_both = pyfits.getdata(pathdict['raw'] + date + '_master_lfc_plus_simth.fits', 1)
     else:
-        master_both, err_master_both = make_master_calib(laser_and_thxe_list, lamptype='both', MB=medbias, ronmask=ronmask, MD=MDS, gain=gain, chipmask=chipmask, remove_bg=True, savefile=True, path=pathdict['raw'])
+        master_both, err_master_both = make_master_calib(laser_and_thxe_list, lamptype='both', MB=medbias, ronmask=ronmask, MD=MDS, gain=gain, chipmask=chipmask, remove_bg=True, savefile=True, pathdict=pathdict)
     # now do the extraction
     pix_q,flux_q,err_q = extract_spectrum_from_indices(master_both, err_master_both, indices, method='quick', slit_height=slit_height, ronmask=ronmask, savefile=True,
-                                                       date=date, filetype='fits', obsname='master_lfc_plus_simth', pathdict=pathdict, timit=True)
+                                                       date=date, filetype='fits', obsname=date+'_master_lfc_plus_simth', pathdict=pathdict, timit=True)
     pix,flux,err = extract_spectrum_from_indices(master_both, err_master_both, indices, method='optimal', slit_height=slit_height, fibs='calibs', slope=True, offset=True, date=date,
-                                                 individual_fibres=True, ronmask=ronmask, savefile=True, filetype='fits', obsname='master_lfc_plus_simth', pathdict=pathdict, timit=True)
+                                                 individual_fibres=True, ronmask=ronmask, savefile=True, filetype='fits', obsname=date+'_master_lfc_plus_simth', pathdict=pathdict, timit=True)
 #####################################################################################################################################################    
 
 
