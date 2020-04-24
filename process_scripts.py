@@ -195,7 +195,7 @@ def process_whites(white_list, MB=None, ronmask=None, MD=None, gain=None, P_id=N
     # now save master white to file
     if savefile:
         outfn = path + date + '_master_white.fits'
-        pyfits.writeto(outfn, master, clobber=True)
+        pyfits.writeto(outfn, master, overwrite=True)
         pyfits.setval(outfn, 'HISTORY', value='   MASTER WHITE frame - created '+time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())+' (GMT)')
         # pyfits.setval(outfn, 'EXPTIME', value=texp, comment='exposure time [s]')
         pyfits.setval(outfn, 'UNITS', value='ELECTRONS')
@@ -206,13 +206,13 @@ def process_whites(white_list, MB=None, ronmask=None, MD=None, gain=None, P_id=N
         h = pyfits.getheader(outfn)
         h_err = h.copy()
         h_err['HISTORY'] = 'estimated uncertainty in MASTER WHITE frame - created '+time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())+' (GMT)'
-        pyfits.append(outfn, err_master, h_err, clobber=True)
+        pyfits.append(outfn, err_master, h_err, overwrite=True)
 
     # also save the difference image if desired
     if diffimg:
         hdiff = h.copy()
         hdiff['HISTORY'] = '   MASTER WHITE DIFFERENCE IMAGE - created '+time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())+' (GMT)'
-        pyfits.writeto(path + date + '_master_white_diffimg.fits', diff, hdiff, clobber=True)
+        pyfits.writeto(path + date + '_master_white_diffimg.fits', diff, hdiff, overwrite=True)
 
     if timit:
         print('Total time elapsed: '+str(np.round(time.time() - start_time,1))+' seconds')
@@ -522,7 +522,7 @@ def process_science_images(imglist, P_id, chipmask, mask=None, stripe_indices=No
                 # fit background
                 bg_coeffs, bg_img = fit_background(bg, clip=10, return_full=True, timit=timit)
                 # save background image to temporary file for re-use later (when reducing the next file of this sublist)
-                pyfits.writeto(path + 'temp_bg_' + lamp_config + '.fits', bg_img, clobber=True)
+                pyfits.writeto(path + 'temp_bg_' + lamp_config + '.fits', bg_img, overwrite=True)
             else:
                 # no need to re-compute background, just load it from file
                 print('Loading background image for this epoch and lamp configuration...')
@@ -557,7 +557,7 @@ def process_science_images(imglist, P_id, chipmask, mask=None, stripe_indices=No
                 # fit background
                 bg_coeffs, bg_img = fit_background(bg, clip=10, return_full=True, timit=timit)
                 # save background image to temporary file for re-use later (when reducing the next file of this sublist)
-                pyfits.writeto(path + 'temp_bg_' + lamp_config + '.fits', bg_img, clobber=True)
+                pyfits.writeto(path + 'temp_bg_' + lamp_config + '.fits', bg_img, overwrite=True)
             else:
                 # no need to re-compute background, just load it from file
                 print('Loading background image for this epoch and lamp configuration...')
