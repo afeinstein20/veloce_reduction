@@ -22,7 +22,7 @@ from veloce_reduction.veloce_reduction.barycentric_correction import get_barycen
 
 
 
-def process_whites(white_list, MB=None, ronmask=None, MD=None, gain=None, P_id=None, scalable=False, fancy=False, remove_bg=True, clip=5., savefile=True, saveall=False, diffimg=False, pathdict=None, debug_level=0, timit=False):
+def process_whites(white_list, MB=None, ronmask=None, MD=None, gain=None, P_id=None, scalable=False, fancy=False, remove_bg=True, clip=5., savefile=True, saveall=False, diffimg=False, path=None, debug_level=0, timit=False):
     """
     This routine processes all whites from a given list of files. It corrects the orientation of the image and crops the overscan regions,
     and subtracts both the MASTER BIAS frame [in ADU], and the MASTER DARK frame [in e-] from every image before combining them to create a MASTER WHITE frame.
@@ -52,8 +52,6 @@ def process_whites(white_list, MB=None, ronmask=None, MD=None, gain=None, P_id=N
     
     """
 
-    assert pathdict is not None, 'ERROR: pathdict is not provided!!!'
-    path = pathdict['raw']
 
     if timit:
         start_time = time.time()
@@ -493,7 +491,7 @@ def process_science_images(imglist, P_id, chipmask, mask=None, stripe_indices=No
         err_img = np.sqrt(np.clip(img,0,None) + ronmask*ronmask)   # [e-]
 
         
-        ## (2) remove cosmic rays (ERRORS MUST REMAIN UNCHANGED)
+        ## (2) remove cosmic rays from background, then fit and remove background
         ## check if there are multiple exposures for this epoch (if yes, we can do the much simpler "median_remove_cosmics")
         if len(epoch_sublists[lamp_config]) == 1:
             # do it the hard way using LACosmic
@@ -565,6 +563,10 @@ def process_science_images(imglist, P_id, chipmask, mask=None, stripe_indices=No
 
         # now actually subtract the background model
         bg_corrected_img = img - bg_img
+
+        # # save background model to file (or APPEND TO RAW FILE???)
+        # bg_fn= path + obsname + '_BG_model.fits'
+        # pyfits.writeto(bg_fn, bg_img)
 
 #       cosmic_cleaned_img = median_remove_cosmics(img_list, main_index=main_index, scales=scaled_texp, ronmask=ronmask, debug_level=1, timit=True)
         

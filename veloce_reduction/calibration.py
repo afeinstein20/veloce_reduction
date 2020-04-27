@@ -1542,7 +1542,7 @@ def correct_for_bias_and_dark_from_filename(imgname, MB, MD, gain=None, scalable
         # get header from the original image FITS file
         h = pyfits.getheader(imgname)
         h['UNITS'] = 'ELECTRONS'
-        h['HISTORY'] = '   BIAS- & DARK-corrected image - created ' + time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()) + ' (GMT)'
+        h['HISTORY'] = '   OS-, BIAS- & DARK-corrected image - created ' + time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()) + ' (GMT)'
         pyfits.writeto(outfn, np.float32(dc_bc_img), h, overwrite=True)
 #         h_err = h.copy()
 #         h_err['HISTORY'] = 'estimated uncertainty in BIAS- & DARK-corrected image - created '+time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())+' (GMT)'

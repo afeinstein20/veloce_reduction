@@ -38,8 +38,10 @@ date = '20191023'
 
 
 pathdict = {}
-pathdict['raw'] = '/Volumes/BERGRAID/data/veloce/raw_goodonly/' + date + '/'
-pathdict['red'] = '/Volumes/BERGRAID/data/veloce/reduced/' + date + '/'
+# pathdict['raw'] = '/Volumes/BERGRAID/data/veloce/raw_goodonly/' + date + '/'
+# pathdict['red'] = '/Volumes/BERGRAID/data/veloce/reduced/' + date + '/'
+pathdict['raw'] = '/Users/christoph/data/raw_goodonly/' + date + '/'
+pathdict['red'] = '/Users/christoph/data/reduced/' + date + '/'
 pathdict['cm'] = '/Users/christoph/OneDrive - UNSW/chipmasks/archive/'
 pathdict['fp'] = '/Users/christoph/OneDrive - UNSW/fibre_profiles/'
 pathdict['lfc'] = '/Volumes/BERGRAID/data/veloce/lfc_peaks/'
@@ -47,10 +49,15 @@ pathdict['dispsol'] = '/Users/christoph/OneDrive - UNSW/dispsol/'
 
 
 ### (0) GET INFO FROM FITS HEADERS ##################################################################################################################
+# do a stock take of ALL FITS files in that folder
+all_raw_files = glob.glob(pathdict['raw'] + '*.fits')
+all_raw_files.sort()
+print('Identifying ' + str(len(all_raw_files)) + ' raw FITS files...')
+
+# divide into lists according to exposure type
 acq_list, bias_list, dark_list, flat_list, arc_list, thxe_list, laser_list, laser_and_thxe_list, stellar_list, unknown_list = get_obstype_lists(pathdict)
 assert len(unknown_list) == 0, "WARNING: unknown files encountered!!!"
-# q_acq_list, q_bias_list, q_dark_list, q_flat_list, q_arc_list, q_thxe_list, q_laser_list, q_laser_and_thxe_list, q_stellar_list, q_unknown_list = get_obstype_lists(pathdict['raw'], quick=True)
-# assert len(q_unknown_list) == 0, "WARNING: unknown files encountered!!!"
+
 # obsnames = short_filenames(bias_list)
 dumimg = crop_overscan_region(correct_orientation(pyfits.getdata(bias_list[0])))
 ny,nx = dumimg.shape

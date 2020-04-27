@@ -2936,6 +2936,7 @@ def get_dispsol_for_all_fibs_from_fibth(fn, date=None, path=None, deg_spectral=7
 
 
 
+
 def make_lfc_only_wl_files_for_all_fibs(wlfile, savefile=True, return_full=False):
     # read in FITS file contanining the wl-solution for all fibres
     wl = pyfits.getdata(wlfile)
