@@ -427,8 +427,20 @@ if len(stellar_list) > 0:
 
 
 
+### (11) TIDY UP AND MOVE EXTRACTED SPECTRA TO REDUCED FOLDER #######################################################################################
+# delete temporary background files
+tempfiles = glob.glob(pathdict['raw'] + 'temp*')
+for file in tempfiles:
+    os.remove(file)
 
-
+# find all reduced spectra, master frames, and auxiliary files and move them to the reduced folder
+red_files = glob.glob(pathdict['raw'] + date + '*')
+if not os.path.exists(pathdict['red']):
+    os.system("mkdir " + pathdict['red'])
+for file in red_files:
+    short_fn = file.split('/')[-1]
+    os.rename(file, pathdict['red'] + short_fn)
+#####################################################################################################################################################
 
 
 
