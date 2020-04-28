@@ -385,12 +385,12 @@ def combine_fibparms(date=None, path=None, use_lfc=False, savefile=True):
     # read in fibparms for simThXe fibre and median offsets from stellar&sky fibres
     simthxe_fibparms = np.load(simthxe_path + 'sim_ThXe_fibre_profile_fits_20190503_nomask.npy').item()
 #     med_simthxe_offsets = get_simthxe_offset(return_median=True)
-    simthxe_offsets = get_simthxe_offset(date=date)
+    simthxe_offsets = get_simthxe_offset(date=date, path=path)
     
     # read in fibparms for LFC fibre and median offsets from stellar&sky fibres
     lfc_fibparms = np.load(lfc_path + 'lfc_fibre_profile_fits_20190503.npy').item()
 #     med_lfc_offsets = get_lfc_offset(return_median=True)
-    lfc_offsets = get_lfc_offset(date=date)
+    lfc_offsets = get_lfc_offset(date=date, path=path)
     
     # calculate a new simThXe trace based on the measured positions of the other fibres that night and the median offset as measured on the reference night (20190503)
     new_simthxe_traces  = np.zeros((39,24,4112))    
