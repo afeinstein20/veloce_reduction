@@ -219,15 +219,15 @@ def process_whites(white_list, MB=None, ronmask=None, MD=None, gain=None, P_id=N
 
 
 
-
-
-def process_science_images(imglist, P_id, chipmask, mask=None, stripe_indices=None, quick_indices=None, sampling_size=25, slit_height=32, qsh=23, gain=[1.,1.,1.,1.], MB=None, ronmask=None, 
-                           MD=None, scalable=False, saveall=False, pathdict=None, ext_method='optimal', from_indices=True, slope=True, offset=True, fibs='all', date=None, timit=False):
+def process_science_images(imglist, P_id, chipmask, mask=None, stripe_indices=None, quick_indices=None,
+                           sampling_size=25, slit_height=32, qsh=23, gain=[1., 1., 1., 1.], MB=None, ronmask=None,
+                           MD=None, scalable=False, saveall=False, pathdict=None, ext_method='optimal',
+                           from_indices=True, slope=True, offset=True, fibs='all', date=None, timit=False):
     """
     Process all science / calibration lamp images. This includes:
-    
+
     (1) bias and dark subtraction
-    (2) cosmic ray removal 
+    (2) cosmic ray removal
     (3) background extraction and estimation
     (4) flat-fielding (ie removal of pixel-to-pixel sensitivity variations)
     =============================
@@ -240,7 +240,7 @@ def process_science_images(imglist, P_id, chipmask, mask=None, stripe_indices=No
 
     print('WARNING: I commented out BARCYRORR')
     # cont = raw_input('Do you still want to continue?')
-    cont='y'
+    cont = 'y'
     assert cont.lower() == 'y', 'You chose to quit!'
 
     assert pathdict is not None, 'ERROR: pathdict not provided!!!'
@@ -256,28 +256,29 @@ def process_science_images(imglist, P_id, chipmask, mask=None, stripe_indices=No
     object_list = [pyfits.getval(file, 'OBJECT').split('+')[0] for file in imglist]
     if object_list[0][:3] == 'ARC':
         obstype = 'ARC'
-    elif object_list[0].lower() in ["lc", "lc-only", "lfc", "lfc-only", "simlc", "thxe", "thxe-only", "simth", "thxe+lfc", "lfc+thxe", "lc+simthxe", "lc+thxe"]:
+    elif object_list[0].lower() in ["lc", "lc-only", "lfc", "lfc-only", "simlc", "thxe", "thxe-only", "simth",
+                                    "thxe+lfc", "lfc+thxe", "lc+simthxe", "lc+thxe"]:
         obstype = 'simcalib'
     else:
         obstype = 'stellar'
     if obstype in ['stellar', 'ARC']:
         # and the indices where the object changes (to figure out which observations belong to one epoch)
-        changes = np.where(np.array(object_list)[:-1] != np.array(object_list)[1:])[0] + 1   # need the plus one to get the indices of the first occasion of a new object
+        changes = np.where(np.array(object_list)[:-1] != np.array(object_list)[1:])[
+                      0] + 1  # need the plus one to get the indices of the first occasion of a new object
         # list of indices for individual epochs - there's gotta be a smarter way to do this...
         all_epoch_list = []
         if len(changes) > 0:
-            all_epoch_list.append(np.arange(0,changes[0]))
+            all_epoch_list.append(np.arange(0, changes[0]))
             for j in range(len(changes) - 1):
-                all_epoch_list.append(np.arange(changes[j], changes[j+1]))
+                all_epoch_list.append(np.arange(changes[j], changes[j + 1]))
             all_epoch_list.append(np.arange(changes[-1], len(object_list)))
         else:
             all_epoch_list.append(np.arange(0, len(object_list)))
 
-
     #####################################
     ### (1) bias and dark subtraction ###
     #####################################
-    
+
     # if INPUT arrays are not given, read them from default files
     if path is None:
         print('WARNING: output file directory not provided!!!')
@@ -288,7 +289,7 @@ def process_science_images(imglist, P_id, chipmask, mask=None, stripe_indices=No
         date = path.split('/')[-2]
     if MB is None:
         # no need to fix orientation, this is already a processed file [ADU]
-#         MB = pyfits.getdata(path + 'master_bias.fits')
+        #         MB = pyfits.getdata(path + 'master_bias.fits')
         MB = pyfits.getdata(path + 'median_bias.fits')
     if ronmask is None:
         # no need to fix orientation, this is already a processed file [e-]
@@ -297,19 +298,20 @@ def process_science_images(imglist, P_id, chipmask, mask=None, stripe_indices=No
         if scalable:
             # no need to fix orientation, this is already a processed file [e-]
             MD = pyfits.getdata(path + 'master_dark_scalable.fits', 0)
-#             err_MD = pyfits.getdata(path + 'master_dark_scalable.fits', 1)
+        #             err_MD = pyfits.getdata(path + 'master_dark_scalable.fits', 1)
         else:
             # no need to fix orientation, this is already a processed file [e-]
             print('WARNING: scalable KW not properly implemented (stellar_list can have different exposure times...)')
             texp = 600.
             MD = pyfits.getdata(path + 'master_dark_t' + str(int(np.round(texp, 0))) + '.fits', 0)
-#             err_MD = pyfits.getdata(path + 'master_dark_t' + str(int(np.round(texp, 0))) + '.fits', 1)
-    
+    #             err_MD = pyfits.getdata(path + 'master_dark_t' + str(int(np.round(texp, 0))) + '.fits', 1)
+
     if not from_indices:
-        ron_stripes = extract_stripes(ronmask, P_id, return_indices=False, slit_height=slit_height, savefiles=False, timit=True)
+        ron_stripes = extract_stripes(ronmask, P_id, return_indices=False, slit_height=slit_height, savefiles=False,
+                                      timit=True)
 
     # loop over all files
-    for i,filename in enumerate(imglist):
+    for i, filename in enumerate(imglist):
 
         # (0) do some housekeeping with filenames, and check if there are multiple exposures for a given epoch of a star
         dum = filename.split('/')
@@ -321,13 +323,14 @@ def process_science_images(imglist, P_id, chipmask, mask=None, stripe_indices=No
         texp = pyfits.getval(filename, 'ELAPSED')
         # check if this exposure belongs to the same epoch as the previous one
         if obstype in ['stellar', 'ARC']:
-            
+
             # list of all the observations belonging to this epoch
-            epoch_ix = [sublist for sublist in all_epoch_list if i in sublist]   # different from object_indices, as epoch_ix contains only indices for this particular epoch if there are multiple epochs of a target in a given night
+            epoch_ix = [sublist for sublist in all_epoch_list if
+                        i in sublist]  # different from object_indices, as epoch_ix contains only indices for this particular epoch if there are multiple epochs of a target in a given night
             epoch_list = list(np.array(imglist)[epoch_ix])
             # make sublists according to the four possible calibration lamp configurations
-            epoch_sublists = {'lfc':[], 'thxe':[], 'both':[], 'neither':[]}
-            
+            epoch_sublists = {'lfc': [], 'thxe': [], 'both': [], 'neither': []}
+
             if i > 0:
                 if filename in epoch_list:
                     new_epoch = False
@@ -360,16 +363,17 @@ def process_science_images(imglist, P_id, chipmask, mask=None, stripe_indices=No
                 new_epoch = False
 
         print('Extracting ' + obstype + ' spectrum ' + str(i + 1) + '/' + str(len(imglist)) + ': ' + obsname)
-        
+
         if obstype in ['stellar', 'ARC']:
-            
+
             # nasty temp fix to make sure we are always looking at the 2D images until the header keywords are reliable
             checkdate = '1' + date[1:]
-            
+
             if int(checkdate) < 20190503:
                 # look at the actual 2D image (using chipmasks for LFC and simThXe) to determine which calibration lamps fired
                 for file in epoch_list:
-                    img = correct_for_bias_and_dark_from_filename(file, MB, MD, gain=gain, scalable=scalable, savefile=saveall, path=path)
+                    img = correct_for_bias_and_dark_from_filename(file, MB, MD, gain=gain, scalable=scalable,
+                                                                  savefile=saveall, path=path)
                     lc = laser_on(img, chipmask)
                     thxe = thxe_on(img, chipmask)
                     if (not lc) and (not thxe):
@@ -382,7 +386,8 @@ def process_science_images(imglist, P_id, chipmask, mask=None, stripe_indices=No
                         elif thxe:
                             epoch_sublists['thxe'].append(file)
                 # now check the calibration lamp configuration for the main observation in question
-                img = correct_for_bias_and_dark_from_filename(filename, MB, MD, gain=gain, scalable=scalable, savefile=saveall, path=path)
+                img = correct_for_bias_and_dark_from_filename(filename, MB, MD, gain=gain, scalable=scalable,
+                                                              savefile=saveall, path=path)
                 lc = laser_on(img, chipmask)
                 thxe = thxe_on(img, chipmask)
                 if (not lc) and (not thxe):
@@ -401,32 +406,37 @@ def process_science_images(imglist, P_id, chipmask, mask=None, stripe_indices=No
                     thxe = 0
                     h = pyfits.getheader(file)
                     if 'LCNEXP' in h.keys():  # this indicates the latest version of the FITS headers (from May 2019 onwards)
-                        if ('LCEXP' in h.keys()) or ('LCMNEXP' in h.keys()):  # this indicates the LFC actually was actually exposed (either automatically or manually)
+                        if ('LCEXP' in h.keys()) or (
+                                'LCMNEXP' in h.keys()):  # this indicates the LFC actually was actually exposed (either automatically or manually)
                             lc = 1
                     else:  # if not, just go with the OBJECT field
-                        if ('LC' in pyfits.getval(filename, 'OBJECT').split('+')) or ('LFC' in pyfits.getval(filename, 'OBJECT').split('+')):
+                        if ('LC' in pyfits.getval(filename, 'OBJECT').split('+')) or (
+                                'LFC' in pyfits.getval(filename, 'OBJECT').split('+')):
                             lc = 1
                     if (h['SIMCALTT'] > 0) and (h['SIMCALN'] > 0) and (h['SIMCALSE'] > 0):
                         thxe = 1
-                    assert lc+thxe in [0,1,2], 'ERROR: could not establish status of LFC and simultaneous ThXe for ' + obsname + '.fits !!!'    
-                    if lc+thxe == 0:
+                    assert lc + thxe in [0, 1,
+                                         2], 'ERROR: could not establish status of LFC and simultaneous ThXe for ' + obsname + '.fits !!!'
+                    if lc + thxe == 0:
                         epoch_sublists['neither'].append(file)
-                    elif lc+thxe == 1:
+                    elif lc + thxe == 1:
                         if lc == 1:
                             epoch_sublists['lfc'].append(file)
                         else:
                             epoch_sublists['thxe'].append(file)
-                    elif lc+thxe == 2:
+                    elif lc + thxe == 2:
                         epoch_sublists['both'].append(file)
                 # now check the calibration lamp configuration for the main observation in question
                 lc = 0
                 thxe = 0
                 h = pyfits.getheader(filename)
                 if 'LCNEXP' in h.keys():  # this indicates the latest version of the FITS headers (from May 2019 onwards)
-                    if ('LCEXP' in h.keys()) or ('LCMNEXP' in h.keys()):  # this indicates the LFC actually was actually exposed (either automatically or manually)
+                    if ('LCEXP' in h.keys()) or (
+                            'LCMNEXP' in h.keys()):  # this indicates the LFC actually was actually exposed (either automatically or manually)
                         lc = 1
                 else:  # if not latest header version, just go with the OBJECT field
-                    if ('LC' in pyfits.getval(filename, 'OBJECT').split('+')) or ('LFC' in pyfits.getval(filename, 'OBJECT').split('+')):
+                    if ('LC' in pyfits.getval(filename, 'OBJECT').split('+')) or (
+                            'LFC' in pyfits.getval(filename, 'OBJECT').split('+')):
                         lc = 1
                 if h['SIMCALTT'] > 0:
                     thxe = 1
@@ -444,7 +454,8 @@ def process_science_images(imglist, P_id, chipmask, mask=None, stripe_indices=No
             # just for the file in question and then create a dummy copy of the image list so that it is in the same format that is expected for stellar observations
             if int(date) < 20190503:
                 # now check the calibration lamp configuration for the main observation in question
-                img = correct_for_bias_and_dark_from_filename(filename, MB, MD, gain=gain, scalable=scalable, savefile=saveall, path=path)
+                img = correct_for_bias_and_dark_from_filename(filename, MB, MD, gain=gain, scalable=scalable,
+                                                              savefile=saveall, path=path)
                 lc = laser_on(img, chipmask)
                 thxe = thxe_on(img, chipmask)
                 if (not lc) and (not thxe):
@@ -483,14 +494,13 @@ def process_science_images(imglist, P_id, chipmask, mask=None, stripe_indices=No
             epoch_sublists = {}
             epoch_sublists[lamp_config] = imglist[:]
 
-
         # (1) call routine that does all the overscan-, bias- & dark-correction stuff and proper error treatment
-        img = correct_for_bias_and_dark_from_filename(filename, MB, MD, gain=gain, scalable=scalable, savefile=saveall, path=path)   # [e-]
-        #err = np.sqrt(img + ronmask*ronmask)   # [e-]
-        #TEMPFIX: (how should I be doing this properly???)
-        err_img = np.sqrt(np.clip(img,0,None) + ronmask*ronmask)   # [e-]
+        img = correct_for_bias_and_dark_from_filename(filename, MB, MD, gain=gain, scalable=scalable, savefile=saveall,
+                                                      path=path)  # [e-]
+        # err = np.sqrt(img + ronmask*ronmask)   # [e-]
+        # TEMPFIX: (how should I be doing this properly???)
+        err_img = np.sqrt(np.clip(img, 0, None) + ronmask * ronmask)  # [e-]
 
-        
         ## (2) remove cosmic rays from background, then fit and remove background
         ## check if there are multiple exposures for this epoch (if yes, we can do the much simpler "median_remove_cosmics")
         if len(epoch_sublists[lamp_config]) == 1:
@@ -498,10 +508,12 @@ def process_science_images(imglist, P_id, chipmask, mask=None, stripe_indices=No
             # identify and extract background
             bg_raw = extract_background(img, chipmask['bg'], timit=timit)
             # remove cosmics, but only from background
-            cosmic_cleaned_img = remove_cosmics(bg_raw.todense(), ronmask, obsname, path, Flim=3.0, siglim=5.0, maxiter=1, savemask=False, savefile=False, save_err=False, verbose=True, timit=True)   # [e-]
+            cosmic_cleaned_img = remove_cosmics(bg_raw.todense(), ronmask, obsname, path, Flim=3.0, siglim=5.0,
+                                                maxiter=1, savemask=False, savefile=False, save_err=False, verbose=True,
+                                                timit=True)  # [e-]
             # identify and extract background from cosmic-cleaned image
             bg = extract_background(cosmic_cleaned_img, chipmask['bg'], timit=timit)
-#             bg = extract_background_pid(cosmic_cleaned_img, P_id, slit_height=30, exclude_top_and_bottom=True, timit=timit)
+            #             bg = extract_background_pid(cosmic_cleaned_img, P_id, slit_height=30, exclude_top_and_bottom=True, timit=timit)
             # fit background
             bg_coeffs, bg_img = fit_background(bg, clip=10, return_full=True, timit=timit)
         elif len(epoch_sublists[lamp_config]) == 2:
@@ -510,12 +522,14 @@ def process_science_images(imglist, P_id, chipmask, mask=None, stripe_indices=No
                 subepoch_texp_list = [pyfits.getval(file, 'ELAPSED') for file in epoch_sublists[lamp_config]]
                 tscale = np.array(subepoch_texp_list) / texp
                 # get background from the element-wise minimum-image of the two images
-                img1 = correct_for_bias_and_dark_from_filename(epoch_sublists[lamp_config][0], MB, MD, gain=gain, scalable=scalable, savefile=False)
-                img2 = correct_for_bias_and_dark_from_filename(epoch_sublists[lamp_config][1], MB, MD, gain=gain, scalable=scalable, savefile=False)
-                min_img = np.minimum(img1/tscale[0], img2/tscale[1])
+                img1 = correct_for_bias_and_dark_from_filename(epoch_sublists[lamp_config][0], MB, MD, gain=gain,
+                                                               scalable=scalable, savefile=False)
+                img2 = correct_for_bias_and_dark_from_filename(epoch_sublists[lamp_config][1], MB, MD, gain=gain,
+                                                               scalable=scalable, savefile=False)
+                min_img = np.minimum(img1 / tscale[0], img2 / tscale[1])
                 # identify and extract background from the minimum-image
                 bg = extract_background(min_img, chipmask['bg'], timit=timit)
-    #             bg = extract_background_pid(min_img, P_id, slit_height=30, exclude_top_and_bottom=True, timit=timit)
+                #             bg = extract_background_pid(min_img, P_id, slit_height=30, exclude_top_and_bottom=True, timit=timit)
                 del min_img
                 # fit background
                 bg_coeffs, bg_img = fit_background(bg, clip=10, return_full=True, timit=timit)
@@ -535,22 +549,23 @@ def process_science_images(imglist, P_id, chipmask, mask=None, stripe_indices=No
                     elif mainix > len(epoch_sublists[lamp_config]) - 6:
                         epoch_sublists[lamp_config] = epoch_sublists[lamp_config][-11:]
                     else:
-                        epoch_sublists[lamp_config] = epoch_sublists[lamp_config][mainix-5:mainix+6]
+                        epoch_sublists[lamp_config] = epoch_sublists[lamp_config][mainix - 5:mainix + 6]
                 # list of individual exposure times for this epoch
                 subepoch_texp_list = [pyfits.getval(file, 'ELAPSED') for file in epoch_sublists[lamp_config]]
                 tscale = np.array(subepoch_texp_list) / texp
                 # make list of actual images
                 img_list = []
                 for file in epoch_sublists[lamp_config]:
-                    img_list.append(correct_for_bias_and_dark_from_filename(file, MB, MD, gain=gain, scalable=scalable, savefile=False))
-    #             # index indicating which one of the files in the epoch list is the "main" one
-    #             main_index = np.where(np.array(epoch_ix) == i)[0][0]
+                    img_list.append(correct_for_bias_and_dark_from_filename(file, MB, MD, gain=gain, scalable=scalable,
+                                                                            savefile=False))
+                #             # index indicating which one of the files in the epoch list is the "main" one
+                #             main_index = np.where(np.array(epoch_ix) == i)[0][0]
                 # take median after scaling to same exposure time as main exposure
                 med_img = np.median(np.array(img_list) / tscale.reshape(len(img_list), 1, 1), axis=0)
                 del img_list
                 # identify and extract background from the median image
                 bg = extract_background(med_img, chipmask['bg'], timit=timit)
-    #             bg = extract_background_pid(med_img, P_id, slit_height=30, exclude_top_and_bottom=True, timit=timit)
+                #             bg = extract_background_pid(med_img, P_id, slit_height=30, exclude_top_and_bottom=True, timit=timit)
                 del med_img
                 # fit background
                 bg_coeffs, bg_img = fit_background(bg, clip=10, return_full=True, timit=timit)
@@ -568,8 +583,7 @@ def process_science_images(imglist, P_id, chipmask, mask=None, stripe_indices=No
         # bg_fn= path + obsname + '_BG_model.fits'
         # pyfits.writeto(bg_fn, bg_img)
 
-#       cosmic_cleaned_img = median_remove_cosmics(img_list, main_index=main_index, scales=scaled_texp, ronmask=ronmask, debug_level=1, timit=True)
-        
+        #       cosmic_cleaned_img = median_remove_cosmics(img_list, main_index=main_index, scales=scaled_texp, ronmask=ronmask, debug_level=1, timit=True)
 
         # (3) fit and remove background (ERRORS REMAIN UNCHANGED)
         # bg_corrected_img = remove_background(cosmic_cleaned_img, P_id, obsname, path, degpol=5, slit_height=slit_height, save_bg=True, savefile=True, save_err=False,
@@ -579,70 +593,78 @@ def process_science_images(imglist, P_id, chipmask, mask=None, stripe_indices=No
         # adjust errors?
 
         # (4) remove pixel-to-pixel sensitivity variations (2-dim)
-        #XXXXXXXXXXXXXXXXXXXXXXXXXXX
-        #TEMPFIX
-        final_img = bg_corrected_img.copy()   # [e-]
-#         final_img = img.copy()   # [e-]
-        #adjust errors?
-        
+        # XXXXXXXXXXXXXXXXXXXXXXXXXXX
+        # TEMPFIX
+        final_img = bg_corrected_img.copy()  # [e-]
+        #         final_img = img.copy()   # [e-]
+        # adjust errors?
 
         # (5) extract stripes
         if not from_indices:
-            stripes,stripe_indices = extract_stripes(final_img, P_id, return_indices=True, slit_height=slit_height, savefiles=saveall, obsname=obsname, path=path, timit=True)
-            err_stripes = extract_stripes(err_img, P_id, return_indices=False, slit_height=slit_height, savefiles=saveall, obsname=obsname+'_err', path=path, timit=True)
+            stripes, stripe_indices = extract_stripes(final_img, P_id, return_indices=True, slit_height=slit_height,
+                                                      savefiles=saveall, obsname=obsname, path=path, timit=True)
+            err_stripes = extract_stripes(err_img, P_id, return_indices=False, slit_height=slit_height,
+                                          savefiles=saveall, obsname=obsname + '_err', path=path, timit=True)
         if stripe_indices is None:
             # this is just to get the stripe indices in case we forgot to provide them (DONE ONLY ONCE, if at all...)
-            stripes,stripe_indices = extract_stripes(final_img, P_id, return_indices=True, slit_height=slit_height, savefiles=False, obsname=obsname, path=path, timit=True)
+            stripes, stripe_indices = extract_stripes(final_img, P_id, return_indices=True, slit_height=slit_height,
+                                                      savefiles=False, obsname=obsname, path=path, timit=True)
 
         # (6) perform extraction of 1-dim spectrum
         if from_indices:
-            pix,flux,err = extract_spectrum_from_indices(final_img, err_img, quick_indices, method='quick', slit_height=qsh, ronmask=ronmask, savefile=True,
-                                                         filetype='fits', obsname=obsname, date=date, pathdict=pathdict, timit=True)
-            pix,flux,err = extract_spectrum_from_indices(final_img, err_img, stripe_indices, method=ext_method, slope=slope, offset=offset, fibs=fibs, slit_height=slit_height, 
-                                                         ronmask=ronmask, savefile=True, filetype='fits', obsname=obsname, date=date, pathdict=pathdict, timit=True)
+            pix, flux, err = extract_spectrum_from_indices(final_img, err_img, quick_indices, method='quick',
+                                                           slit_height=qsh, ronmask=ronmask, savefile=True,
+                                                           filetype='fits', obsname=obsname, date=date,
+                                                           pathdict=pathdict, lamp_config=lamp_config, timit=True)
+            pix, flux, err = extract_spectrum_from_indices(final_img, err_img, stripe_indices, method=ext_method,
+                                                           slope=slope, offset=offset, fibs=fibs,
+                                                           slit_height=slit_height,
+                                                           ronmask=ronmask, savefile=True, filetype='fits',
+                                                           obsname=obsname, date=date, pathdict=pathdict,
+                                                           lamp_config=lamp_config, timit=True)
         else:
-            pix,flux,err = extract_spectrum(stripes, err_stripes=err_stripes, ron_stripes=ron_stripes, method='quick', slit_height=qsh, ronmask=ronmask, savefile=True,
-                                            filetype='fits', obsname=obsname, date=date, pathdict=pathdict, timit=True)
-            pix,flux,err = extract_spectrum(stripes, err_stripes=err_stripes, ron_stripes=ron_stripes, method=ext_method, slope=slope, offset=offset, fibs=fibs, 
-                                            slit_height=slit_height, ronmask=ronmask, savefile=True, filetype='fits', obsname=obsname, date=date, pathdict=pathdict, timit=True)
-    
-#         # (7) get relative intensities of different fibres
-#         if from_indices:
-#             relints = get_relints_from_indices(P_id, final_img, err_img, stripe_indices, mask=mask, sampling_size=sampling_size, slit_height=slit_height, return_full=False, timit=True) 
-#         else:
-#             relints = get_relints(P_id, stripes, err_stripes, mask=mask, sampling_size=sampling_size, slit_height=slit_height, return_full=False, timit=True)
-# 
-#     
-#         # (8) get wavelength solution
-#         #XXXXX
+            pix, flux, err = extract_spectrum(stripes, err_stripes=err_stripes, ron_stripes=ron_stripes, method='quick',
+                                              slit_height=qsh, ronmask=ronmask, savefile=True,
+                                              filetype='fits', obsname=obsname, date=date, pathdict=pathdict,
+                                              lamp_config=lamp_config, timit=True)
+            pix, flux, err = extract_spectrum(stripes, err_stripes=err_stripes, ron_stripes=ron_stripes,
+                                              method=ext_method, slope=slope, offset=offset, fibs=fibs,
+                                              slit_height=slit_height, ronmask=ronmask, savefile=True, filetype='fits',
+                                              obsname=obsname, date=date, pathdict=pathdict, lamp_config=lamp_config,
+                                              timit=True)
 
+    #         # (7) get relative intensities of different fibres
+    #         if from_indices:
+    #             relints = get_relints_from_indices(P_id, final_img, err_img, stripe_indices, mask=mask, sampling_size=sampling_size, slit_height=slit_height, return_full=False, timit=True)
+    #         else:
+    #             relints = get_relints(P_id, stripes, err_stripes, mask=mask, sampling_size=sampling_size, slit_height=slit_height, return_full=False, timit=True)
+    #
+    #
+    #         # (8) get wavelength solution
+    #         #XXXXX
 
-        # # (9) get barycentric correction
-        # if obstype == 'stellar':
-        #     bc = get_barycentric_correction(filename)
-        #     bc = np.round(bc,2)
-        #     if np.isnan(bc):
-        #         bc = ''
-        #     # write the barycentric correction into the FITS header of both the quick-extracted and the optimal-extracted reduced spectrum files
-        #     outfn_list = glob.glob(path + '*' + obsname + '*extracted*')
-        #     for outfn in outfn_list:
-        #         pyfits.setval(outfn, 'BARYCORR', value=bc, comment='barycentric velocity correction [m/s]')
+    # # (9) get barycentric correction
+    # if obstype == 'stellar':
+    #     bc = get_barycentric_correction(filename)
+    #     bc = np.round(bc,2)
+    #     if np.isnan(bc):
+    #         bc = ''
+    #     # write the barycentric correction into the FITS header of both the quick-extracted and the optimal-extracted reduced spectrum files
+    #     outfn_list = glob.glob(path + '*' + obsname + '*extracted*')
+    #     for outfn in outfn_list:
+    #         pyfits.setval(outfn, 'BARYCORR', value=bc, comment='barycentric velocity correction [m/s]')
 
-
-
-#         #now append relints, wl-solution, and barycorr to extracted FITS file header
-#         outfn = path + obsname + '_extracted.fits'
-#         if os.path.isfile(outfn):
-#             #relative fibre intensities
-#             dum = append_relints_to_FITS(relints, outfn, nfib=19)
-#             #wavelength solution
-#             #pyfits.setval(fn, 'RELINT' + str(i + 1).zfill(2), value=relints[i], comment='fibre #' + str(fibnums[i]) + ' - ' + fibinfo[i] + ' fibre')
-
-
+    #         #now append relints, wl-solution, and barycorr to extracted FITS file header
+    #         outfn = path + obsname + '_extracted.fits'
+    #         if os.path.isfile(outfn):
+    #             #relative fibre intensities
+    #             dum = append_relints_to_FITS(relints, outfn, nfib=19)
+    #             #wavelength solution
+    #             #pyfits.setval(fn, 'RELINT' + str(i + 1).zfill(2), value=relints[i], comment='fibre #' + str(fibnums[i]) + ' - ' + fibinfo[i] + ' fibre')
 
     if timit:
-        print('Total time elapsed: '+str(np.round(time.time() - start_time,1))+' seconds')
-    
+        print('Total time elapsed: ' + str(np.round(time.time() - start_time, 1)) + ' seconds')
+
     return
 
 

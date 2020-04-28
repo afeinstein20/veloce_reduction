@@ -969,8 +969,8 @@ def optimal_extraction_from_indices(img, stripe_indices, err_img=None, ronmask=N
 
 
 def extract_spectrum(stripes, err_stripes, ron_stripes, method='optimal', individual_fibres=True, combined_profiles=False, integrate_profiles=False, slope=False,
-                     offset=False, fibs='all', slit_height=30, savefile=False, filetype='fits', obsname=None, date=None, pathdict=None, skip_first_order=False,
-                     simu=False, verbose=False, timit=False, debug_level=0):
+                     offset=False, fibs='all', slit_height=30, savefile=False, filetype='fits', obsname=None, date=None, pathdict=None, lamp_config=None,
+                     skip_first_order=False, simu=False, verbose=False, timit=False, debug_level=0):
     """
     This routine is simply a wrapper code for the different extraction methods. There are a total FIVE (1,2,3a,3b,3c) different extraction methods implemented, 
     which can be selected by a combination of the 'method', individual_fibres', and 'combined_profile' keyword arguments.
@@ -1016,6 +1016,7 @@ def extract_spectrum(stripes, err_stripes, ron_stripes, method='optimal', indivi
     'obsname'            : (short) name of observation file
     'date'               : the date of the observations to be extracted in format 'YYYYMMDD' (needed for the optimal extraction routine to select the right fibre profiles/traces)
     'pathdict'           : dictionary containing all directories relevant to the reduction
+    'lamp_config'        : simcalib lamp configuration (only needed for output filename determination for simcalib frames where both lamps were on)
     'skip_first_order'   : boolean - do you want to skip order 01 (causes problems as not fully on chip, and especially b/c LFC trace is rubbish)
     'simu'               : boolean - are you using ES-simulated spectra???
     'verbose'            : boolean - for debugging...
@@ -1079,7 +1080,11 @@ def extract_spectrum(stripes, err_stripes, ron_stripes, method='optimal', indivi
             starname = pyfits.getval(path + obsname + '.fits', 'OBJECT').split('+')[0]
         except:
             starname = ''
-                     
+
+        # fix output filename issue for simcalib spectra with both lamps on
+        if (lamp_config == 'both') and (starname.lower() in ["lc", "lc-only", "lfc", "lfc-only", "simlc", "thxe", "thxe-only", "simth", "thxe+lfc", "lfc+thxe", "lc+simthxe", "lc+thxe"]):
+            starname = 'SimLC_plus_SimTh'
+
         if path is None:
             print('ERROR: path to output directory not provided!!!')
             return
@@ -1147,8 +1152,8 @@ def extract_spectrum(stripes, err_stripes, ron_stripes, method='optimal', indivi
 
 
 def extract_spectrum_from_indices(img, err_img, stripe_indices, ronmask=None, method='optimal', individual_fibres=True, combined_profiles=False, integrate_profiles=False, slope=False,
-                                  offset=False, fibs='all', slit_height=30, savefile=False, filetype='fits', obsname=None, date=None, pathdict=None, skip_first_order=False,
-                                  simu=False, verbose=False, timit=False, debug_level=0):
+                                  offset=False, fibs='all', slit_height=30, savefile=False, filetype='fits', obsname=None, date=None, pathdict=None, lamp_config=None,
+                                  skip_first_order=False, simu=False, verbose=False, timit=False, debug_level=0):
     """
     CLONE OF 'extract_spectrum'! 
     This routine is simply a wrapper code for the different extraction methods. There are a total FIVE (1,2,3a,3b,3c) different extraction methods implemented, 
@@ -1195,6 +1200,7 @@ def extract_spectrum_from_indices(img, err_img, stripe_indices, ronmask=None, me
     'obsname'            : (short) name of observation file
     'date'               : the date of the observations to be extracted in format 'YYYYMMDD' (needed for the optimal extraction routine to select the right fibre profiles/traces)
     'pathdict'           : dictionary containing all directories relevant to the reduction
+    'lamp_config'        : simcalib lamp configuration (only needed for output filename determination for simcalib frames where both lamps were on)
     'skip_first_order'   : boolean - do you want to skip order 01 (causes problems as not fully on chip, and especially b/c LFC trace is rubbish)
     'simu'               : boolean - are you using ES-simulated spectra???
     'verbose'            : boolean - for debugging...
@@ -1257,7 +1263,11 @@ def extract_spectrum_from_indices(img, err_img, stripe_indices, ronmask=None, me
             starname = pyfits.getval(path + obsname + '.fits', 'OBJECT').split('+')[0]
         except:
             starname = ''
-                    
+
+        # fix output filename issue for simcalib spectra with both lamps on
+        if (lamp_config == 'both') and (starname.lower() in ["lc", "lc-only", "lfc", "lfc-only", "simlc", "thxe", "thxe-only", "simth", "thxe+lfc", "lfc+thxe", "lc+simthxe", "lc+thxe"]):
+            starname = 'SimLC_plus_SimTh'
+
         if path is None:
             print('ERROR: path to output directory not provided!!!')
             return

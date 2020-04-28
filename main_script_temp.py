@@ -269,7 +269,7 @@ st_stripes, st_indices = extract_stripes(MW, traces['stellar'], return_indices=T
 lfc_stripes, lfc_indices = extract_stripes(MW, traces['lfc'], return_indices=True, slit_height=calsh)
 simth_stripes, simth_indices = extract_stripes(MW, traces['simth'], return_indices=True, slit_height=calsh)
 
-# (6b) extract Master Whites
+# (6b) extract Master White
 pix_q,flux_q,err_q = extract_spectrum_from_indices(MW, err_MW, indices, method='quick', slit_height=slit_height, ronmask=ronmask, savefile=True,
                                                    date=date, filetype='fits', obsname=date+'_master_white', pathdict=pathdict, timit=True)
 pix,flux,err = extract_spectrum_from_indices(MW, err_MW, indices, method='optimal', slit_height=slit_height, fibs='all', slope=True, offset=True, date=date,
