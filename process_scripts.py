@@ -193,7 +193,7 @@ def process_whites(white_list, MB=None, ronmask=None, MD=None, gain=None, P_id=N
     # now save master white to file
     if savefile:
         outfn = path + date + '_master_white.fits'
-        pyfits.writeto(outfn, master, overwrite=True)
+        pyfits.writeto(outfn, np.float32(master), overwrite=True)
         pyfits.setval(outfn, 'HISTORY', value='   MASTER WHITE frame - created '+time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())+' (GMT)')
         # pyfits.setval(outfn, 'EXPTIME', value=texp, comment='exposure time [s]')
         pyfits.setval(outfn, 'UNITS', value='ELECTRONS')
@@ -204,7 +204,7 @@ def process_whites(white_list, MB=None, ronmask=None, MD=None, gain=None, P_id=N
         h = pyfits.getheader(outfn)
         h_err = h.copy()
         h_err['HISTORY'] = 'estimated uncertainty in MASTER WHITE frame - created '+time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())+' (GMT)'
-        pyfits.append(outfn, err_master, h_err, overwrite=True)
+        pyfits.append(outfn, np.float32(err_master), h_err, overwrite=True)
 
     # also save the difference image if desired
     if diffimg:
