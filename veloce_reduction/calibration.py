@@ -1681,7 +1681,7 @@ def make_master_calib(file_list, lamptype=None, MB=None, ronmask=None, MD=None, 
         try:
             texp_list = [pyfits.getval(file, 'SIMCALTT') for file in file_list]
             # scale to the median exposure time
-            tscale = np.array(texp_list) / np.median(texp_list)
+            tscale = np.array(texp_list) / np.nanmedian(texp_list)
         except:
             print("WARNING: FITS keyword 'SIMCALTT' does not exist - cannot scale by actual SimThXe exposure times!")
             tscale = np.ones(len(file_list))
@@ -1691,8 +1691,8 @@ def make_master_calib(file_list, lamptype=None, MB=None, ronmask=None, MD=None, 
             texp_list_lfc = [pyfits.getval(file, 'LCTEXPTM') for file in file_list]
             texp_list_simth = [pyfits.getval(file, 'SIMCALTT') for file in file_list]
             # scale to the median exposure time
-            tscale_lfc = np.array(texp_list_lfc) / np.median(texp_list_lfc)
-            tscale_simth = np.array(texp_list_simth) / np.median(texp_list_simth)
+            tscale_lfc = np.array(texp_list_lfc) / np.nanmedian(texp_list_lfc)
+            tscale_simth = np.array(texp_list_simth) / np.nanmedian(texp_list_simth)
             assert (tscale_lfc == tscale_simth).all(), 'ERROR: LFC and SimThXe lamps have different scalings of their respective real exposure times'
             tscale = tscale_lfc.copy()
         except:
