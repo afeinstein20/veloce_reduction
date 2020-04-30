@@ -46,6 +46,7 @@ pathdict['cm'] = '/Users/christoph/OneDrive - UNSW/chipmasks/archive/'
 pathdict['fp'] = '/Users/christoph/OneDrive - UNSW/fibre_profiles/'
 pathdict['lfc'] = '/Volumes/BERGRAID/data/veloce/lfc_peaks/'
 pathdict['dispsol'] = '/Users/christoph/OneDrive - UNSW/dispsol/'
+pathdict['root'] = '/Users/christoph/OneDrive - UNSW/'
 
 
 ### (0) GET INFO FROM FITS HEADERS ##################################################################################################################

@@ -2477,7 +2477,6 @@ def get_dispsol_for_all_fibs_3(obsname, date=None, relto='LFC', degpol=7, nx=411
                                norm_coords=False, pathdict=None, debug_level=0, timit=False):
     '''using CGT's new DAOPHOT results to measure LFC shifts; anchor using the wl-solution from the master ARC that night'''
 
-    # TODO: IDEA: instead of reading P_id for the LFC, do a divide into orders and fit new x-y-traces
     # TODO: use meansep - get_mean_fibre_separation instead of 1.97
 
     # make sure a date is provided
@@ -2579,7 +2578,7 @@ def get_dispsol_for_all_fibs_3(obsname, date=None, relto='LFC', degpol=7, nx=411
         ord_y = ord_y[ord_x.argsort()]
         ord_x = ord_x[ord_x.argsort()]
         
-        # this just recovers the 7th order polynomial used in the 2-dim ThXe dispsol for this order (almost perfect)
+        # this just recovers the 7th order polynomial used in the 2-dim ThXe dispsol for the fibre closest to the LFC for this order (almost perfect)
         ord_wlfit = np.poly1d(np.polyfit(xx, vac_wl[o,-2,:], degpol))
         peak_thxe_wls = ord_wlfit(ord_x)
         
