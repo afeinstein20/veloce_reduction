@@ -176,7 +176,10 @@ def process_whites(white_list, MB=None, ronmask=None, MD=None, gain=None, P_id=N
         # if roughly Gaussian distribution of values: error of median ~= 1.253*error of mean
         # err_master = 1.253 * np.std(allimg, axis=0) / np.sqrt(nw-1)     # normally it would be sigma/sqrt(n), but np.std is dividing by sqrt(n), not by sqrt(n-1)
         # need to rescale by exp time here, too
-        err_master = 1.253 * np.std(np.array(allimg) / tscale.reshape(len(allimg), 1, 1), axis=0) / np.sqrt(nw-1)     # normally it would be sigma/sqrt(n), but np.std is dividing by sqrt(n), not by sqrt(n-1)
+        if nw == 1:
+            err_master = allerr[0]
+        else:
+            err_master = 1.253 * np.std(np.array(allimg) / tscale.reshape(len(allimg), 1, 1), axis=0) / np.sqrt(nw-1)     # normally it would be sigma/sqrt(n), but np.std is dividing by sqrt(n), not by sqrt(n-1)
         # err_master = np.sqrt( np.sum( (np.array(allimg) - np.mean(np.array(allimg), axis=0))**2 / (nw*(nw-1)) , axis=0) )   # that is equivalent, but slower
     
     
@@ -198,9 +201,9 @@ def process_whites(white_list, MB=None, ronmask=None, MD=None, gain=None, P_id=N
         # pyfits.setval(outfn, 'EXPTIME', value=texp, comment='exposure time [s]')
         pyfits.setval(outfn, 'UNITS', value='ELECTRONS')
         if fancy:
-            pyfits.setval(outfn, 'METHOD', value='fancy', comment='method to create master white and remove outliers')
+            pyfits.setval(outfn, 'METHOD', value='fancy', comment='method to create master white & remove outliers')
         else:
-            pyfits.setval(outfn, 'METHOD', value='median', comment='method to create master white and remove outliers')
+            pyfits.setval(outfn, 'METHOD', value='median', comment='method to create master white & remove outliers')
         h = pyfits.getheader(outfn)
         h_err = h.copy()
         h_err['HISTORY'] = 'estimated uncertainty in MASTER WHITE frame - created '+time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())+' (GMT)'

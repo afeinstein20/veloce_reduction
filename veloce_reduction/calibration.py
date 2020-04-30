@@ -1711,9 +1711,12 @@ def make_master_calib(file_list, lamptype=None, MB=None, ronmask=None, MD=None, 
 #         # estimate of the corresponding error array (estimate only!!!)
 #         err_master = err_summed / nw     # I don't know WTF I was thinking here...
     # if roughly Gaussian distribution of values: error of median ~= 1.253*error of mean
-    err_master = 1.253 * np.std(allimg, axis=0) / np.sqrt(nw-1)     # normally it would be sigma/sqrt(n), but np.std is dividing by sqrt(n), not by sqrt(n-1)
+    if nw == 1:
+        err_master = allerr[0]
+    else:
+        err_master = 1.253 * np.std(allimg, axis=0) / np.sqrt(nw-1)     # normally it would be sigma/sqrt(n), but np.std is dividing by sqrt(n), not by sqrt(n-1)
     # err_master = np.sqrt( np.sum( (np.array(allimg) - np.mean(np.array(allimg), axis=0))**2 / (nw*(nw-1)) , axis=0) )   # that is equivalent, but slower
-    
+
     
     # now subtract background (errors remain unchanged)
     if remove_bg:

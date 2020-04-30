@@ -565,8 +565,8 @@ def optimal_extraction(stripes, err_stripes=None, ron_stripes=None, slit_height=
                 # not sure if this is the proper way to do this, but we can't have negative variance
                 # v[np.logical_or(v<=0,f<=0)] = RON*RON
                 # v[v<RON*RON] = np.maximum(RON*RON,1.)   #just a stupid fix so that variance is never below 1
-                v[np.logical_or(v <= 0, f <= 0)] = np.mean(roncol) ** 2
-                v[v < np.mean(roncol) ** 2] = np.maximum(np.mean(roncol) ** 2, 1.)  # just a stupid fix so that variance is never below 1
+                v[np.logical_or(v <= 0, f <= 0)] = np.nanmean(roncol) ** 2
+                v[v < np.nanmean(roncol) ** 2] = np.maximum(np.nanmean(roncol) ** 2, 1.)  # just a stupid fix so that variance is never below 1
 
                 if individual_fibres:
                     ### THIS IS METHOD (3a) - PREFERRED OPTION! ###
@@ -893,8 +893,8 @@ def optimal_extraction_from_indices(img, stripe_indices, err_img=None, ronmask=N
                 # not sure if this is the proper way to do this, but we can't have negative variance
                 # v[np.logical_or(v<=0,f<=0)] = RON*RON
                 # v[v<RON*RON] = np.maximum(RON*RON,1.)   # just a stupid fix so that variance is never below 1
-                v[np.logical_or(v <= 0, f <= 0)] = np.mean(roncol) ** 2
-                v[v < np.mean(roncol) ** 2] = np.maximum(np.mean(roncol) ** 2, 1.)  # just a stupid fix so that variance is never below 1
+                v[np.logical_or(v <= 0, f <= 0)] = np.nanmean(roncol) ** 2
+                v[v < np.nanmean(roncol) ** 2] = np.maximum(np.nanmean(roncol) ** 2, 1.)  # just a stupid fix so that variance is never below 1
 
                 if individual_fibres:
                     ### THIS IS METHOD (3a) - PREFERRED OPTION! ###
