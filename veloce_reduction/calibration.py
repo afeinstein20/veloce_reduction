@@ -1671,7 +1671,7 @@ def make_master_calib(file_list, lamptype=None, MB=None, ronmask=None, MD=None, 
             # texp_list = [pyfits.getval(file, 'LCTEXPTM') for file in file_list]  ### this is the wrong keyword, at least for Aug 2019
             texp_list = [pyfits.getval(file, 'LCEXP') for file in file_list]
             # scale to the median exposure time
-            tscale = np.array(texp_list) / np.median(texp_list)
+            tscale = np.array(texp_list) / np.nanmedian(texp_list)
         except:
             # print("WARNING: FITS keyword 'LCTEXPTM' does not exist - cannot scale by actual LFC exposure times!")
             print("WARNING: FITS keyword 'LCTEXP' does not exist - cannot scale by actual LFC exposure times!")
