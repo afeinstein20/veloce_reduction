@@ -78,11 +78,17 @@ def make_median_image(imglist, MB=None, ronmask=None, return_err=True, scale=Fal
         # take median after scaling to median exposure time 
         medimg = np.median(np.array(allimg) / tscale.reshape(len(allimg), 1, 1), axis=0)
         if return_err:
-            err_medimg = 1.253 * np.std(np.array(allimg) / tscale.reshape(len(allimg), 1, 1), axis=0) / np.sqrt(N-1)     # normally it would be sigma/sqrt(n), but np.std is dividing by sqrt(n), not by sqrt(n-1)
+            if len(allerr) == 1:
+                err_medimg = allerr[0]
+            else:
+                err_medimg = 1.253 * np.std(np.array(allimg) / tscale.reshape(len(allimg), 1, 1), axis=0) / np.sqrt(N-1)     # normally it would be sigma/sqrt(n), but np.std is dividing by sqrt(n), not by sqrt(n-1)
     else:
         medimg = np.median(np.array(allimg), axis=0)
         if return_err:
-            err_medimg = 1.253 * np.std(np.array(allimg), axis=0) / np.sqrt(N-1)     # normally it would be sigma/sqrt(n), but np.std is dividing by sqrt(n), not by sqrt(n-1)
+            if len(allerr) == 1:
+                err_medimg = allerr[0]
+            else:
+                err_medimg = 1.253 * np.std(np.array(allimg), axis=0) / np.sqrt(N-1)     # normally it would be sigma/sqrt(n), but np.std is dividing by sqrt(n), not by sqrt(n-1)
 
     if return_err:
         return medimg, err_medimg
