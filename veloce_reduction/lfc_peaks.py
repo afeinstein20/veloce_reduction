@@ -560,8 +560,9 @@ def vector_plot(dx, dy, plotval='med'):
 
 
 
-def lfc_peak_diffs():
-    # check LFC shifts from DAOPHOT files
+def lfc_peak_diffs(ref_obsname='25jun30256', ref_date='20190625', ref_year='2019', degpol=7, nx=4112, ny=4096):
+
+    """check LFC shifts from DAOPHOT files"""
 
     from readcol import readcol
     from mpl_toolkits import mplot3d
@@ -571,50 +572,51 @@ def lfc_peak_diffs():
     from veloce_reduction.veloce_reduction.helper_functions import find_nearest
     from veloce_reduction.veloce_reduction.helper_functions import sigma_clip, single_sigma_clip
 
-    degpol = 7
-    nx = 4112
-    ny = 4096
     red_path = '/Volumes/BERGRAID/data/veloce/reduced/'
     root = '/Users/christoph/OneDrive - UNSW/'
     lfc_path = '/Volumes/BERGRAID/data/veloce/lfc_peaks/'
     outpath = root + 'dispsol_tests/diff_tests/'
 
-
-
-    ref_obsname = '25jun30256'
-    ref_year = '2019'
-    ref_date = '20190625'
-
-
     # read in LFC vac wls (f0 = 9.56 GHz   &   f_rep = 25 GHz)
     lfc_vac_wls = np.squeeze(np.array(readcol(root + 'dispsol/lfc_vac_wls_nm.txt', twod=False))) * 10.    # in Angstroms
 
     # read reference LFC peak positions
-    _, yref, xref, _, _, _, _, _, _, _, _ = readcol(lfc_path + 'all/' + ref_year + '/' + ref_obsname + 'olc.nst', twod=False, skipline=2)
+    try:
+        _, yref, xref, _, _, _, _, _, _, _, _ = readcol(lfc_path + 'all/' + ref_year + '/' + ref_obsname + 'olc.nst', twod=False, skipline=2)
+    except:
+        _, yref, xref, _, _, _, _, _, _ = readcol(lfc_path + 'all/' + ref_year + '/' + ref_obsname + 'olc.nst', twod=False, skipline=2)
     xref = nx - xref
     yref = yref - 54.  # or 53??? but does not matter for getting the transformation matrix
     ref_peaks_xy_list = [(xpos, ypos) for xpos, ypos in zip(xref, yref)]
     ref_peaks = divide_lfc_peaks_into_orders(xref, yref)
     ref_vac_wl = pyfits.getdata(red_path + ref_date + '/' + ref_date + '_thxe_dispsol.fits', 1)
 
-
+    # read in list of files to be investigated from file
     obsnames, dates = readcol(outpath + 'filelist.txt', twod=False)
 
     # loop over all observations to analyze
+    for obsname, obs_date in zip(obsnames, dates):
+        fail = False
+        print('Cross-matching LFC peaks for ' + obsname)
 
-    for obsname, date in zip(obsnames, dates):
-        year = date[:4]
+        obs_date = str(obs_date)
+        year = obs_date[:4]
+        obsname = obsname.split('.')[0]
 
         # read obs. LFC peak positions
-        try:
-            _, y, x, _, _, _, _, _, _, _, _ = readcol(lfc_path + 'all/' + year + '/' + obsname + 'olc.nst', twod=False, skipline=2)
-        except:
-            _, y, x, _, _, _, _, _, _ = readcol(lfc_path + 'all/' + year + '/' + obsname + 'olc.nst', twod=False, skipline=2)
-        x = nx - x
-        y = y - 54.  # or 53??? but does not matter for getting the transformation matrix
-        obs_peaks_xy_list = [(xpos, ypos) for xpos, ypos in zip(x, y)]
-        obs_peaks = divide_lfc_peaks_into_orders(x, y)
-        obs_vac_wl = pyfits.getdata(red_path + obs_date + '/' + obs_date + '_thxe_dispsol.fits', 1)
+        if os.path.isfile(lfc_path + 'all/' + year + '/' + obsname + 'olc.nst'):
+            try:
+                _, y, x, _, _, _, _, _, _, _, _ = readcol(lfc_path + 'all/' + year + '/' + obsname + 'olc.nst', twod=False, skipline=2)
+            except:
+                _, y, x, _, _, _, _, _, _ = readcol(lfc_path + 'all/' + year + '/' + obsname + 'olc.nst', twod=False, skipline=2)
+            x = nx - x
+            y = y - 54.  # or 53??? but does not matter for getting the transformation matrix
+            obs_peaks_xy_list = [(xpos, ypos) for xpos, ypos in zip(x, y)]
+            obs_peaks = divide_lfc_peaks_into_orders(x, y)
+            obs_vac_wl = pyfits.getdata(red_path + obs_date + '/' + obs_date + '_thxe_dispsol.fits', 1)
+        else:
+            print('ERROR: no LFC peaks measured for ' + obsname)
+            fail = True
 
         # prepare arrays for 3D-plotting
         x_points = []
@@ -623,132 +625,150 @@ def lfc_peak_diffs():
         zy_points = []
         ord_points = []
 
+        if not fail:
+            # LOOP OVER ORDERS
+            for ord in sorted(ref_peaks.keys()):
+                print('Processing ' + ord)
+                o = int(ord[-2:])-1
 
-        # LOOP OVER ORDERS
-        for ord in sorted(ref_peaks.keys()):
-            print('Processing ' + ord)
-            o = int(ord[-2:])-1
+                # divide DAOPHOT LFC peaks into orders
+                ord_xref = np.array(ref_peaks[ord])[:,0]
+                ord_yref = np.array(ref_peaks[ord])[:,1]
+                ord_yref = ord_yref[ord_xref.argsort()]
+                ord_xref = ord_xref[ord_xref.argsort()]
+                ord_x = np.array(obs_peaks[ord])[:,0]
+                ord_y = np.array(obs_peaks[ord])[:,1]
+                ord_y = ord_y[ord_x.argsort()]
+                ord_x = ord_x[ord_x.argsort()]
 
-            # divide DAOPHOT LFC peaks into orders
-            ord_xref = np.array(ref_peaks[ord])[:,0]
-            ord_yref = np.array(ref_peaks[ord])[:,1]
-            ord_yref = ord_yref[ord_xref.argsort()]
-            ord_xref = ord_xref[ord_xref.argsort()]
-            ord_x = np.array(obs_peaks[ord])[:,0]
-            ord_y = np.array(obs_peaks[ord])[:,1]
-            ord_y = ord_y[ord_x.argsort()]
-            ord_x = ord_x[ord_x.argsort()]
+                # this just recovers the 7th order polynomial used in the 2-dim ThXe dispsol for the fibre closest to the LFC for this order (almost perfect)
+                xx = np.arange(nx)
+                ref_ord_wlfit = np.poly1d(np.polyfit(xx, ref_vac_wl[o, -2, :], degpol))
+                obs_ord_wlfit = np.poly1d(np.polyfit(xx, obs_vac_wl[o, -2, :], degpol))
+                ref_peak_thxe_wls = ref_ord_wlfit(ord_xref)
+                obs_peak_thxe_wls = obs_ord_wlfit(ord_x)
 
-            # this just recovers the 7th order polynomial used in the 2-dim ThXe dispsol for the fibre closest to the LFC for this order (almost perfect)
-            xx = np.arange(nx)
-            ref_ord_wlfit = np.poly1d(np.polyfit(xx, ref_vac_wl[o, -2, :], degpol))
-            obs_ord_wlfit = np.poly1d(np.polyfit(xx, obs_vac_wl[o, -2, :], degpol))
-            ref_peak_thxe_wls = ref_ord_wlfit(ord_xref)
-            obs_peak_thxe_wls = obs_ord_wlfit(ord_x)
+                # find the nearest entries in the array of theoretical wavelengths for each peak based on the ThXe dispsol
+                refpeaks_theo_wls = np.array([find_nearest(lfc_vac_wls, ref_ord_wlfit(peak_x)) for peak_x in ord_xref])
+                obspeaks_theo_wls = np.array([find_nearest(lfc_vac_wls, obs_ord_wlfit(peak_x)) for peak_x in ord_x])
 
-            # find the nearest entries in the array of theoretical wavelengths for each peak based on the ThXe dispsol
-            refpeaks_theo_wls = np.array([find_nearest(lfc_vac_wls, ref_ord_wlfit(peak_x)) for peak_x in ord_xref])
-            obspeaks_theo_wls = np.array([find_nearest(lfc_vac_wls, obs_ord_wlfit(peak_x)) for peak_x in ord_x])
-
-            # remove obvious outliers from reference observation (in both x-y-fit, and x-lambda-fit)
-            # in the x-y-space
-            pix_fit = np.poly1d(np.polyfit(ord_xref, ord_yref, degpol))
-            pixres = ord_yref - pix_fit(ord_xref)
-            clipped, goodboolix, goodix, badix = single_sigma_clip(pixres, 3, return_indices=True)
-            new_outies = len(badix)
-            while new_outies > 0:
-                ord_xref = ord_xref[goodboolix]
-                ord_yref = ord_yref[goodboolix]
-                refpeaks_theo_wls = refpeaks_theo_wls[goodboolix]
+                # remove obvious outliers from reference observation (in both x-y-fit, and x-lambda-fit)
+                # in the x-y-space
                 pix_fit = np.poly1d(np.polyfit(ord_xref, ord_yref, degpol))
-                pixres = ord_yref - ref_fit(ord_xref)
+                pixres = ord_yref - pix_fit(ord_xref)
                 clipped, goodboolix, goodix, badix = single_sigma_clip(pixres, 3, return_indices=True)
                 new_outies = len(badix)
-            # in the x-lambda-space
-            lam_fit = np.poly1d(np.polyfit(ord_xref, refpeaks_theo_wls, degpol))
-            wlres = refpeaks_theo_wls - lam_fit(ord_xref)
-            clipped, goodboolix, goodix, badix = single_sigma_clip(wlres, 5, return_indices=True)
-            new_outies = len(badix)
-            while new_outies > 0:
-                ord_xref = ord_xref[goodboolix]
-                ord_yref = ord_yref[goodboolix]
-                refpeaks_theo_wls = refpeaks_theo_wls[goodboolix]
+                while new_outies > 0:
+                    ord_xref = ord_xref[goodboolix]
+                    ord_yref = ord_yref[goodboolix]
+                    refpeaks_theo_wls = refpeaks_theo_wls[goodboolix]
+                    pix_fit = np.poly1d(np.polyfit(ord_xref, ord_yref, degpol))
+                    pixres = ord_yref - pix_fit(ord_xref)
+                    clipped, goodboolix, goodix, badix = single_sigma_clip(pixres, 3, return_indices=True)
+                    new_outies = len(badix)
+                # in the x-lambda-space
                 lam_fit = np.poly1d(np.polyfit(ord_xref, refpeaks_theo_wls, degpol))
                 wlres = refpeaks_theo_wls - lam_fit(ord_xref)
                 clipped, goodboolix, goodix, badix = single_sigma_clip(wlres, 5, return_indices=True)
                 new_outies = len(badix)
+                while new_outies > 0:
+                    ord_xref = ord_xref[goodboolix]
+                    ord_yref = ord_yref[goodboolix]
+                    refpeaks_theo_wls = refpeaks_theo_wls[goodboolix]
+                    lam_fit = np.poly1d(np.polyfit(ord_xref, refpeaks_theo_wls, degpol))
+                    wlres = refpeaks_theo_wls - lam_fit(ord_xref)
+                    clipped, goodboolix, goodix, badix = single_sigma_clip(wlres, 5, return_indices=True)
+                    new_outies = len(badix)
 
-            # remove obvious outliers from observation
-            # in the x-y-space
-            pix_fit = np.poly1d(np.polyfit(ord_x, ord_y, degpol))
-            pixres = ord_y - pix_fit(ord_x)
-            clipped, goodboolix, goodix, badix = single_sigma_clip(pixres, 3, return_indices=True)
-            new_outies = len(badix)
-            while new_outies > 0:
-                ord_x = ord_x[goodboolix]
-                ord_y = ord_y[goodboolix]
-                obspeaks_theo_wls = obspeaks_theo_wls[goodboolix]
+                # remove obvious outliers from observation
+                # in the x-y-space
                 pix_fit = np.poly1d(np.polyfit(ord_x, ord_y, degpol))
                 pixres = ord_y - pix_fit(ord_x)
                 clipped, goodboolix, goodix, badix = single_sigma_clip(pixres, 3, return_indices=True)
                 new_outies = len(badix)
-            # in the x-lambda-space
-            lam_fit = np.poly1d(np.polyfit(ord_x, obspeaks_theo_wls, degpol))
-            wlres = obspeaks_theo_wls - lam_fit(ord_x)
-            clipped, goodboolix, goodix, badix = single_sigma_clip(wlres, 5, return_indices=True)
-            new_outies = len(badix)
-            while new_outies > 0:
-                ord_x = ord_x[goodboolix]
-                ord_y = ord_y[goodboolix]
-                obspeaks_theo_wls = obspeaks_theo_wls[goodboolix]
+                while new_outies > 0:
+                    ord_x = ord_x[goodboolix]
+                    ord_y = ord_y[goodboolix]
+                    obspeaks_theo_wls = obspeaks_theo_wls[goodboolix]
+                    pix_fit = np.poly1d(np.polyfit(ord_x, ord_y, degpol))
+                    pixres = ord_y - pix_fit(ord_x)
+                    clipped, goodboolix, goodix, badix = single_sigma_clip(pixres, 3, return_indices=True)
+                    new_outies = len(badix)
+                # in the x-lambda-space
                 lam_fit = np.poly1d(np.polyfit(ord_x, obspeaks_theo_wls, degpol))
                 wlres = obspeaks_theo_wls - lam_fit(ord_x)
                 clipped, goodboolix, goodix, badix = single_sigma_clip(wlres, 5, return_indices=True)
                 new_outies = len(badix)
+                while new_outies > 0:
+                    ord_x = ord_x[goodboolix]
+                    ord_y = ord_y[goodboolix]
+                    obspeaks_theo_wls = obspeaks_theo_wls[goodboolix]
+                    lam_fit = np.poly1d(np.polyfit(ord_x, obspeaks_theo_wls, degpol))
+                    wlres = obspeaks_theo_wls - lam_fit(ord_x)
+                    clipped, goodboolix, goodix, badix = single_sigma_clip(wlres, 5, return_indices=True)
+                    new_outies = len(badix)
 
-            # cross-match the two peak lists
-            matching_ord_xref = [xdum for xdum,rp in zip(ord_xref,refpeaks_theo_wls) if rp in obspeaks_theo_wls]
-            matching_ord_yref = [ydum for ydum,rp in zip(ord_yref,refpeaks_theo_wls) if rp in obspeaks_theo_wls]
-            matching_ord_x = [xdum for xdum,rp in zip(ord_x,obspeaks_theo_wls) if rp in refpeaks_theo_wls]
-            matching_ord_y = [ydum for ydum,rp in zip(ord_y,obspeaks_theo_wls) if rp in refpeaks_theo_wls]
-            assert len(matching_ord_xref) == len(matching_ord_yref), 'ERROR: len(matching_ord_xref) != len(matching_ord_yref)'
-            assert len(matching_ord_x) == len(matching_ord_y), 'ERROR: len(matching_ord_x) != len(matching_ord_y)'
-            assert len(matching_ord_xref) == len(matching_ord_x), 'ERROR: len(matching_ord_xref) != len(matching_ord_x)'
+                # remove duplicate entries from the theo wls, which must correspond to false positive peaks (but we don't know which one, so let's remove all occurrences)
+                refpeaks_theo_wls = list(refpeaks_theo_wls)
+                obspeaks_theo_wls = list(obspeaks_theo_wls)
+                if len(refpeaks_theo_wls) != len(set(refpeaks_theo_wls)):
+                    dups = set([dumx for dumx in refpeaks_theo_wls if list(refpeaks_theo_wls).count(dumx) > 1])
+                    dupix_ll = [np.squeeze(np.argwhere(refpeaks_theo_wls == dup)).tolist() for dup in dups]
+                    dupix = [item for sublist in dupix_ll for item in sublist]
+                    for ix in dupix:
+                        del refpeaks_theo_wls[ix]
+                if len(obspeaks_theo_wls) != len(set(obspeaks_theo_wls)):
+                    dups = set([dumx for dumx in obspeaks_theo_wls if list(obspeaks_theo_wls).count(dumx) > 1])
+                    dupix_ll = [np.squeeze(np.argwhere(obspeaks_theo_wls == dup)).tolist() for dup in dups]
+                    dupix = [item for sublist in dupix_ll for item in sublist]
+                    for ix in dupix:
+                        del obspeaks_theo_wls[ix]
 
-            # now we can finally compare them
-            xdiff = np.array(matching_ord_x) - np.array(matching_ord_xref)
-            ydiff = np.array(matching_ord_y) - np.array(matching_ord_yref)
+                # cross-match the two peak lists
+                matching_ord_xref = [xdum for xdum,rp in zip(ord_xref,refpeaks_theo_wls) if rp in obspeaks_theo_wls]
+                matching_ord_yref = [ydum for ydum,rp in zip(ord_yref,refpeaks_theo_wls) if rp in obspeaks_theo_wls]
+                matching_ord_x = [xdum for xdum,rp in zip(ord_x,obspeaks_theo_wls) if rp in refpeaks_theo_wls]
+                matching_ord_y = [ydum for ydum,rp in zip(ord_y,obspeaks_theo_wls) if rp in refpeaks_theo_wls]
+                assert len(matching_ord_xref) == len(matching_ord_yref), 'ERROR: len(matching_ord_xref) != len(matching_ord_yref)'
+                assert len(matching_ord_x) == len(matching_ord_y), 'ERROR: len(matching_ord_x) != len(matching_ord_y)'
+                # assert len(matching_ord_xref) == len(matching_ord_x), 'ERROR: len(matching_ord_xref) != len(matching_ord_x)'
+                if len(matching_ord_xref) != len(matching_ord_x):
+                    print('ERROR: len(matching_ord_xref) != len(matching_ord_x)')
+                    print('Skipping this file...')
+                    fail=True
+                else:
+                    # now we can finally compare them
+                    xdiff = np.array(matching_ord_x) - np.array(matching_ord_xref)
+                    ydiff = np.array(matching_ord_y) - np.array(matching_ord_yref)
 
-            # fill output arrays for 3D-plotting
-            x_points.append(matching_ord_xref)
-            y_points.append(matching_ord_yref)
-            ord_points.append(list((np.ones(len(matching_ord_xref)) * (o+1)).astype(int)))
-            zx_points.append(list(xdiff))
-            zy_points.append(list(ydiff))
+                    # fill output arrays for 3D-plotting
+                    x_points.append(matching_ord_xref)
+                    y_points.append(matching_ord_yref)
+                    ord_points.append(list((np.ones(len(matching_ord_xref)) * (o+1)).astype(int)))
+                    zx_points.append(list(xdiff))
+                    zy_points.append(list(ydiff))
 
+        if not fail:
+            # now bring to 1-dim format for 3D-plotting
+            x_points = np.sum(x_points)
+            y_points = np.sum(y_points)
+            zx_points = np.sum(zx_points)
+            zy_points = np.sum(zy_points)
+            ord_points = np.sum(ord_points)
 
-        # now bring to 1-dim format for 3D-plotting
-        x_points = np.sum(x_points)
-        y_points = np.sum(y_points)
-        zx_points = np.sum(zx_points)
-        zy_points = np.sum(zy_points)
-        ord_points = np.sum(ord_points)
+            # # PLOT
+            # fig = plt.figure()
+            # ax = fig.add_subplot(111, projection='3d')
+            # ax.scatter3D(x_points, ord_points, zx_points, marker='.', s=0.5, color='b')
+            # ax.set_xlabel('pixel')
+            # ax.set_ylabel('order')
+            # ax.set_zlabel('pixel shift')
+            # plt.title(obsname)
 
-
-        # PLOT
-        fig = plt.figure()
-        ax = fig.add_subplot(111, projection='3d')
-        ax.scatter3D(x_points, ord_points, zx_points, marker='.', s=0.5, color='b')
-        ax.set_xlabel('pixel')
-        ax.set_ylabel('order')
-        ax.set_zlabel('pixel shift')
-        plt.title(obsname)
-
-
-        # save diffs to output file
-        print('Saving results for a total of ' + str(len(ord_points))+ ' LFC peaks!')
-        results = np.array([ord_points, x_points, y_points, zx_points, zy_points]).T
-        outfn = outpath + obsname + '_lfc_peak_diffs.txt'
-        np.savetxt(outfn, results, fmt='%2i   %4.8f   %4.8f   %4.8f   %4.8f')
+            # save diffs to output file
+            print('Saving results for a total of ' + str(len(ord_points))+ ' LFC peaks!')
+            results = np.array([ord_points, x_points, y_points, zx_points, zy_points]).T
+            outfn = outpath + obsname + '_lfc_peak_diffs.txt'
+            np.savetxt(outfn, results, fmt='%2i   %4.8f   %4.8f   %4.8f   %4.8f')
 
     return

@@ -1769,10 +1769,10 @@ def make_master_calib(file_list, lamptype=None, MB=None, ronmask=None, MD=None, 
             else:
                 pyfits.setval(outfn, 'MED_TEXP', value='N/A', comment='median exposure time [s]')
         pyfits.setval(outfn, 'UNITS', value='ELECTRONS')
-        pyfits.setval(outfn, 'METHOD', value='median', comment='method to create master ' + typestring + ' and remove outliers')
+        pyfits.setval(outfn, 'METHOD', value='median', comment='method to create master ' + typestring + ' & remove outliers')
         h = pyfits.getheader(outfn)
         h_err = h.copy()
-        h_err['HISTORY'] = 'estimated uncertainty in MASTER ' + typestring.upper() + ' frame - created ' + time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()) + ' (GMT)'
+        h_err['HISTORY'] = 'est. uncertainty in MASTER ' + typestring.upper() + ' frame - created ' + time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()) + ' (GMT)'
         pyfits.append(outfn, np.float32(err_master), h_err, overwrite=True)
 
     if timit:
