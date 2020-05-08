@@ -2710,7 +2710,7 @@ def make_master_fibth(path=None, date=None, savefile=True, overwrite=False):
     # list of individual exposure times (should all be the same, but just in case...)
     texp_list = [pyfits.getval(fn, 'ELAPSED') for fn in arc_list]
     # scale to the median exposure time
-    tscale = np.array(texp_list) / np.median(texp_list)
+    tscale = np.array(texp_list) / np.nanmedian(texp_list)
                 
     # median spectrum                
     medspec = np.nanmedian(np.array(allspec) / tscale.reshape(len(allspec), 1, 1, 1), axis=0)
