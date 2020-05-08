@@ -628,7 +628,7 @@ def lfc_peak_diffs(ref_obsname='25jun30256', ref_date='20190625', ref_year='2019
         if not fail:
             # LOOP OVER ORDERS
             for ord in sorted(ref_peaks.keys()):
-                print('Processing ' + ord)
+                # print('Processing ' + ord)
                 o = int(ord[-2:])-1
 
                 # divide DAOPHOT LFC peaks into orders
@@ -649,8 +649,20 @@ def lfc_peak_diffs(ref_obsname='25jun30256', ref_date='20190625', ref_year='2019
                 obs_peak_thxe_wls = obs_ord_wlfit(ord_x)
 
                 # find the nearest entries in the array of theoretical wavelengths for each peak based on the ThXe dispsol
+                maxwl = np.max(ref_ord_wlfit(xx))
+                minwl = np.min(ref_ord_wlfit(xx))
+                ord_lfc_vac_wls = lfc_vac_wls[(lfc_vac_wls >= minwl) & (lfc_vac_wls <= maxwl)]
+                thresh = (1./3.) * np.max(np.abs(np.diff(ord_lfc_vac_wls)))
                 refpeaks_theo_wls = np.array([find_nearest(lfc_vac_wls, ref_ord_wlfit(peak_x)) for peak_x in ord_xref])
                 obspeaks_theo_wls = np.array([find_nearest(lfc_vac_wls, obs_ord_wlfit(peak_x)) for peak_x in ord_x])
+                refdiffs = np.abs(np.array(refpeaks_theo_wls) - ref_peak_thxe_wls)
+                obsdiffs = np.abs(np.array(obspeaks_theo_wls) - obs_peak_thxe_wls)
+                refpeaks_theo_wls = refpeaks_theo_wls[refdiffs < thresh]
+                ord_xref = ord_xref[refdiffs < thresh]
+                ord_yref = ord_yref[refdiffs < thresh]
+                obspeaks_theo_wls = obspeaks_theo_wls[obsdiffs < thresh]
+                ord_x = ord_x[obsdiffs < thresh]
+                ord_y = ord_y[obsdiffs < thresh]
 
                 # remove obvious outliers from reference observation (in both x-y-fit, and x-lambda-fit)
                 # in the x-y-space
@@ -710,25 +722,33 @@ def lfc_peak_diffs(ref_obsname='25jun30256', ref_date='20190625', ref_year='2019
 
                 # remove duplicate entries from the theo wls, which must correspond to false positive peaks (but we don't know which one, so let's remove all occurrences)
                 refpeaks_theo_wls = list(refpeaks_theo_wls)
+                ord_xref = list(ord_xref)
+                ord_yref = list(ord_yref)
                 obspeaks_theo_wls = list(obspeaks_theo_wls)
+                ord_x = list(ord_x)
+                ord_y = list(ord_y)
                 if len(refpeaks_theo_wls) != len(set(refpeaks_theo_wls)):
                     dups = set([dumx for dumx in refpeaks_theo_wls if list(refpeaks_theo_wls).count(dumx) > 1])
                     dupix_ll = [np.squeeze(np.argwhere(refpeaks_theo_wls == dup)).tolist() for dup in dups]
                     dupix = [item for sublist in dupix_ll for item in sublist]
                     for ix in dupix:
                         del refpeaks_theo_wls[ix]
+                        del ord_xref[ix]
+                        del ord_yref[ix]
                 if len(obspeaks_theo_wls) != len(set(obspeaks_theo_wls)):
                     dups = set([dumx for dumx in obspeaks_theo_wls if list(obspeaks_theo_wls).count(dumx) > 1])
                     dupix_ll = [np.squeeze(np.argwhere(obspeaks_theo_wls == dup)).tolist() for dup in dups]
                     dupix = [item for sublist in dupix_ll for item in sublist]
                     for ix in dupix:
                         del obspeaks_theo_wls[ix]
+                        del ord_x[ix]
+                        del ord_y[ix]
 
                 # cross-match the two peak lists
                 matching_ord_xref = [xdum for xdum,rp in zip(ord_xref,refpeaks_theo_wls) if rp in obspeaks_theo_wls]
                 matching_ord_yref = [ydum for ydum,rp in zip(ord_yref,refpeaks_theo_wls) if rp in obspeaks_theo_wls]
-                matching_ord_x = [xdum for xdum,rp in zip(ord_x,obspeaks_theo_wls) if rp in refpeaks_theo_wls]
-                matching_ord_y = [ydum for ydum,rp in zip(ord_y,obspeaks_theo_wls) if rp in refpeaks_theo_wls]
+                matching_ord_x = [xdum for xdum,op in zip(ord_x,obspeaks_theo_wls) if op in refpeaks_theo_wls]
+                matching_ord_y = [ydum for ydum,op in zip(ord_y,obspeaks_theo_wls) if op in refpeaks_theo_wls]
                 assert len(matching_ord_xref) == len(matching_ord_yref), 'ERROR: len(matching_ord_xref) != len(matching_ord_yref)'
                 assert len(matching_ord_x) == len(matching_ord_y), 'ERROR: len(matching_ord_x) != len(matching_ord_y)'
                 # assert len(matching_ord_xref) == len(matching_ord_x), 'ERROR: len(matching_ord_xref) != len(matching_ord_x)'

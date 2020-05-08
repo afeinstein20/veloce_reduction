@@ -31,6 +31,7 @@ from veloce_reduction.veloce_reduction.profile_tests import fit_multiple_profile
 from veloce_reduction.veloce_reduction.get_profile_parameters import make_real_fibparms_by_ord, combine_fibparms
 from veloce_reduction.veloce_reduction.chipmasks import make_chipmask
 from veloce_reduction.veloce_reduction.extraction import extract_spectrum_from_indices
+from veloce_reduction.veloce_reduction.wavelength_solution import make_master_fibth, make_arc_dispsols
 from process_scripts import process_whites, process_science_images
 
 
@@ -385,6 +386,11 @@ for subl in arc_sublists.keys():
         dum = process_science_images(arc_sublists[subl], traces['allfib'], chipmask, mask=mask, stripe_indices=indices, quick_indices=indices, sampling_size=25,
                                      slit_height=slit_height, qsh=slit_height, gain=gain, MB=medbias, ronmask=ronmask, MD=MDS, scalable=True, saveall=False,
                                      pathdict=pathdict, ext_method='optimal', fibs='all', offset=True, slope=True, date=date, from_indices=True, timit=True)
+
+
+# now make master ARC from individual extracted ARC frames, and create a rough wl-solution from that
+s,e = make_master_fibth(path=pathdict['raw'], date=date, savefile=True, overwrite=True)
+dum = make_arc_dispsols(date, overwrite=True)
 #####################################################################################################################################################
 
 

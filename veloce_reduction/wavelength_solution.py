@@ -2677,21 +2677,24 @@ def get_dispsol_for_all_fibs_3(obsname, date=None, relto='LFC', degpol=7, nx=411
 
 
 
-def make_master_fibth(date=None, savefile=True, overwrite=False, redpath='/Volumes/BERGRAID/data/veloce/reduced/'):
+def make_master_fibth(path=None, date=None, savefile=True, overwrite=False):
     
-    # make sure we have an existing date
-    if date is None:
-        ok=0
-        while ok == 0:
-            date = raw_input("Please enter date of observations (YYYYMMDD): ")
-            # check if file directory exists
-            if os.path.isdir("/Volumes/BERGRAID/data/veloce/reduced/" + date + "/"):
-                ok = 1
+    # # make sure we have an existing date
+    # if date is None:
+    #     ok=0
+    #     while ok == 0:
+    #         date = raw_input("Please enter date of observations (YYYYMMDD): ")
+    #         # check if file directory exists
+    #         if os.path.isdir("/Volumes/BERGRAID/data/veloce/reduced/" + date + "/"):
+    #             ok = 1
+    #
+    # path = redpath + date + "/"
 
-    path = redpath + date + "/"
+    assert path is not None, 'ERROR: path not provided!!!'
+    assert date is not None, 'ERROR: date not provided!!!'
 
     # list of all Fibre Thoriums (ThAr for 20180917; ThXe for all later nights)
-    arc_list = glob.glob(path + '*ARC*optimal*')
+    arc_list = glob.glob(path + '*ARC*optimal*') + glob.glob(path + '*FibTh*optimal*')
     if len(arc_list) == 0:
         print('WARNING: no Fibre Thorium (ARC) exposures found for '+date+' !!!')
         return (-1,-1)
@@ -2712,7 +2715,10 @@ def make_master_fibth(date=None, savefile=True, overwrite=False, redpath='/Volum
     # median spectrum                
     medspec = np.nanmedian(np.array(allspec) / tscale.reshape(len(allspec), 1, 1, 1), axis=0)
     n_arc = len(arc_list)
-    err_medspec = 1.253 * np.std(allspec, axis=0) / np.sqrt(n_arc-1)     # normally it would be sigma/sqrt(n), but np.std is dividing by sqrt(n), not by sqrt(n-1)
+    if n_arc > 1:
+        err_medspec = 1.253 * np.std(allspec, axis=0) / np.sqrt(n_arc-1)     # normally it would be sigma/sqrt(n), but np.std is dividing by sqrt(n), not by sqrt(n-1)
+    else:
+        err_medspec = allerr[0]
     
     if savefile:
         pyfits.writeto(path + date + '_master_ARC' + '.fits', np.float32(medspec), overwrite=overwrite)
