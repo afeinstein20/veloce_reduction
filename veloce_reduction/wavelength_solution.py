@@ -2730,8 +2730,8 @@ def make_master_fibth(path=None, date=None, savefile=True, overwrite=False):
 
 
 
-def make_arc_dispsols(date, deg_spectral=7, deg_spatial=7, polytype='chebyshev', savetable=False, savefits=True, overwrite=False, 
-                      save_individual=False, redpath='/Volumes/BERGRAID/data/veloce/reduced/', debug_level=0, timit=False):
+def make_arc_dispsols(date=None, path=None, deg_spectral=7, deg_spatial=7, polytype='chebyshev', savetable=False, savefits=True, overwrite=False,
+                      save_individual=False, debug_level=0, timit=False):
 
     """
     for making the one per night fibre ThAr/ThXe dispsols
@@ -2740,13 +2740,14 @@ def make_arc_dispsols(date, deg_spectral=7, deg_spatial=7, polytype='chebyshev',
     if timit:
         start_time = time.time()
 
-    # fibslot = [0,1,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,23,24,25]
+    assert path is not None, 'ERROR: path not provided!!!'
+    assert date is not None, 'ERROR: date not provided!!!'
+
+    # fibslot = [0,1,  3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,  23,24,25]
     fibname = ['simth', 'S5', 'S2', '07', '18', '17', '06', '16', '15', '05', '14', '13', '01', '12', '11', '04', '10', '09',
                '03', '08', '19', '02', 'S4', 'S3', 'S1', 'LFC']
 
     print('Creating ARC wavelength solution for ' + date + ' ...')
-
-    path = redpath + date + "/"
     
     # check if master arc file already exists
     if os.path.isfile(path + date + '_master_ARC' + '.fits'):
