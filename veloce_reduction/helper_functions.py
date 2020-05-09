@@ -699,7 +699,7 @@ def polyfit2d(x, y, z, order=3, return_res=False):
     ij = itertools.product(range(order+1), range(order+1))
     for k, (i,j) in enumerate(ij):
         G[:,k] = x**i * y**j
-    m, res, rank, s = np.linalg.lstsq(G, z, rcond=None)
+    m, res, rank, s = np.linalg.lstsq(G, z, rcond=-1)
     if return_res:
         return m, res
     else:
@@ -715,7 +715,7 @@ def test_polyfit2d(x, y, f, deg=3):
     vander = polynomial.polyvander2d(x, y, deg)
     vander = vander.reshape((-1,vander.shape[-1]))
     f = f.reshape((vander.shape[0],))
-    c = np.linalg.lstsq(vander, f, rcond=None)[0]
+    c = np.linalg.lstsq(vander, f, rcond=-1)[0]
     return c.reshape(deg+1)
 
 
