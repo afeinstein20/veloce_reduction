@@ -39,10 +39,10 @@ date = '20191023'
 
 
 pathdict = {}
-# pathdict['raw'] = '/Volumes/BERGRAID/data/veloce/raw_goodonly/' + date + '/'
-# pathdict['red'] = '/Volumes/BERGRAID/data/veloce/reduced/' + date + '/'
-pathdict['raw'] = '/Users/christoph/data/raw_goodonly/' + date + '/'
-pathdict['red'] = '/Users/christoph/data/reduced/' + date + '/'
+pathdict['raw'] = '/Volumes/BERGRAID/data/veloce/raw_goodonly/' + date + '/'
+pathdict['red'] = '/Volumes/BERGRAID/data/veloce/reduced/' + date + '/'
+# pathdict['raw'] = '/Users/christoph/data/raw_goodonly/' + date + '/'
+# pathdict['red'] = '/Users/christoph/data/reduced/' + date + '/'
 pathdict['cm'] = '/Users/christoph/OneDrive - UNSW/chipmasks/archive/'
 pathdict['fp'] = '/Users/christoph/OneDrive - UNSW/fibre_profiles/'
 pathdict['lfc'] = '/Volumes/BERGRAID/data/veloce/lfc_peaks/'
@@ -403,7 +403,7 @@ choice = 'r'
 if os.path.isfile(pathdict['raw'] + date + '_' + lamptype + '_dispsol.fits'):
     choice = raw_input("Master ARC dispsol for " + date + " already exists! Do you want to skip this step or recreate it? ['s' / 'r']")
 if choice != 's':
-    dum = make_arc_dispsols(date=date, path=pathdict['raw'], overwrite=True)
+    dum = make_arc_dispsols(date=date, pathdict=pathdict, overwrite=True)
 #####################################################################################################################################################
 
 

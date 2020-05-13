@@ -1566,7 +1566,7 @@ def xcorr_thflux(thflux, thflux2, scale=300., masking=True, satmask=None, lampty
 
 
 
-def get_dispsol_from_known_lines(thflux, fibre=None, date=None, fitwidth=4, search_width=None, satmask=None, lamptype='thxe', minsigma=0.4, maxsigma=2.,
+def get_dispsol_from_known_lines(thflux, pathdict=None, fibre=None, date=None, fitwidth=4, search_width=None, satmask=None, lamptype='thxe', minsigma=0.4, maxsigma=2.,
                                  sigma_0=0.85, minamp=0., maxamp=np.inf, return_all_pars=False, deg_spectral=7, deg_spatial=7,
                                  root = '/Users/christoph/OneDrive - UNSW/', polytype='chebyshev', return_full=True, savetable=True, outpath=None, debug_level=0, timit=False):
 
@@ -1577,8 +1577,10 @@ def get_dispsol_from_known_lines(thflux, fibre=None, date=None, fitwidth=4, sear
     if timit:
         start_time = time.time()
 
+    assert pathdict is not None, 'ERROR: pathdict not provided!!!'
+
     #read master table
-    linenum, order, m, pix, wlref, vac_wlref, _, _, _, _ = readcol(root + 'linelists/thar_lines_used_in_7x7_fit_as_of_2018-10-19.dat', twod=False, skipline=2)
+    linenum, order, m, pix, wlref, vac_wlref, _, _, _, _ = readcol(pathdict['root'] + 'linelists/thar_lines_used_in_7x7_fit_as_of_2018-10-19.dat', twod=False, skipline=2)
     del _
    
     xx = np.arange(thflux.shape[1])
@@ -1728,14 +1730,14 @@ def get_dispsol_from_known_lines(thflux, fibre=None, date=None, fitwidth=4, sear
         if date is None:
             now = datetime.datetime.now()
             if outpath is None:
-                outpath = root + 'linelists/'
+                outpath = pathdict['root'] + 'linelists/'
             if fibre is None:
                 outfn = outpath + lamptype + '_lines_as_of_'+str(now)[:10]+'.dat'
             else:
                 outfn = outpath + lamptype + '_lines_fibre_' + fibre + '_as_of_'+str(now)[:10]+'.dat'
         else:
             if outpath is None:
-                outpath = root + 'dispsol/fibth_line_tables/'
+                outpath = pathdict['root'] + 'dispsol/fibth_line_tables/'
             if fibre is None:
                 outfn = outpath + lamptype + '_lines_quick_for_' + date + '.dat'
             else:
@@ -2730,7 +2732,7 @@ def make_master_fibth(path=None, date=None, savefile=True, overwrite=False):
 
 
 
-def make_arc_dispsols(date=None, path=None, deg_spectral=7, deg_spatial=7, polytype='chebyshev', savetable=False, savefits=True, overwrite=False,
+def make_arc_dispsols(date=None, pathdict=None, deg_spectral=7, deg_spatial=7, polytype='chebyshev', savetable=False, savefits=True, overwrite=False,
                       save_individual=False, debug_level=0, timit=False):
 
     """
@@ -2740,7 +2742,7 @@ def make_arc_dispsols(date=None, path=None, deg_spectral=7, deg_spatial=7, polyt
     if timit:
         start_time = time.time()
 
-    assert path is not None, 'ERROR: path not provided!!!'
+    assert pathdict is not None, 'ERROR: pathdict not provided!!!'
     assert date is not None, 'ERROR: date not provided!!!'
 
     # fibslot = [0,1,  3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,  23,24,25]
@@ -2750,8 +2752,8 @@ def make_arc_dispsols(date=None, path=None, deg_spectral=7, deg_spatial=7, polyt
     print('Creating ARC wavelength solution for ' + date + ' ...')
     
     # check if master arc file already exists
-    if os.path.isfile(path + date + '_master_ARC' + '.fits'):
-        master_arc = pyfits.getdata(path + date + '_master_ARC' + '.fits')
+    if os.path.isfile(pathdict['raw'] + date + '_master_ARC' + '.fits'):
+        master_arc = pyfits.getdata(pathdict['raw'] + date + '_master_ARC' + '.fits')
     else:
         # make master arc for that night
         master_arc, err_master_arc = make_master_fibth(date=date, savefile=True)
@@ -2779,8 +2781,8 @@ def make_arc_dispsols(date=None, path=None, deg_spectral=7, deg_spatial=7, polyt
             lamptype = 'thxe'
 
         # calculate wl-solution
-        air_wl, vac_wl = get_dispsol_from_known_lines(thflux, fibre=fibname[fib], lamptype=lamptype, deg_spectral=deg_spectral,
-                                                      deg_spatial=deg_spatial, polytype=polytype, return_full=True,
+        air_wl, vac_wl = get_dispsol_from_known_lines(thflux, pathdict=pathdict, fibre=fibname[fib], lamptype=lamptype,
+                                                      deg_spectral=deg_spectral, deg_spatial=deg_spatial, polytype=polytype, return_full=True,
                                                       savetable=savetable, debug_level=debug_level, timit=timit)
 
         # save to individual-fibre fits file(s)
@@ -2789,13 +2791,13 @@ def make_arc_dispsols(date=None, path=None, deg_spectral=7, deg_spatial=7, polyt
             all_air_wl[:, fib, :] = air_wl[:-1, :].copy()  # do NOT include the blue-most order
             all_vac_wl[:, fib, :] = vac_wl[:-1, :].copy()
             if save_individual:
-                pyfits.writeto(path + date + lamptype + '_dispsol_fibre_' + fibname[fib] + '.fits', np.float32(air_wl), overwrite=overwrite)
-                pyfits.append(path + date + lamptype + '_dispsol_fibre_' + fibname[fib] + '.fits', np.float32(vac_wl))
+                pyfits.writeto(pathdict['raw'] + date + lamptype + '_dispsol_fibre_' + fibname[fib] + '.fits', np.float32(air_wl), overwrite=overwrite)
+                pyfits.append(pathdict['raw'] + date + lamptype + '_dispsol_fibre_' + fibname[fib] + '.fits', np.float32(vac_wl))
 
     # save to all-fibres-combined fits file
     if savefits:
-        pyfits.writeto(path + date + '_' + lamptype + '_dispsol.fits', np.float32(all_air_wl), overwrite=overwrite)
-        pyfits.append(path + date + '_' + lamptype + '_dispsol.fits', np.float32(all_vac_wl))
+        pyfits.writeto(pathdict['raw'] + date + '_' + lamptype + '_dispsol.fits', np.float32(all_air_wl), overwrite=overwrite)
+        pyfits.append(pathdict['raw'] + date + '_' + lamptype + '_dispsol.fits', np.float32(all_vac_wl))
 
     if timit:
         delta_t = time.time() - start_time
@@ -2822,7 +2824,10 @@ def make_arc_dispsols_for_all_nights(outpath='/Users/christoph/OneDrive - UNSW/d
         datedir += '/'
         date = datedir[-9:-1]
         print('Creating ARC wavelength solution for ' + date + ' ...')
-        
+
+        pathdict = {}
+        pathdict['root'] = '/Users/christoph/OneDrive - UNSW/'
+
         # make master arc for that night
         master_arc = make_master_fibth(date=date)
         if master_arc == []:
@@ -2846,7 +2851,7 @@ def make_arc_dispsols_for_all_nights(outpath='/Users/christoph/OneDrive - UNSW/d
                 lamptype = 'thxe'
             
             # calculate wl-solution    
-            air_wl, vac_wl = get_dispsol_from_known_lines(thflux, lamptype=lamptype, deg_spectral=deg_spectral, deg_spatial=deg_spatial,
+            air_wl, vac_wl = get_dispsol_from_known_lines(thflux, pathdict=pathdict, lamptype=lamptype, deg_spectral=deg_spectral, deg_spatial=deg_spatial,
                                                           polytype=polytype, return_full=True, savetable=savetable, debug_level=0, timit=False)
             
             # save to all-fibres-combined array
@@ -2875,6 +2880,9 @@ def get_dispsol_for_all_fibs_from_fibth(fn, date=None, path=None, deg_spectral=7
 #     assert date is not None, 'ERROR: date not provided!!!'
 #     if savefits:
 #         assert path is not None, 'ERROR: cannot save to file: output directory ("path") not provided!!!'
+
+    pathdict = {}
+    pathdict['root'] = '/Users/christoph/OneDrive - UNSW/'
 
     if date is None:
         date = fn.split('/')[-2]
@@ -2913,9 +2921,9 @@ def get_dispsol_for_all_fibs_from_fibth(fn, date=None, path=None, deg_spectral=7
             lamptype = 'ThXe'
 
         # calculate wl-solution
-        air_wl, vac_wl = get_dispsol_from_known_lines(thflux, fibre=fibname[fib], lamptype=lamptype, deg_spectral=deg_spectral,
-                                                      deg_spatial=deg_spatial, polytype=polytype, return_full=True,
-                                                      savetable=False, timit=timit)
+        air_wl, vac_wl = get_dispsol_from_known_lines(thflux, pathdict=pathdict, fibre=fibname[fib], lamptype=lamptype,
+                                                      deg_spectral=deg_spectral, deg_spatial=deg_spatial, polytype=polytype,
+                                                      return_full=True, savetable=False, timit=timit)
 
         # save to all-fibres-combined array
         all_air_wl[:, fib, :] = air_wl[:-1, :].copy()  # do NOT include the blue-most order
