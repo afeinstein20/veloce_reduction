@@ -389,21 +389,22 @@ for subl in arc_sublists.keys():
 
 
 # now make master ARC from individual extracted ARC frames, and create a rough wl-solution from that
-choice = 'r'
-if os.path.isfile(pathdict['raw'] + date + '_master_ARC.fits'):
-    choice = raw_input("Master ARC (extracted) for " + date + " already exists! Do you want to skip this step or recreate it? ['s' / 'r']")
-if choice != 's':
-    s,e = make_master_fibth(path=pathdict['raw'], date=date, savefile=True, overwrite=True)
+if len(arc_list) > 0:
+    choice = 'r'
+    if os.path.isfile(pathdict['raw'] + date + '_master_ARC.fits'):
+        choice = raw_input("Master ARC (extracted) for " + date + " already exists! Do you want to skip this step or recreate it? ['s' / 'r']")
+    if choice != 's':
+        s,e = make_master_fibth(path=pathdict['raw'], date=date, savefile=True, overwrite=True)
 
-if date == '20180917':
-    lamptype = 'thar'
-else:
-    lamptype = 'thxe'
-choice = 'r'
-if os.path.isfile(pathdict['raw'] + date + '_' + lamptype + '_dispsol.fits'):
-    choice = raw_input("Master ARC dispsol for " + date + " already exists! Do you want to skip this step or recreate it? ['s' / 'r']")
-if choice != 's':
-    dum = make_arc_dispsols(date=date, pathdict=pathdict, overwrite=True)
+    if date == '20180917':
+        lamptype = 'thar'
+    else:
+        lamptype = 'thxe'
+    choice = 'r'
+    if os.path.isfile(pathdict['raw'] + date + '_' + lamptype + '_dispsol.fits'):
+        choice = raw_input("Master ARC dispsol for " + date + " already exists! Do you want to skip this step or recreate it? ['s' / 'r']")
+    if choice != 's':
+        dum = make_arc_dispsols(date=date, pathdict=pathdict, overwrite=True)
 #####################################################################################################################################################
 
 
