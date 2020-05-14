@@ -2733,7 +2733,7 @@ def make_master_fibth(path=None, date=None, savefile=True, overwrite=False):
 
 
 def make_arc_dispsols(date=None, pathdict=None, deg_spectral=7, deg_spatial=7, polytype='chebyshev', savetable=False, savefits=True, overwrite=False,
-                      save_individual=False, debug_level=0, timit=False):
+                      save_individual=False, rawred='raw', debug_level=0, timit=False):
 
     """
     for making the one per night fibre ThAr/ThXe dispsols
@@ -2744,6 +2744,7 @@ def make_arc_dispsols(date=None, pathdict=None, deg_spectral=7, deg_spatial=7, p
 
     assert pathdict is not None, 'ERROR: pathdict not provided!!!'
     assert date is not None, 'ERROR: date not provided!!!'
+    assert rawred.lower() in ['raw', 'red'], 'ERROR: rawred not properly defined! which dir are you looking for?'
 
     # fibslot = [0,1,  3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,  23,24,25]
     fibname = ['simth', 'S5', 'S2', '07', '18', '17', '06', '16', '15', '05', '14', '13', '01', '12', '11', '04', '10', '09',
@@ -2752,11 +2753,12 @@ def make_arc_dispsols(date=None, pathdict=None, deg_spectral=7, deg_spatial=7, p
     print('Creating ARC wavelength solution for ' + date + ' ...')
     
     # check if master arc file already exists
-    if os.path.isfile(pathdict['raw'] + date + '_master_ARC' + '.fits'):
-        master_arc = pyfits.getdata(pathdict['raw'] + date + '_master_ARC' + '.fits')
+    if os.path.isfile(pathdict[rawred] + date + '_master_ARC' + '.fits'):
+        master_arc = pyfits.getdata(pathdict[rawred] + date + '_master_ARC' + '.fits')
     else:
         # make master arc for that night
-        master_arc, err_master_arc = make_master_fibth(date=date, savefile=True)
+        # master_arc, err_master_arc = make_master_fibth(date=date, savefile=True)
+        master_arc, err_master_arc = make_master_fibth(path=pathdict[rawred], date=date, savefile=True, overwrite=overwrite)
 #     # assert master_arc != [], 'ERROR: No FibThs found for '+date
 #     if master_arc == []:
 #         print('ERROR: No FibThs found for ' + date)
@@ -2791,13 +2793,13 @@ def make_arc_dispsols(date=None, pathdict=None, deg_spectral=7, deg_spatial=7, p
             all_air_wl[:, fib, :] = air_wl[:-1, :].copy()  # do NOT include the blue-most order
             all_vac_wl[:, fib, :] = vac_wl[:-1, :].copy()
             if save_individual:
-                pyfits.writeto(pathdict['raw'] + date + lamptype + '_dispsol_fibre_' + fibname[fib] + '.fits', np.float32(air_wl), overwrite=overwrite)
-                pyfits.append(pathdict['raw'] + date + lamptype + '_dispsol_fibre_' + fibname[fib] + '.fits', np.float32(vac_wl))
+                pyfits.writeto(pathdict[rawred] + date + lamptype + '_dispsol_fibre_' + fibname[fib] + '.fits', np.float32(air_wl), overwrite=overwrite)
+                pyfits.append(pathdict[rawred] + date + lamptype + '_dispsol_fibre_' + fibname[fib] + '.fits', np.float32(vac_wl))
 
     # save to all-fibres-combined fits file
     if savefits:
-        pyfits.writeto(pathdict['raw'] + date + '_' + lamptype + '_dispsol.fits', np.float32(all_air_wl), overwrite=overwrite)
-        pyfits.append(pathdict['raw'] + date + '_' + lamptype + '_dispsol.fits', np.float32(all_vac_wl))
+        pyfits.writeto(pathdict[rawred] + date + '_' + lamptype + '_dispsol.fits', np.float32(all_air_wl), overwrite=overwrite)
+        pyfits.append(pathdict[rawred] + date + '_' + lamptype + '_dispsol.fits', np.float32(all_vac_wl))
 
     if timit:
         delta_t = time.time() - start_time
