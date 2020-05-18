@@ -1016,7 +1016,7 @@ def extract_spectrum(stripes, err_stripes, ron_stripes, method='optimal', indivi
     'obsname'            : (short) name of observation file
     'date'               : the date of the observations to be extracted in format 'YYYYMMDD' (needed for the optimal extraction routine to select the right fibre profiles/traces)
     'pathdict'           : dictionary containing all directories relevant to the reduction
-    'lamp_config'        : simcalib lamp configuration (only needed for output filename determination for simcalib frames where both lamps were on)
+    'lamp_config'        : simcalib lamp configuration (only needed for output filename determination for simcalib frames)
     'skip_first_order'   : boolean - do you want to skip order 01 (causes problems as not fully on chip, and especially b/c LFC trace is rubbish)
     'simu'               : boolean - are you using ES-simulated spectra???
     'verbose'            : boolean - for debugging...
@@ -1082,8 +1082,14 @@ def extract_spectrum(stripes, err_stripes, ron_stripes, method='optimal', indivi
             starname = ''
 
         # fix output filename issue for simcalib spectra with both lamps on
-        if (lamp_config == 'both') and (starname.lower() in ["lc", "lc-only", "lfc", "lfc-only", "simlc", "thxe", "thxe-only", "simth", "thxe+lfc", "lfc+thxe", "lc+simthxe", "lc+thxe"]):
-            starname = 'SimLC_plus_SimTh'
+        if starname.lower() in ["lc", "lc-only", "lfc", "lfc-only", "simlc", "thxe", "thxe-only", "simth", "thxe+lfc", "lfc+thxe", "lc+simthxe", "lc+thxe"]):
+            assert lamp_config.lower() in ['lfc', 'thxe', 'both'], 'ERROR: lamp_config not valid!!!'
+            if lamp_config.lower() == 'lfc':
+                starname = 'SimLC'
+            elif lamp_config.lower() == 'thxe':
+                starname = 'SimTh'
+            elif lamp_config.lower() == 'both':
+                starname = 'SimLC_plus_SimTh'
 
         if path is None:
             print('ERROR: path to output directory not provided!!!')
@@ -1200,7 +1206,7 @@ def extract_spectrum_from_indices(img, err_img, stripe_indices, ronmask=None, me
     'obsname'            : (short) name of observation file
     'date'               : the date of the observations to be extracted in format 'YYYYMMDD' (needed for the optimal extraction routine to select the right fibre profiles/traces)
     'pathdict'           : dictionary containing all directories relevant to the reduction
-    'lamp_config'        : simcalib lamp configuration (only needed for output filename determination for simcalib frames where both lamps were on)
+    'lamp_config'        : simcalib lamp configuration (only needed for output filename determination for simcalib frames)
     'skip_first_order'   : boolean - do you want to skip order 01 (causes problems as not fully on chip, and especially b/c LFC trace is rubbish)
     'simu'               : boolean - are you using ES-simulated spectra???
     'verbose'            : boolean - for debugging...
@@ -1265,8 +1271,14 @@ def extract_spectrum_from_indices(img, err_img, stripe_indices, ronmask=None, me
             starname = ''
 
         # fix output filename issue for simcalib spectra with both lamps on
-        if (lamp_config == 'both') and (starname.lower() in ["lc", "lc-only", "lfc", "lfc-only", "simlc", "thxe", "thxe-only", "simth", "thxe+lfc", "lfc+thxe", "lc+simthxe", "lc+thxe"]):
-            starname = 'SimLC_plus_SimTh'
+        if starname.lower() in ["lc", "lc-only", "lfc", "lfc-only", "simlc", "thxe", "thxe-only", "simth", "thxe+lfc", "lfc+thxe", "lc+simthxe", "lc+thxe"]):
+            assert lamp_config.lower() in ['lfc', 'thxe', 'both'], 'ERROR: lamp_config not valid!!!'
+            if lamp_config.lower() == 'lfc':
+                starname = 'SimLC'
+            elif lamp_config.lower() == 'thxe':
+                starname = 'SimTh'
+            elif lamp_config.lower() == 'both':
+                starname = 'SimLC_plus_SimTh'
 
         if path is None:
             print('ERROR: path to output directory not provided!!!')
