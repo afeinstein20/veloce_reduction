@@ -1082,7 +1082,7 @@ def extract_spectrum(stripes, err_stripes, ron_stripes, method='optimal', indivi
             starname = ''
 
         # fix output filename issue for simcalib spectra with both lamps on
-        if starname.lower() in ["lc", "lc-only", "lfc", "lfc-only", "simlc", "thxe", "thxe-only", "simth", "thxe+lfc", "lfc+thxe", "lc+simthxe", "lc+thxe"]):
+        if starname.lower() in ["lc", "lc-only", "lfc", "lfc-only", "simlc", "thxe", "thxe-only", "simth", "thxe+lfc", "lfc+thxe", "lc+simthxe", "lc+thxe"]:
             assert lamp_config.lower() in ['lfc', 'thxe', 'both'], 'ERROR: lamp_config not valid!!!'
             if lamp_config.lower() == 'lfc':
                 starname = 'SimLC'
@@ -1271,7 +1271,7 @@ def extract_spectrum_from_indices(img, err_img, stripe_indices, ronmask=None, me
             starname = ''
 
         # fix output filename issue for simcalib spectra with both lamps on
-        if starname.lower() in ["lc", "lc-only", "lfc", "lfc-only", "simlc", "thxe", "thxe-only", "simth", "thxe+lfc", "lfc+thxe", "lc+simthxe", "lc+thxe"]):
+        if starname.lower() in ["lc", "lc-only", "lfc", "lfc-only", "simlc", "thxe", "thxe-only", "simth", "thxe+lfc", "lfc+thxe", "lc+simthxe", "lc+thxe"]:
             assert lamp_config.lower() in ['lfc', 'thxe', 'both'], 'ERROR: lamp_config not valid!!!'
             if lamp_config.lower() == 'lfc':
                 starname = 'SimLC'
