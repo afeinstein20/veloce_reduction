@@ -35,9 +35,10 @@ from veloce_reduction.veloce_reduction.wavelength_solution import make_master_fi
 from process_scripts import process_whites, process_science_images
 
 
+# THIS IS THE ONLY FIELD YOU NEED TO CHANGE ON A NIGHT BY NIGHT BASIS
 date = '20191023'
 
-
+# THIS BLOCK NEEDS TO BE SET UP JUST ONCE
 pathdict = {}
 pathdict['raw'] = '/Volumes/BERGRAID/data/veloce/raw_goodonly/' + date + '/'
 pathdict['red'] = '/Volumes/BERGRAID/data/veloce/reduced/' + date + '/'
