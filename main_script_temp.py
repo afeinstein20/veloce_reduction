@@ -23,7 +23,7 @@ from matplotlib.colors import LogNorm
 from veloce_reduction.veloce_reduction.get_info_from_headers import get_obstype_lists
 from veloce_reduction.veloce_reduction.helper_functions import short_filenames, laser_on, thxe_on
 from veloce_reduction.veloce_reduction.calibration import correct_for_bias_and_dark_from_filename, get_bias_and_readnoise_from_bias_frames, make_master_calib, \
-make_ronmask, make_master_bias_from_coeffs, make_master_dark, correct_orientation, crop_overscan_region
+make_ronmask, make_master_dark, make_master_darks, correct_orientation, crop_overscan_region
 from veloce_reduction.veloce_reduction.order_tracing import find_stripes, make_P_id, make_mask_dict, extract_stripes, make_order_traces_from_fibparms
 # from veloce_reduction.veloce_reduction.spatial_profiles import fit_profiles, fit_profiles_from_indices
 from veloce_reduction.veloce_reduction.flat_fielding import onedim_pixtopix_variations_spline
@@ -131,17 +131,9 @@ else:
 
 
 
-# MB = make_master_bias_from_coeffs(coeffs, nx, ny, savefile=True, path=pathdict['raw'], timit=True)
-# or
-# MB = offmask.copy()
-# #or
-# MB = medbias.copy()
-#XXXalso save read-noise and offsets for all headers to write later!?!?!?
-
-
 # (ii) DARKS
-# create (bias-subtracted) MASTER DARK frame (units = electrons)
-# MD = make_master_dark(dark_list, MB=MB, gain=gain, scalable=False, savefile=True, path=pathdict['raw'], timit=True)
+# create (bias-subtracted) MASTER DARK frames (units = electrons)
+# MD = make_master_dark(dark_list, MB=Medbias, gain=gain, scalable=False, savefile=True, path=pathdict['raw'], timit=True)
 # MDS = make_master_dark(dark_list, MB=medbias, gain=gain, scalable=True, savefile=True, path=pathdict['raw'], debug_level=1, timit=True)
 # use make_master_darks (ie plural) from now on!!!!!
 # make_master_darks(dark_list, MB=medbias, gain=gain)

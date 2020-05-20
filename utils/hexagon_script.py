@@ -188,6 +188,10 @@ def hexplot(param, obsname, mode='new', flat_top=True):
 
 
 def hexplotobs(obs, mode="new"):
+    """
+    # usage:
+    hexplotobs(filepath + "HD10700+ThXe+LFC_21sep30108_optimal3a_extracted.fits")
+    """
     fluxVals = pyfits.getdata(obs) 
     if mode.lower() == "new":
 #         fluxFibres = np.nanmedian(fluxVals[:,2:21:],(0, 2))
@@ -197,6 +201,3 @@ def hexplotobs(obs, mode="new"):
     hexplot(fluxFibres, obs, mode)
     return
 
-
-
-# hexplotobs(filepath + "HD10700+ThXe+LFC_21sep30108_optimal3a_extracted.fits")

@@ -2486,6 +2486,7 @@ def get_dispsol_for_all_fibs_3(obsname, date=None, relto='LFC', degpol=7, nx=411
     year = str(date)[:4]
 
     if pathdict is None:
+        pathdict = {}
         pathdict['raw'] = '/Volumes/BERGRAID/data/veloce/raw_goodonly/' + date + '/'
         pathdict['red'] = '/Volumes/BERGRAID/data/veloce/reduced/' + date + '/'
         pathdict['lfc'] = '/Volumes/BERGRAID/data/veloce/lfc_peaks/'

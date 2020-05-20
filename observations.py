@@ -689,7 +689,13 @@ class star(object):
 
 
 def update_redobs(starname, starpath=None, pattern=None, overwrite=False):
-    
+    """
+    USAGE:
+    # update_redobs('TOI375')
+    # update_redobs('TOI274')
+    # update_redobs('GJ674', pattern='674')
+    # update_redobs('HD212301')
+    """
     redpath = '/Volumes/BERGRAID/data/veloce/reduced/'
     working_redpath = '/Volumes/WORKING/data/veloce/reduced/'
     rawpath = '/Volumes/BERGRAID/data/veloce/raw_goodonly/'
@@ -731,7 +737,7 @@ def update_redobs(starname, starpath=None, pattern=None, overwrite=False):
     else:
         synonyms = [pattern]
     for syn in synonyms:
-            os.system("find " + redpath + "20* -name '" + "*" + syn + "*optimal*' -exec cp '{}' " + starpath + " \;")
+        os.system("find " + redpath + "20* -name '" + "*" + syn + "*optimal*' -exec cp '{}' " + starpath + " \;")
     
     # some more housekeeping...
     all_files = glob.glob(starpath + "*" + pattern + '*.fits')
@@ -784,10 +790,7 @@ def update_redobs(starname, starpath=None, pattern=None, overwrite=False):
 
 
 
-# update_redobs('TOI375')
-# update_redobs('TOI274')
-# update_redobs('GJ674', pattern='674')
-# update_redobs('HD212301')
+
 
 
 

@@ -77,22 +77,23 @@ all_snr = readcol(path + starname + '_all_snr.dat', twod=False)[0]
 
 # make all new wl-solutions and save to file (only once)
 # lfc_path = '/Volumes/BERGRAID/data/veloce/lfc_peaks/'
-# for i,filename in enumerate(file_list):
-#     dum = filename.split('/')
-# #     obsname = dum[-1].split('_')[1]   # before including the date in the reduced-spectrum filenames
-#     obsname = dum[-1].split('_')[2]
-#     print('Calculating wl-solution for ' + obsname + '   (' + str(i+1) + ' / ' + str(len(file_list)) + ')')
-# #     print(obsname, os.path.isfile(lfc_path + 'all/' + '2018' + '/' + obsname + 'olc.nst'))
-# #     print(obsname, os.path.isfile(lfc_path + 'all/' + '2019' + '/' + obsname + 'olc.nst'))
-#     year = (filename.split('/')[-1]).split('_')[0][:4]
-#     if os.path.isfile(lfc_path + 'all/' + year + '/' + obsname + 'olc.nst'):
-# #     if (os.path.isfile(lfc_path + 'all/' + '2018' + '/' + obsname + 'olc.nst')) or (os.path.isfile(lfc_path + 'all/' + '2019' + '/' + obsname + 'olc.nst')):
-#         utdate = pyfits.getval(filename, 'UTDATE')
-#         date = utdate[:4] + utdate[5:7] + utdate[8:]
-#         wldict, wl = get_dispsol_for_all_fibs_3(obsname, date=date)
-#         pyfits.writeto(path + pyfits.getval(filename, 'OBJECT').split('+')[0] + '_' + obsname + '_vac_wl.fits', wl, clobber=True)
-#     else:
-#         print('WARNING: could not calculate wl-solution for ' + obsname + ' - LFC peaks have not been measured!!!')
+for i,filename in enumerate(file_list):
+    dum = filename.split('/')
+#     obsname = dum[-1].split('_')[1]   # before including the date in the reduced-spectrum filenames
+    obsname = dum[-1].split('_')[-3]
+    print('Calculating wl-solution for ' + obsname + '   (' + str(i+1) + ' / ' + str(len(file_list)) + ')')
+#     print(obsname, os.path.isfile(lfc_path + 'all/' + '2018' + '/' + obsname + 'olc.nst'))
+#     print(obsname, os.path.isfile(lfc_path + 'all/' + '2019' + '/' + obsname + 'olc.nst'))
+    year = (filename.split('/')[-1]).split('_')[0][:4]
+    if os.path.isfile(lfc_path + 'all/' + year + '/' + obsname + 'olc.nst'):
+#     if (os.path.isfile(lfc_path + 'all/' + '2018' + '/' + obsname + 'olc.nst')) or (os.path.isfile(lfc_path + 'all/' + '2019' + '/' + obsname + 'olc.nst')):
+        utdate = pyfits.getval(filename, 'UTDATE')
+        date = utdate[:4] + utdate[5:7] + utdate[8:]
+        wldict, wl = get_dispsol_for_all_fibs_3(obsname, date=date)
+        # pyfits.writeto(path + pyfits.getval(filename, 'OBJECT').split('+')[0] + '_' + obsname + '_vac_wl.fits', wl, clobber=True)
+        pyfits.writeto(path + date + '_' + (pyfits.getval(filename, 'OBJECT').split('+')[0]).split('_')[0] + '_' + obsname + '_vac_wl.fits', wl, clobber=True)
+    else:
+        print('WARNING: could not calculate wl-solution for ' + obsname + ' - LFC peaks have not been measured!!!')
 ########################################################################################################################
 ########################################################################################################################
 ########################################################################################################################
