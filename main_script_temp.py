@@ -133,9 +133,7 @@ else:
 
 # (ii) DARKS
 # create (bias-subtracted) MASTER DARK frames (units = electrons)
-# MD = make_master_dark(dark_list, MB=Medbias, gain=gain, scalable=False, savefile=True, path=pathdict['raw'], timit=True)
-# MDS = make_master_dark(dark_list, MB=medbias, gain=gain, scalable=True, savefile=True, path=pathdict['raw'], debug_level=1, timit=True)
-# use make_master_darks (ie plural) from now on!!!!!
+# use make_master_darks() (ie plural) from now on!!!!!
 # make_master_darks(dark_list, MB=medbias, gain=gain)
 MDS = np.zeros(medbias.shape)
 

@@ -91,7 +91,7 @@ for i,filename in enumerate(file_list):
         date = utdate[:4] + utdate[5:7] + utdate[8:]
         wldict, wl = get_dispsol_for_all_fibs_3(obsname, date=date)
         # pyfits.writeto(path + pyfits.getval(filename, 'OBJECT').split('+')[0] + '_' + obsname + '_vac_wl.fits', wl, clobber=True)
-        pyfits.writeto(path + date + '_' + (pyfits.getval(filename, 'OBJECT').split('+')[0]).split('_')[0] + '_' + obsname + '_vac_wl.fits', wl, clobber=True)
+        pyfits.writeto(path + date + '_' + (pyfits.getval(filename, 'OBJECT').split('+')[0]).split('_')[0] + '_' + obsname + '_vac_wl.fits', wl, overwrite=True)
     else:
         print('WARNING: could not calculate wl-solution for ' + obsname + ' - LFC peaks have not been measured!!!')
 ########################################################################################################################

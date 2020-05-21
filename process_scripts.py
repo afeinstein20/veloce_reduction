@@ -455,7 +455,11 @@ def process_science_images(imglist, P_id, chipmask, mask=None, stripe_indices=No
         else:
             # for sim. calibration images we don't need to check for the calibration lamp configuration for all exposures (done external to this function)!
             # just for the file in question and then create a dummy copy of the image list so that it is in the same format that is expected for stellar observations
-            if int(date) < 20190503:
+
+            # nasty temp fix to make sure we are always looking at the 2D images until the header keywords are reliable
+            checkdate = '1' + date[1:]
+
+            if int(checkdate) < 20190503:
                 # now check the calibration lamp configuration for the main observation in question
                 img = correct_for_bias_and_dark_from_filename(filename, MB, MD, gain=gain, scalable=scalable,
                                                               savefile=saveall, path=path)
@@ -494,6 +498,7 @@ def process_science_images(imglist, P_id, chipmask, mask=None, stripe_indices=No
                         lamp_config = 'thxe'
                 elif lc + thxe == 2:
                     lamp_config = 'both'
+
             epoch_sublists = {}
             epoch_sublists[lamp_config] = imglist[:]
 
