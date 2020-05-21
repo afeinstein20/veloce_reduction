@@ -1698,6 +1698,8 @@ def make_master_calib(file_list, lamptype=None, MB=None, ronmask=None, MD=None, 
         except:
             print("WARNING: FITS keyword 'LCTEXPTM' or 'SIMCALTT' does not exist - cannot scale by actual LFC / SimThXe exposure times!")
             tscale = np.ones(len(file_list))
+            texp_list_lfc = []
+            texp_list_simth = []
 
 
     #########################################################################
