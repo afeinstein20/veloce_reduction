@@ -496,6 +496,10 @@ def optimal_extraction(stripes, err_stripes=None, ron_stripes=None, slit_height=
             else:
                 pixerr = err_sc[:, i].copy()
 
+            # this is a stupid fix to make sure the pixel weights are not completely overestimated
+            # (this does not apply to regular exposures, but can happen for median frames of calibration exposures, where the error of the median can be ridiculously small!!!)
+            pixerr = np.maximum(1, pixerr)
+
             # assign weights for flux (and take care of NaNs and INFs)
             pix_w = 1. / (pixerr * pixerr)
 
@@ -740,12 +744,14 @@ def optimal_extraction_from_indices(img, stripe_indices, err_img=None, ronmask=N
 
     # loop over all orders
     for ord in useful_orders:
+
         if timit and (debug_level > 0):
             order_start_time = time.time()
 
         # order number
         ordnum = ord[-2:]
 
+        # same-line screen output
         if ord == useful_orders[0]:
             print('OK, now processing order: ' + ordnum),
         elif ord == useful_orders[-1]:
@@ -824,6 +830,10 @@ def optimal_extraction_from_indices(img, stripe_indices, err_img=None, ronmask=N
             else:
                 pixerr = err_sc[:, i].copy()
 
+            # this is a stupid fix to make sure the pixel weights are not completely overestimated
+            # (this does not apply to regular exposures, but can happen for median frames of calibration exposures, where the error of the median can be ridiculously small!!!)
+            pixerr = np.maximum(1, pixerr)
+
             # assign weights for flux (and take care of NaNs and INFs)
             pix_w = 1. / (pixerr * pixerr)
 
@@ -882,7 +892,7 @@ def optimal_extraction_from_indices(img, stripe_indices, err_img=None, ronmask=N
                 f, v = (np.sum(z), np.sqrt(np.sum(pixerr * pixerr)))
 
             # e = np.sqrt(v)
-            # model = np.sum(f*phi,axis=1)
+            # model = np.sum(f * phi, axis=1)
 
             # fill output arrays depending on the selected method
             if not phi_onthefly and not collapse:
