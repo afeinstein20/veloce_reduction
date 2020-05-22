@@ -1568,7 +1568,7 @@ def xcorr_thflux(thflux, thflux2, scale=300., masking=True, satmask=None, lampty
 
 def get_dispsol_from_known_lines(thflux, pathdict=None, fibre=None, date=None, fitwidth=4, search_width=None, satmask=None, lamptype='thxe', minsigma=0.4, maxsigma=2.,
                                  sigma_0=0.85, minamp=0., maxamp=np.inf, return_all_pars=False, deg_spectral=7, deg_spatial=7,
-                                 root = '/Users/christoph/OneDrive - UNSW/', polytype='chebyshev', return_full=True, savetable=True, outpath=None, debug_level=0, timit=False):
+                                 polytype='chebyshev', return_full=True, savetable=True, outpath=None, debug_level=0, timit=False):
 
     '''
     thflux   -   shape (n_ord, n_pix), ie for each fibre individually, or quick-extracted format
