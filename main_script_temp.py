@@ -21,9 +21,9 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 
 from veloce_reduction.veloce_reduction.get_info_from_headers import get_obstype_lists
-from veloce_reduction.veloce_reduction.helper_functions import short_filenames, laser_on, thxe_on
+from veloce_reduction.veloce_reduction.helper_functions import short_filenames, laser_on, thxe_on, correct_orientation
 from veloce_reduction.veloce_reduction.calibration import correct_for_bias_and_dark_from_filename, get_bias_and_readnoise_from_bias_frames, make_master_calib, \
-make_ronmask, make_master_dark, make_master_darks, correct_orientation, crop_overscan_region
+make_ronmask, make_master_dark, make_master_darks, crop_overscan_region
 from veloce_reduction.veloce_reduction.order_tracing import find_stripes, make_P_id, make_mask_dict, extract_stripes, make_order_traces_from_fibparms
 # from veloce_reduction.veloce_reduction.spatial_profiles import fit_profiles, fit_profiles_from_indices
 from veloce_reduction.veloce_reduction.flat_fielding import onedim_pixtopix_variations_spline
@@ -53,7 +53,7 @@ pathdict['root'] = '/Users/christoph/OneDrive - UNSW/'
 
 ### (0) GET INFO FROM FITS HEADERS ##################################################################################################################
 # do a stock take of ALL FITS files in that folder
-all_raw_files = glob.glob(pathdict['raw'] + '*.fits')
+all_raw_files = glob.glob(pathdict['raw'] + date[-2:] + "*.fits")
 all_raw_files.sort()
 print('Identifying ' + str(len(all_raw_files)) + ' raw FITS files...')
 
