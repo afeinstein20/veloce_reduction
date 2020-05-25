@@ -10,7 +10,7 @@ from veloce_reduction.readcol import readcol
 from veloce_reduction.veloce_reduction.get_info_from_headers import get_obstype_lists
 from veloce_reduction.veloce_reduction.helper_functions import short_filenames
 
-# starnames = ['HD10700', 'HD190248', 'Gl87', 'GJ1132', 'GJ674', 'HD194640', 'HD212301']
+
 
 
 
@@ -203,6 +203,8 @@ def get_barycentric_correction(fn, rvabs=None, obs_path='/Users/christoph/OneDri
 
 
 
+
+
 def get_bc_from_gaia(gaia_dr2_id, jd, rvabs=0):
     """
     wrapper routine for using barycorrpy with Gaia DR2 coordinates
@@ -228,6 +230,7 @@ def get_bc_from_gaia(gaia_dr2_id, jd, rvabs=0):
 
 
 
+
 def get_bc_from_gaia_coords(ra, dec, pmra, pmdec, px, jd, rvabs=0):
     """
     wrapper routine for using barycorrpy with Gaia DR2 coordinates
@@ -247,7 +250,12 @@ def get_bc_from_gaia_coords(ra, dec, pmra, pmdec, px, jd, rvabs=0):
     # bc = barycorrpy.get_BC_vel(JDUTC=utmjd, ra=ra, dec=dec, pmra=pmra, pmdec=pmdec,
     #                            px=px, rv=rv, obsname='AAO', ephemeris='de430')
 
-    return bc[0][0]
+    if len(bc[0]) == 1:
+        return bc[0][0]
+    else:
+        return bc[0]
+
+
 
 
 
@@ -288,6 +296,40 @@ def append_bc_to_reduced_files(date, pathdict=None):
     
         
        
+def append_bc_to_reduced_files_alt():
+
+    # # appending barycorrs when there is no Gaia DR2 ID
+    #
+    # acq_list, bias_list, dark_list, flat_list, skyflat_list, domeflat_list, arc_list, thxe_list, laser_list, laser_and_thxe_list, stellar_list, unknown_list = get_obstype_lists(root+'raw_goodonly/'+date+'/')
+    # stellar_list.sort()
+    # obsnames = short_filenames(stellar_list)
+    # object_list = [pyfits.getval(file, 'OBJECT').split('+')[0] for file in stellar_list]
+    # t_list = [pyfits.getval(file, 'UTMJD') + 2.4e6 + 0.5 + 0.5*pyfits.getval(file, 'ELAPSED')/86400. for file in stellar_list]
+    #
+    # ix_list = []
+    # hip_id = 7588   # for HD10144
+    # hip_id = 68002  # for HD121263
+    # hip_id = 68702  # for HD122451
+    # hip_id = 85927  # for HD158926
+    # hip_id = 92855  # for HD175191
+    #
+    # for ix in ix_list:
+    #     object = object_list[ix]
+    #     print(ix,' - ',object)
+    #     obsname = obsnames[ix]
+    #     sublist = glob.glob(root + 'reduced/' + date + '/*' + obsname + '*extracted*')
+    #     jd = t_list[ix]
+    #     bc = barycorrpy.get_BC_vel(JDUTC=jd, hip_id=hip_id, obsname='AAO', ephemeris='de430')
+    #     bc = np.round(bc[0][0],2)
+    #     print('bc = ',bc)
+    #     for outfn in sublist:
+    #         pyfits.setval(outfn, 'BARYCORR', value=bc, comment='barycentric velocity correction [m/s]')
+    #
+    # print('DONE!')
+
+    return
+
+
 
 
 
