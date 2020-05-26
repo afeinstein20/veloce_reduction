@@ -77,23 +77,23 @@ all_snr = readcol(path + starname + '_all_snr.dat', twod=False)[0]
 
 # make all new wl-solutions and save to file (only once)
 # lfc_path = '/Volumes/BERGRAID/data/veloce/lfc_peaks/'
-for i,filename in enumerate(file_list):
-    dum = filename.split('/')
-#     obsname = dum[-1].split('_')[1]   # before including the date in the reduced-spectrum filenames
-    obsname = dum[-1].split('_')[-3]
-    print('Calculating wl-solution for ' + obsname + '   (' + str(i+1) + ' / ' + str(len(file_list)) + ')')
-#     print(obsname, os.path.isfile(lfc_path + 'all/' + '2018' + '/' + obsname + 'olc.nst'))
-#     print(obsname, os.path.isfile(lfc_path + 'all/' + '2019' + '/' + obsname + 'olc.nst'))
-    year = (filename.split('/')[-1]).split('_')[0][:4]
-    if os.path.isfile(lfc_path + 'all/' + year + '/' + obsname + 'olc.nst'):
-#     if (os.path.isfile(lfc_path + 'all/' + '2018' + '/' + obsname + 'olc.nst')) or (os.path.isfile(lfc_path + 'all/' + '2019' + '/' + obsname + 'olc.nst')):
-        utdate = pyfits.getval(filename, 'UTDATE')
-        date = utdate[:4] + utdate[5:7] + utdate[8:]
-        wldict, wl = get_dispsol_for_all_fibs_3(obsname, date=date)
-        # pyfits.writeto(path + pyfits.getval(filename, 'OBJECT').split('+')[0] + '_' + obsname + '_vac_wl.fits', wl, clobber=True)
-        pyfits.writeto(path + date + '_' + (pyfits.getval(filename, 'OBJECT').split('+')[0]).split('_')[0] + '_' + obsname + '_vac_wl.fits', wl, overwrite=True)
-    else:
-        print('WARNING: could not calculate wl-solution for ' + obsname + ' - LFC peaks have not been measured!!!')
+# for i,filename in enumerate(file_list):
+#     dum = filename.split('/')
+# #     obsname = dum[-1].split('_')[1]   # before including the date in the reduced-spectrum filenames
+#     obsname = dum[-1].split('_')[-3]
+#     print('Calculating wl-solution for ' + obsname + '   (' + str(i+1) + ' / ' + str(len(file_list)) + ')')
+# #     print(obsname, os.path.isfile(lfc_path + 'all/' + '2018' + '/' + obsname + 'olc.nst'))
+# #     print(obsname, os.path.isfile(lfc_path + 'all/' + '2019' + '/' + obsname + 'olc.nst'))
+#     year = (filename.split('/')[-1]).split('_')[0][:4]
+#     if os.path.isfile(lfc_path + 'all/' + year + '/' + obsname + 'olc.nst'):
+# #     if (os.path.isfile(lfc_path + 'all/' + '2018' + '/' + obsname + 'olc.nst')) or (os.path.isfile(lfc_path + 'all/' + '2019' + '/' + obsname + 'olc.nst')):
+#         utdate = pyfits.getval(filename, 'UTDATE')
+#         date = utdate[:4] + utdate[5:7] + utdate[8:]
+#         wldict, wl = get_dispsol_for_all_fibs_3(obsname, date=date)
+#         # pyfits.writeto(path + pyfits.getval(filename, 'OBJECT').split('+')[0] + '_' + obsname + '_vac_wl.fits', wl, clobber=True)
+#         pyfits.writeto(path + date + '_' + (pyfits.getval(filename, 'OBJECT').split('+')[0]).split('_')[0] + '_' + obsname + '_vac_wl.fits', wl, overwrite=True)
+#     else:
+#         print('WARNING: could not calculate wl-solution for ' + obsname + ' - LFC peaks have not been measured!!!')
 ########################################################################################################################
 ########################################################################################################################
 ########################################################################################################################
@@ -156,16 +156,16 @@ all_phi = [phi for phi,obsn in zip(vo_red[starname]['phase'], vo_red[starname]['
 
 all_xc = []
 # all_rv = np.zeros((len(files), 12))
-all_rv = np.zeros((len(files), 19))
-# all_rv = np.zeros((len(files), 11, 19))
+# all_rv = np.zeros((len(files), 19))
+all_rv = np.zeros((len(files), 36))
 all_sumrv = []
 all_sumrverr = []
 # all_sumrv = np.zeros(len(files))
 # all_sumrv_2 = np.zeros(len(files))
 addrange = 150
-xcsums = np.zeros((len(files), 2*addrange + 1))
+# xcsums = np.zeros((len(files), 2*addrange + 1))
 # xcsums = np.zeros((len(files), 19, 301))
-# xcsums = np.zeros((len(files), 38, 301))
+xcsums = np.zeros((len(files), 36, 301))
 
 # TEMPLATE:
 # # tau Ceti
@@ -175,8 +175,14 @@ xcsums = np.zeros((len(files), 2*addrange + 1))
 ix0 = 36
 date_0 = '20190518'
 # HD190248
-ix0 = 72
-date_0 = '20190524'
+# ix0 = 72
+# date_0 = '20190524'
+ix0 = 59
+date_0 = '20190518'
+# TOI837
+ix0=10
+date_0 = '20200313'
+
 
 f0 = pyfits.getdata(files[ix0], 0)
 err0 = pyfits.getdata(files[ix0], 1)
@@ -192,8 +198,9 @@ maskdict = np.load('/Volumes/BERGRAID/data/veloce/reduced/' + date_0 + '/' + dat
 mw_flux = pyfits.getdata('/Volumes/BERGRAID/data/veloce/reduced/' + date_0 + '/' + date_0 + '_master_white_optimal3a_extracted.fits')
 smoothed_flat, pix_sens = onedim_pixtopix_variations(mw_flux, filt='gaussian', filter_width=25)
 
-f0_clean = pyfits.getdata(path + '190248_' + obsname_0 + '_optimal3a_extracted_cleaned.fits')
+# f0_clean = pyfits.getdata(path + date_0 + '_190248_' + obsname_0 + '_optimal3a_extracted_cleaned.fits')
 # f0_clean = pyfits.getdata(path + '20191027_192.01_' + obsname_0 + '_optimal3a_extracted_cleaned.fits')
+f0_clean = pyfits.getdata(path + '20200313_837.01_13mar30132' + '_optimal3a_extracted_cleaned.fits')
 
 f0_clean = f0.copy()
 # loop over orders
@@ -209,8 +216,8 @@ for o in range(f0.shape[0]):
 
 
 # NO!!! I think we want to divide by the flat, not the smoothed flat otherwise we're not taking out the pix-to-pix sensitivity variations...
-f0_dblz, err0_dblz = deblaze_orders(f0_clean, mw_flux, mask=maskdict, err=err0, combine_fibres=True,
-                                    degpol=5, gauss_filter_sigma=3., maxfilter_size=100)
+# f0_dblz, err0_dblz = deblaze_orders(f0_clean, mw_flux, mask=maskdict, err=err0, combine_fibres=True,
+#                                     degpol=5, gauss_filter_sigma=3., maxfilter_size=100)
 # f0_dblz, err0_dblz = deblaze_orders(f0_clean[:,3:22,:], smoothed_flat[:,3:22,:], mask=maskdict, err=err0[:,3:22,:], combine_fibres=True,
 #                                     degpol=2, gauss_filter_sigma=3., maxfilter_size=100)
 # f0_dblz, err0_dblz = deblaze_orders(f0_clean, smoothed_flat, mask=maskdict, err=err0, combine_fibres=True,
@@ -238,7 +245,9 @@ for i,filename in enumerate(files):
     wl = pyfits.getdata(wls[i])
     # wl = pyfits.getdata(lfc_wls[i])
     bc = pyfits.getval(filename, 'BARYCORR')
-    f_clean = pyfits.getdata(path + '190248_' + obsname + '_optimal3a_extracted_cleaned.fits')
+
+    # f_clean = pyfits.getdata(path + date + '_190248_' + obsname + '_optimal3a_extracted_cleaned.fits')
+    f_clean = pyfits.getdata(path + date + '_837.01_' + obsname + '_optimal3a_extracted_cleaned.fits')
     # f_clean = pyfits.getdata(path + date + '_129.01_' + obsname + '_optimal3a_extracted_cleaned.fits')
 #     f_clean = pyfits.getdata(path + date + '_192.01_' + obsname + '_optimal3a_extracted_cleaned.fits')
 #     f_clean = f.copy()
@@ -256,14 +265,15 @@ for i,filename in enumerate(files):
 #                                flipped=False, individual_fibres=False, debug_level=1, timit=False))
     #     rv,rverr,xcsum = get_RV_from_xcorr_2(f, wl, f0, wl0, bc=all_bc[i], bc0=all_bc[6], individual_fibres=True, individual_orders=True, old_ccf=True, debug_level=1)
     sumrv, sumrverr, xcsum = get_RV_from_xcorr_2(f_clean, wl, f0_clean, wl0, bc=bc, bc0=bc0, smoothed_flat=smoothed_flat, fitrange=35, addrange=150, individual_fibres=False,
-                                                 individual_orders=False, deg_interp=3, norm_cont=True, fit_slope=False, old_ccf=False, debug_level=1)
+                                                 individual_orders=True, deg_interp=3, norm_cont=True, fit_slope=False, old_ccf=False, debug_level=1)
     #     sumrv,sumrverr,xcsum = get_RV_from_xcorr_2(f_dblz, wl, f0_dblz, wl0, bc=all_bc[i], bc0=all_bc[6], individual_fibres=False, individual_orders=False, old_ccf=True, debug_level=1)
     #     all_rv[i,:,:] = rv
     all_sumrv.append(sumrv)
     all_sumrverr.append(sumrverr)
-    all_rv[i,:] = sumrv[0,:,0]
-#     all_rv[i,:] = sumrv
-    xcsums[i, :] = xcsum
+    # all_rv[i,:] = sumrv[0,:,0]
+    all_rv[i,:] = sumrv[:,0]
+    # all_rv[i, :] = sumrv
+    # xcsums[i, :] = xcsum
 #     all_xc.append(make_ccfs(f_clean, wl, f0_clean, wl0, bc=bc, bc0=bc0, smoothed_flat=smoothed_flat, delta_log_wl=1e-6, deg_interp=3, flipped=False,
 #                         individual_fibres=False, scrunch=False, synthetic_template=False, norm_cont=True, debug_level=0, timit=False))
 xcsums = np.array(xcsums)

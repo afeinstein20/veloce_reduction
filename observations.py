@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 
 from veloce_reduction.readcol import readcol
 from veloce_reduction.veloce_reduction.calibration import correct_orientation, crop_overscan_region
-from veloce_reduction.veloce_reduction.helper_functions import laser_on, thxe_on
+from veloce_reduction.veloce_reduction.helper_functions import laser_on, thxe_on, get_datestring
 
 
 
@@ -74,7 +74,7 @@ def calculate_orbital_phase(name, jd=None, PT0_dict=None, t_ref = 2457000.):
 
 
 
-def create_toi_velobs_dict(obspath='/Users/christoph/OneDrive - UNSW/observations/', savefile=True, src='raw', laptop=False):
+def create_toi_velobs_dict(obspath='/Users/christoph/OneDrive - UNSW/observations/', savefile=True, src='raw', save_lists=True, laptop=False):
 
     """
     TODO:
@@ -117,8 +117,15 @@ def create_toi_velobs_dict(obspath='/Users/christoph/OneDrive - UNSW/observation
     
     if src.lower() in ['red', 'reduced']:
         all_obs_list = get_reduced_obslist(laptop=laptop)
+        if save_lists:
+            datestring = get_datestring()
+            np.save(obspath + 'all_' + rawred + '_obs_list_' + datestring + '.npy', all_obs_list)
     elif src.lower() == 'raw':
-        all_obs_list, all_target_list = get_raw_obslist(return_targets=True, laptop=laptop)
+        all_obs_list, all_target_list = get_raw_obslist(return_targets=True, rawpath=rawpath)
+        if save_lists:
+            datestring = get_datestring()
+            np.save(obspath + 'all_' + rawred + '_obs_list_' + datestring + '.npy', all_obs_list)
+            np.save(obspath + 'all_' + rawred + '_target_list_' + datestring + '.npy', all_target_list)
 
     # loop over all targets
     for targ, t0, per in zip(targets, T0, P):
@@ -321,6 +328,7 @@ def create_toi_velobs_dict(obspath='/Users/christoph/OneDrive - UNSW/observation
 
     if savefile:
         np.save(obspath + 'velobs_' + rawred + '.npy', vo)
+        np.save(obspath + 'velobs_' + rawred + '_' + datestring + '.npy', vo)
 
     return vo
 

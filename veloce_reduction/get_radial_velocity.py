@@ -265,6 +265,9 @@ def get_RV_from_xcorr_2(f, wl, f0, wl0, bc=0, bc0=0, mask=None, smoothed_flat=No
     Dec 2017 - CMB create
     04/06/2018 - CMB fixed bug when turning around arrays (need to use new variable)
     28/06/2018 - CMB fixed bug with interpolation of log wls
+
+    TODO:
+    control which orders/fibres through user input
     """
 
     assert delta_log_wl > 0, 'ERROR: "delta_log_wl" must ge greater than zero!!!'
@@ -373,7 +376,7 @@ def get_RV_from_xcorr_2(f, wl, f0, wl0, bc=0, bc0=0, mask=None, smoothed_flat=No
                         mu = np.nan
                         mu_err = np.nan
                 else:
-                    print('latest version 20200417')
+                    print('latest version 20200526')
                     
 #                 # OLD VERSION: can only accommodate one peak, but same as below
 #                 # parameters: mu, sigma, amp, beta, offset
@@ -499,7 +502,7 @@ def get_RV_from_xcorr_2(f, wl, f0, wl0, bc=0, bc0=0, mask=None, smoothed_flat=No
                     mu = np.nan
                     mu_err = np.nan
             else:
-                print('latest version 20200417')
+                print('latest version 20200526')
                 
 #                 # OLD VERSION: can only accommodate one peak, but same as below
 #                 # parameters: mu, sigma, amp, beta, offset
@@ -619,6 +622,9 @@ def make_ccfs(f, wl, f0, wl0, bc=0., bc0=0., smoothed_flat=None, delta_log_wl=1e
 
     MODHIST:
     July 2019 - CMB create (major changes from "old_make_ccfs")
+
+    TODO:
+    control which orders/fibres through user input
     """
 
     if timit:
@@ -717,17 +723,17 @@ def make_ccfs(f, wl, f0, wl0, bc=0., bc0=0., smoothed_flat=None, delta_log_wl=1e
 #         use_orders = np.arange(1,39)
 #     if use_orders is None:
 #     use_orders = [5, 6, 17, 25, 26, 27, 31, 34, 35, 36]         # at the moment 17 and 34 give the lowest scatter
-    use_orders = [17, 25, 26, 27, 31, 34, 35, 36]
+#     use_orders = [17, 25, 26, 27, 31, 34, 35, 36]
 #     use_orders = [5, 17, 25, 26, 27, 28, 31, 32, 33, 34, 35, 36]    # for TOI192
 #     use_orders = [5, 6, 17, 25, 27, 31, 36]
 #     use_orders = [17]
 #     use_orders = [35]
 #     use_orders = np.arange(1,39)
-#     use_orders = np.arange(1,37)
+    use_orders = np.arange(1,37)
 #     use_orders = np.arange(n_ord)
 
     print('Using ' + str(len(use_orders)) + ' orders for CCF...')
-    print("haehaehae_20200417")
+    print("haehaehae_20200526")
 
     for o in use_orders:         # at the moment 17 and 34 give the lowest scatter
 
@@ -741,14 +747,10 @@ def make_ccfs(f, wl, f0, wl0, bc=0., bc0=0., smoothed_flat=None, delta_log_wl=1e
         max_wl = max_wl_arr[o]
 
         # now apply barycentric correction to wl and wl0 so that we can ALWAYS USE THE SAME PARTS OF THE SPECTRUM for X-CORR!!!!!
-#         wl_bcc = (1 + bc / c) * wl   # NO! That would be for frequencies!
-#         wl_bcc = wl / (1 - bc / c)
         wl_bcc = wl * np.sqrt((1 + bc / c) / (1 - bc / c))
         # create logarithmic wavelength grid
         logwl = np.log(wl_bcc[o, :, :])
         if not synthetic_template:
-#             wl0_bcc = (1 + bc0 / c) * wl0   # NO! That would be for frequencies!
-#             wl0_bcc = wl0 / (1 - bc0 / c) 
             wl0_bcc = wl0 * np.sqrt((1 + bc0 / c) / (1 - bc0 / c))
             logwl0 = np.log(wl0_bcc[o, :, :])
         else:
