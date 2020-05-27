@@ -85,7 +85,7 @@ def create_toi_velobs_dict(obspath='/Users/christoph/OneDrive - UNSW/observation
     # code defensively...
     if laptop:
         redpath = '/Users/christoph/data/reduced/'
-        rawpath = '/Users/christoph/data/raw_godoonly/'
+        rawpath = '/Users/christoph/data/raw_goodonly/'
         logpath = '/Users/christoph/data/veloce_logs/'
     else:
         redpath = '/Volumes/BERGRAID/data/veloce/reduced/'

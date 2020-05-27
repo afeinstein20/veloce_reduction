@@ -625,6 +625,7 @@ def make_ccfs(f, wl, f0, wl0, bc=0., bc0=0., smoothed_flat=None, delta_log_wl=1e
 
     TODO:
     control which orders/fibres through user input
+    input proper wl for smoothef_flat
     """
 
     if timit:
