@@ -341,7 +341,7 @@ def create_bstar_velobs_dict(path='/Users/christoph/OneDrive - UNSW/observations
     # code defensively...
     if laptop:
         redpath = '/Users/christoph/data/reduced/'
-        rawpath = '/Users/christoph/data/raw_godoonly/'
+        rawpath = '/Users/christoph/data/raw_goodonly/'
     else:
         redpath = '/Volumes/BERGRAID/data/veloce/reduced/'
         rawpath = '/Volumes/BERGRAID/data/veloce/raw_goodonly/'
