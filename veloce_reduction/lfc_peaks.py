@@ -9,8 +9,8 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 
-from veloce_reduction.readcol import readcol
-from veloce_reduction.veloce_reduction.helper_functions import find_nearest
+from .readcol import readcol
+from .helper_functions import find_nearest
 
 
 

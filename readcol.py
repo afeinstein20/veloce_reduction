@@ -114,28 +114,28 @@ def readcol(filename,skipline=0,skipafter=0,names=False,fsep=None,twod=True,
     null=[f.pop(0) for i in range(skipafter)]
     
     if fixedformat:
-        myreadff = lambda(x): readff(x,fixedformat)
-        splitarr = map(myreadff,f)
-        splitarr = filter(commentfilter,splitarr)
+        myreadff = lambda x: readff(x,fixedformat)
+        splitarr = list(map(myreadff,f))
+        splitarr = list(filter(commentfilter,splitarr))
     else:
-        fstrip = map(string.strip,f)
+        fstrip = list(map(string.strip,f))
         fseps = [ fsep for i in range(len(f)) ]
-        splitarr = map(string.split,fstrip,fseps)
-        for i in xrange(splitarr.count([''])):
+        splitarr = list(map(string.split,fstrip,fseps))
+        for i in range(splitarr.count([''])):
             splitarr.remove([''])
 
-        splitarr = filter(commentfilter,splitarr)
+        splitarr = list(filter(commentfilter,splitarr))
 
         # check to make sure each line has the same number of columns to avoid 
         # "ValueError: setting an array element with a sequence."
-        nperline = map(len,splitarr)
+        nperline = list(map(len,splitarr))
         if hasmode:
             ncols,nrows = mode(nperline)
             if nrows != len(splitarr):
                 if verbose:
-                    print "Removing %i rows that don't match most common length.  \
-                     \n%i rows read into array." % (len(splitarr) - nrows,nrows)
-                for i in xrange(len(splitarr)-1,-1,-1):  # need to go backwards
+                    print("Removing %i rows that don't match most common length.  \
+                     \n%i rows read into array." % (len(splitarr) - nrows,nrows))
+                for i in range(len(splitarr)-1,-1,-1):  # need to go backwards
                     if nperline[i] != ncols:
                         splitarr.pop(i)
 
@@ -143,7 +143,7 @@ def readcol(filename,skipline=0,skipafter=0,names=False,fsep=None,twod=True,
         x = numpy.asarray( splitarr , dtype='float')
     except ValueError:
         if verbose: 
-            print "WARNING: reading as string array because %s array failed" % 'float'
+            print("WARNING: reading as string array because %s array failed" % 'float')
         try:
             x = numpy.asarray( splitarr , dtype='S')
         except ValueError:
@@ -161,8 +161,8 @@ def readcol(filename,skipline=0,skipafter=0,names=False,fsep=None,twod=True,
         x = get_autotype(x)
 
     if asdict or asStruct:
-        mydict = dict(zip(nms,x.T))
-        for k,v in mydict.iteritems():
+        mydict = dict(list(zip(nms,x.T)))
+        for k,v in mydict.items():
             mydict[k] = get_autotype(v)
         if asdict:
             return mydict
@@ -172,12 +172,12 @@ def readcol(filename,skipline=0,skipafter=0,names=False,fsep=None,twod=True,
         return nms,x
     elif names:
         # if not returning a twod array, try to return each vector as the spec. type
-        return nms,[ get_autotype(x.T[i]) for i in xrange(x.shape[1]) ]
+        return nms,[ get_autotype(x.T[i]) for i in range(x.shape[1]) ]
     else:
         if twod:
             return x
         else:
-            return [ get_autotype(x.T[i]) for i in xrange(x.shape[1]) ]
+            return [ get_autotype(x.T[i]) for i in range(x.shape[1]) ]
 
 def get_autotype(arr):
     """
@@ -187,7 +187,7 @@ def get_autotype(arr):
     """
     try:
         narr = arr.astype('float')
-        if (narr < sys.maxint).all() and (narr % 1).sum() == 0:
+        if (narr < sys.maxsize).all() and (narr % 1).sum() == 0:
             return narr.astype('int')
         else:
             return narr
@@ -201,7 +201,7 @@ class Struct(object):
     """
     def __init__(self,namedict):
         R = re.compile('\W')  # find and remove all non-alphanumeric characters
-        for k in namedict.keys():
+        for k in list(namedict.keys()):
             v = namedict.pop(k) 
             if k[0].isdigit():
                 k = 'n'+k
@@ -216,7 +216,7 @@ def readff(s,format):
     """
 
     F = numpy.array([0]+format).cumsum()
-    bothF = zip(F[:-1],F[1:])
+    bothF = list(zip(F[:-1],F[1:]))
     strarr = [s[l:u] for l,u in bothF]
 
     return strarr
@@ -228,4 +228,4 @@ def make_commentfilter(comment):
             except: return -1
         return commentfilter
     else: # always return false 
-        return lambda(x): -1
+        return lambda x: -1

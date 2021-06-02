@@ -12,9 +12,9 @@ import scipy.optimize as op
 import time
 from scipy import ndimage
 
-from veloce_reduction.readcol import readcol
-from veloce_reduction.veloce_reduction.helper_functions import xcorr, gausslike_with_amp_and_offset, gausslike_with_amp_and_offset_and_slope, central_parts_of_mask, spectres, cmb_scrunch, multi_fibmodel_with_amp_and_offset
-from veloce_reduction.veloce_reduction.flat_fielding import deblaze_orders, onedim_pixtopix_variations
+from .readcol import readcol
+from .helper_functions import xcorr, gausslike_with_amp_and_offset, gausslike_with_amp_and_offset_and_slope, central_parts_of_mask, spectres, cmb_scrunch, multi_fibmodel_with_amp_and_offset
+from .flat_fielding import deblaze_orders, onedim_pixtopix_variations
 
 
     

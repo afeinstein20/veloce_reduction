@@ -11,8 +11,8 @@ from scipy import ndimage
 import matplotlib.pyplot as plt
 import time
 
-from veloce_reduction.veloce_reduction.helper_functions import find_maxima, fibmodel, fibmodel_with_amp, offset_pseudo_gausslike, fibmodel_with_amp_and_offset, norm_fibmodel_with_amp, norm_fibmodel_with_amp_and_offset
-from veloce_reduction.veloce_reduction.order_tracing import flatten_single_stripe, flatten_single_stripe_from_indices
+from .helper_functions import find_maxima, fibmodel, fibmodel_with_amp, offset_pseudo_gausslike, fibmodel_with_amp_and_offset, norm_fibmodel_with_amp, norm_fibmodel_with_amp_and_offset
+from .order_tracing import flatten_single_stripe, flatten_single_stripe_from_indices
 
 
 

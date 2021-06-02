@@ -10,7 +10,7 @@ import scipy.sparse as sparse
 from scipy.ndimage import label
 import astropy.io.fits as pyfits
 
-from veloce_reduction.veloce_reduction.helper_functions import polyfit2d, polyval2d, fit_poly_surface_2D, sigma_clip
+from .helper_functions import polyfit2d, polyval2d, fit_poly_surface_2D, sigma_clip
 
 
 

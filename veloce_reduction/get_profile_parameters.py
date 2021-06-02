@@ -12,8 +12,8 @@ from scipy.signal import savgol_filter
 from scipy import interpolate
 
 
-from veloce_reduction.veloce_reduction.order_tracing import find_stripes, make_P_id, extract_stripes, flatten_single_stripe
-from veloce_reduction.veloce_reduction.chipmasks import get_mean_fibre_separation
+from .order_tracing import find_stripes, make_P_id, extract_stripes, flatten_single_stripe
+from .chipmasks import get_mean_fibre_separation
 
 
 

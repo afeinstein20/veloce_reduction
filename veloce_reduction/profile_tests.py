@@ -5,10 +5,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy.optimize as op
 
-from veloce_reduction.veloce_reduction.wavelength_solution import find_suitable_peaks
-from veloce_reduction.veloce_reduction.helper_functions import multi_fibmodel_with_amp, CMB_multi_gaussian, \
+from .wavelength_solution import find_suitable_peaks
+from .helper_functions import multi_fibmodel_with_amp, CMB_multi_gaussian, \
     central_parts_of_mask, multi_fibmodel_with_amp_and_offset, CMB_multi_gaussian_with_offset
-from veloce_reduction.veloce_reduction.order_tracing import flatten_single_stripe, flatten_single_stripe_from_indices
+from .order_tracing import flatten_single_stripe, flatten_single_stripe_from_indices
 
 
 

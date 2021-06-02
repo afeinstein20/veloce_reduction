@@ -10,7 +10,7 @@ import scipy.ndimage as ndimage
 from scipy.ndimage.morphology import generate_binary_structure, binary_erosion
 from scipy.optimize import curve_fit
 
-from veloce_reduction.veloce_reduction.helper_functions import gauss2D, affine_matrix
+from .helper_functions import gauss2D, affine_matrix
 
 
 

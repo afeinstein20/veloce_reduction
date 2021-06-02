@@ -6,9 +6,9 @@ import barycorrpy
 import numpy as np
 import glob
 
-from veloce_reduction.readcol import readcol
-from veloce_reduction.veloce_reduction.get_info_from_headers import get_obstype_lists
-from veloce_reduction.veloce_reduction.helper_functions import short_filenames
+from .readcol import readcol
+from .get_info_from_headers import get_obstype_lists
+from .helper_functions import short_filenames
 
 
 
