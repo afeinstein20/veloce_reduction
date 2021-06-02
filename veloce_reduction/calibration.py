@@ -742,7 +742,7 @@ def get_bias_and_readnoise_from_bias_frames(bias_list, degpol=5, clip=5, gain=No
         img2 = crop_overscan_region(img2)
 
         # take difference and do sigma-clipping
-        diff = img1.astype(long) - img2.astype(long)
+        diff = img1.astype(np.longlong) - img2.astype(np.longlong)
         sigs_q1.append(np.nanstd(sigma_clip(diff[q1], 5))/np.sqrt(2))
         sigs_q2.append(np.nanstd(sigma_clip(diff[q2], 5))/np.sqrt(2))
         sigs_q3.append(np.nanstd(sigma_clip(diff[q3], 5))/np.sqrt(2))
