@@ -102,13 +102,13 @@ def make_median_image(imglist, MB=None, ronmask=None, return_err=True, scale=Fal
 def make_quadrant_masks(nx, ny):
     # define four quadrants via masks
     q1 = np.zeros((ny, nx), dtype='bool')
-    q1[:(ny / 2), :(nx / 2)] = True
+    q1[:int(ny / 2), :int(nx / 2)] = True
     q2 = np.zeros((ny, nx), dtype='bool')
-    q2[:(ny / 2), (nx / 2):] = True
+    q2[:int(ny / 2), int(nx / 2):] = True
     q3 = np.zeros((ny, nx), dtype='bool')
-    q3[(ny / 2):, (nx / 2):] = True
+    q3[int(ny / 2):, int(nx / 2):] = True
     q4 = np.zeros((ny, nx), dtype='bool')
-    q4[(ny / 2):, :(nx / 2)] = True
+    q4[int(ny / 2):, :int(nx / 2)] = True
 
     return q1, q2, q3, q4
 

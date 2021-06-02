@@ -36,19 +36,16 @@ def get_obstype_lists(pathdict, pattern=None, weeding=True, quick=False, raw_goo
     20200421 - CMB removed domeflat and skyflat lists (not used with Veloce)
     """
 
-    path = pathdict['raw']
-    chipmask_path = pathdict['cm']
+    path = pathdict#pathdict['raw']
+    #chipmask_path = pathdict['cm']
 
     if raw_goodonly:
         date = path[-9:-1]
     else:
         date = '20' + path[-13:-7]
 
-    if pattern is None:
-        file_list = glob.glob(path + date[-2:] + "*.fits")
-    else:
-        file_list = glob.glob(path + '*' + pattern + '*.fits')
-    
+    file_list = np.sort([os.path.join(path, i) for i in os.listdir(path)
+                         if i.endswith('.fits')])
     
     # first weed out binned observations
     if weeding:
@@ -123,7 +120,7 @@ def get_obstype_lists(pathdict, pattern=None, weeding=True, quick=False, raw_goo
         checkdate = date[:]
     else:
         checkdate = '1' + date[1:]
-    
+    """
     if int(checkdate) < 20190503:
         # check if chipmask for that night already exists (if not revert to the closest one in time (preferably earlier in time))
         if os.path.isfile(chipmask_path + 'chipmask_' + date + '.npy'):
@@ -173,7 +170,7 @@ def get_obstype_lists(pathdict, pattern=None, weeding=True, quick=False, raw_goo
                 laser_and_simth_list.append(file)
             else:
                 unknown_list.append(file)
-        
+    """    
     # sort all lists
     acq_list.sort()
     bias_list.sort()
@@ -185,6 +182,7 @@ def get_obstype_lists(pathdict, pattern=None, weeding=True, quick=False, raw_goo
     laser_and_simth_list.sort()
     stellar_list.sort()
     unknown_list.sort()
+
 
     if savefiles:
         shortfn_acq_list = [fn.split('/')[-1] for fn in acq_list]

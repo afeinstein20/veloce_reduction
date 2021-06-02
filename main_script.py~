@@ -9,7 +9,7 @@ import astropy.io.fits as pyfits
 import numpy as np
 import datetime
 
-from veloce_reduction.get_info_from_headers import get_obstype_lists
+from veloce_reduction.get_info_from_headers import get_obstype_lists_temp
 from veloce_reduction.helper_functions import short_filenames
 from veloce_reduction.calibration import get_bias_and_readnoise_from_bias_frames, make_offmask_and_ronmask, make_master_bias_from_coeffs, make_master_dark, correct_orientation, crop_overscan_region
 from veloce_reduction.order_tracing import find_stripes, make_P_id, make_mask_dict, extract_stripes #, find_tramlines
@@ -71,9 +71,9 @@ path = '/Users/arcticfox/Documents/youngStars/veloce/spectra/fitsfiles'
 # white_list = glob.glob(path + 'Light*.fits')
 # stellar_list = glob.glob(path + 'Light*.fits')
 ###END TEMP###
-acq_list, bias_list, dark_list, flat_list, arc_list, simth_only_list, laser_only_list, laser_and_simth_list, stellar_list, unknown_list = get_obstype_lists(path)
+acq_list, bias_list, dark_list, flat_list, skyflat_list, domeflat_list, arc_list, thxe_list, laser_list, laser_and_thxe_list, stellar_list, unknown_list = get_obstype_lists_temp(path)
 obsnames = short_filenames(stellar_list)
-
+print(bias_list, dark_list, flat_list)
 dumimg = crop_overscan_region(correct_orientation(pyfits.getdata(stellar_list[0])))
 ny,nx = dumimg.shape
 del dumimg
@@ -82,11 +82,9 @@ del dumimg
 
 
 # (1) BAD PIXEL MASK ################################################################################################################################
-"""
 bpm_list = glob.glob(path + '*bad_pixel_mask*')
 #read most recent bad pixel mask
 bpm_dates = [x[-12:-4] for x in bpm_list]
-print(bpm_list)
 most_recent_datestring = sorted(bpm_dates)[-1]
 bad_pixel_mask = np.load(path + 'bad_pixel_mask_' + most_recent_datestring + '.npy')
 
@@ -98,7 +96,6 @@ now = datetime.datetime.now()
 dumstring = str(now)[:10].split('-')
 datestring = ''.join(dumstring)
 np.save(path+'bad_pixel_mask_'+datestring+'.npy', bad_pixel_mask)
-"""
 #####################################################################################################################################################
 
 

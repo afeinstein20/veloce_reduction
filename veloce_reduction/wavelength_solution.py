@@ -22,7 +22,7 @@ import glob
 from .readcol import readcol
 from .helper_functions import fibmodel_with_amp, CMB_pure_gaussian, multi_fibmodel_with_amp, CMB_multi_gaussian, offset_pseudo_gausslike
 from .helper_functions import fit_poly_surface_2D, single_sigma_clip, find_nearest, gaussian_with_offset_and_slope, fibmodel_with_amp_and_offset
-from ..utils.linelists import make_gaussmask_from_linelist
+from .utils.linelists import make_gaussmask_from_linelist
 from .lfc_peaks import find_affine_transformation_matrix, divide_lfc_peaks_into_orders
 
 
