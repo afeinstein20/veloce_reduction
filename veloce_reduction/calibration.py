@@ -11,8 +11,8 @@ import time
 import matplotlib.pyplot as plt
 from scipy import ndimage
 
-from veloce_reduction.veloce_reduction.helper_functions import correct_orientation, sigma_clip, polyfit2d, polyval2d
-from veloce_reduction.veloce_reduction.background import extract_background, fit_background
+from .helper_functions import correct_orientation, sigma_clip, polyfit2d, polyval2d
+from .background import extract_background, fit_background
 
 
 
