@@ -30,7 +30,6 @@ from .lfc_peaks import find_affine_transformation_matrix, divide_lfc_peaks_into_
 
 
 
-
 def find_suitable_peaks(rawdata, thresh = 5000., bgthresh = 2000., maxthresh = None, gauss_filter_sigma=1., slope=1e-4,
                         clip_edges=True, remove_bg=False, return_masks=False, debug_level=0, timit=False):
     """

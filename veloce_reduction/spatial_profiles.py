@@ -9,7 +9,7 @@ from lmfit.models import *
 from lmfit.minimizer import *
 from scipy import ndimage
 import matplotlib.pyplot as plt
-import time
+import time, sys
 
 from .helper_functions import find_maxima, fibmodel, fibmodel_with_amp, offset_pseudo_gausslike, fibmodel_with_amp_and_offset, norm_fibmodel_with_amp, norm_fibmodel_with_amp_and_offset
 from .order_tracing import flatten_single_stripe, flatten_single_stripe_from_indices
@@ -535,7 +535,7 @@ def fit_profiles_single_order(stripe_rows, stripe_columns, ordpol, osf=1, method
             
     if choice == 'n':
         print('OK, stopping script...')
-        quit()
+        sys.exit()
     else:         
         
         if timit:
@@ -620,7 +620,7 @@ def fit_profiles(P_id, stripes, err_stripes, mask=None, stacking=True, slit_heig
     #create "global" parameter dictionary for entire chip
     fibre_profiles = {}
     #loop over all orders
-    for ord in sorted(P_id.iterkeys()):
+    for ord in sorted(list(P_id.keys())):
         print('OK, now processing '+str(ord))
         
         ordpol = P_id[ord]
@@ -684,7 +684,7 @@ def fit_profiles_from_indices(P_id, img, err_img, stripe_indices, mask=None, sta
     #create "global" parameter dictionary for entire chip
     fibre_profiles = {}
     #loop over all orders
-    for ord in sorted(P_id.iterkeys()):
+    for ord in sorted(list(P_id.keys())):
         print('OK, now processing '+str(ord))
         
         ordpol = P_id[ord]
@@ -754,7 +754,7 @@ def make_model_stripes_gausslike(fibre_profiles, flat, err_img, stripe_indices, 
         fitpars = {}
     
     #loop over all orders
-    for ord in sorted(fibre_profiles.iterkeys()):
+    for ord in sorted(list(fibre_profiles.keys())):
         if debug_level >= 1:
             print('Creating model for ',ord)
             

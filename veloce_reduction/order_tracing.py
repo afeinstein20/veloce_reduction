@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy import ndimage
 import scipy.sparse as sparse
-import time
+import time, sys
 
 from .helper_functions import sigma_clip
 
@@ -622,7 +622,7 @@ def flatten_single_stripe(stripe, slit_height=25, timit=False):
         #parts of order missing on RIGHT side of chip?
         elif contents[1][-1] != nx-1:
             print('some parts of the order are missing on RIGHT side of chip...NIGHTMARE, THIS HAS NOT BEEN IMPLEMENTED YET') 
-            quit()
+            sys.exit()
 #             for i in col_values:
 #                 #is there a value for all pixels across the i-th cutout?
 #                 if i == np.max(col_values):
@@ -669,7 +669,7 @@ def flatten_single_stripe(stripe, slit_height=25, timit=False):
         #parts of order missing at the bottom?
         elif np.min(contents[0]) == 0:
             print('some parts of the order are missing on at the BOTTOM of the chip...NIGHTMARE, THIS HAS NOT BEEN IMPLEMENTED YET') 
-            quit()
+            sys.exit()
         
     else:    
         #this is the "normal", easy part, where all (2*slit_height,4096) pixels of the stripe lie on the CCD 
@@ -791,7 +791,7 @@ def find_tramlines_single_order(uu, ul, lu, ll, mask_uu, mask_ul, mask_lu, mask_
     #make sure they're all the same length
     if (len(uu) != len(ul)) or (len(uu) != len(lu)) or (len(uu) != len(ll)):
         print('ERROR: Dimensions of input arrays do not agree!!!')
-        quit()
+        sys.exit()
         
     #fit 5th-order polynomial to each peak-array, with the weights of the fit being the RMS of the initial fit to the fibre profiles!?!?!?
     #WARNING: do unweighted for now...
@@ -845,7 +845,7 @@ def find_tramlines(fp_uu, fp_ul, fp_lu, fp_ll, mask_uu, mask_ul, mask_lu, mask_l
     #make sure they're all the same length
     if (len(fp_uu) != len(fp_ul)) or (len(fp_uu) != len(fp_lu)) or (len(fp_uu) != len(fp_ll)):
         print('ERROR: Dimensions of input dictionaries do not agree!!!')
-        quit()
+        sys.exit()
     
     tramlines = {}
     

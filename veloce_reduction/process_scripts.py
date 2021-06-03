@@ -128,8 +128,8 @@ def process_whites(white_list, MB=None, ronmask=None, MD=None, gain=None, P_id=N
 #     # get plain median image
 #     medimg = np.median(np.array(allimg), axis=0)
     # take median after scaling to median exposure time 
-    medimg = np.median(np.array(allimg) / tscale.reshape(len(allimg), 1, 1), axis=0)
-    
+    print(tscale)
+    medimg = np.median(np.array(allimg), axis=0) # / tscale.reshape(len(allimg), 1, 1), axis=0)    
 
     if fancy:
         # need to create a co-added frame if we want to do outlier rejection the fancy way
@@ -179,13 +179,14 @@ def process_whites(white_list, MB=None, ronmask=None, MD=None, gain=None, P_id=N
         if nw == 1:
             err_master = allerr[0]
         else:
-            err_master = 1.253 * np.std(np.array(allimg) / tscale.reshape(len(allimg), 1, 1), axis=0) / np.sqrt(nw-1)     # normally it would be sigma/sqrt(n), but np.std is dividing by sqrt(n), not by sqrt(n-1)
+            err_master = 1.253 * np.std(np.array(allimg), axis=0) / np.sqrt(nw-1)# / tscale.reshape(len(allimg), 1, 1), axis=0) / np.sqrt(nw-1)     # normally it would be sigma/sqrt(n), but np.std is dividing by sqrt(n), not by sqrt(n-1)
         # err_master = np.sqrt( np.sum( (np.array(allimg) - np.mean(np.array(allimg), axis=0))**2 / (nw*(nw-1)) , axis=0) )   # that is equivalent, but slower
     
     
     # now subtract background (errors remain unchanged)
     if remove_bg:
         # identify and extract background
+        print(master.shape)
         bg = extract_background_pid(master, P_id, slit_height=30, exclude_top_and_bottom=True, timit=timit)
         # fit background
         bg_coeffs, bg_img = fit_background(bg, clip=10, return_full=True, timit=timit)
@@ -224,7 +225,7 @@ def process_whites(white_list, MB=None, ronmask=None, MD=None, gain=None, P_id=N
 
 def process_science_images(imglist, P_id, chipmask, mask=None, stripe_indices=None, quick_indices=None,
                            sampling_size=25, slit_height=32, qsh=23, gain=[1., 1., 1., 1.], MB=None, ronmask=None,
-                           MD=None, scalable=False, saveall=False, pathdict=None, ext_method='optimal',
+                           MD=None, scalable=False, saveall=False, pathdict=None, ext_method='optimal', path=None,
                            from_indices=True, slope=True, offset=True, fibs='all', date=None, timit=False):
     """
     Process all science / calibration lamp images. This includes:
@@ -246,8 +247,11 @@ def process_science_images(imglist, P_id, chipmask, mask=None, stripe_indices=No
     cont = 'y'
     assert cont.lower() == 'y', 'You chose to quit!'
 
-    assert pathdict is not None, 'ERROR: pathdict not provided!!!'
-    path = pathdict['raw']
+#    assert pathdict is not None, 'ERROR: pathdict not provided!!!'
+    if pathdict is None:
+        path = path
+    else:
+        path = pathdict['raw']
 
     if timit:
         start_time = time.time()

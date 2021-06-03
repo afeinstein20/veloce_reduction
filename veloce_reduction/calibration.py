@@ -4,6 +4,7 @@ Created on 13 Apr. 2018
 @author: christoph
 """
 
+import os
 import astropy.io.fits as pyfits
 import numpy as np
 from itertools import combinations
@@ -393,7 +394,8 @@ def measure_gains(filelist, MB, MD=None, scalable=True, timit=False, debug_level
 
 
 
-def get_bias_and_readnoise_from_overscan_polyfit(img, ramps=[35, 35, 35, 35], gain=None, degpol=5, clip=5, add=0, return_oslevels_only=False, verbose=False, timit=False):
+def get_bias_and_readnoise_from_overscan_polyfit(img, ramps=[35, 35, 35, 35], gain=None, degpol=5, clip=5, add=0, 
+                                                 return_oslevels_only=False, verbose=False, timit=False, date=None):
     """
     PURPOSE:
     get an estimate of the bias and the read noise from a selected sub-region of the overscan region for each quadrant
@@ -453,6 +455,7 @@ def get_bias_and_readnoise_from_overscan_polyfit(img, ramps=[35, 35, 35, 35], ga
     # (ie we have a median value for the good part of the overscan region for all 2056 pixel columns per quadrant)
     # note that we do not include the value of the first (Q1 & Q4) / last (Q2 & Q3) pixel column in the fit (replace it with the median value in the adjacent pixel column), 
     # as it is significantly lower in the overscan (but not in the bias frames)
+    print('significantly lower in the overscan...')
     fit_os1 = np.poly1d(np.polyfit(np.arange(nxq), np.r_[ymeds1[1], ymeds1[1:]], degpol))     
     model_os1_onedim = fit_os1(np.arange(nxq))     
     model_os1 = np.tile(model_os1_onedim, (ny//2, 1))
@@ -476,6 +479,8 @@ def get_bias_and_readnoise_from_overscan_polyfit(img, ramps=[35, 35, 35, 35], ga
     if return_oslevels_only:
         return offsets
     
+
+    print('esimate of the read noise')
     # get estimate of the read noise (excluding the first/last dodgy pixel column)
     ron1 = np.nanstd(sigma_clip(good_os1[:, 1:].flatten(), clip))
     ron2 = np.nanstd(sigma_clip(good_os2[:, :-1].flatten(), clip))
@@ -639,7 +644,8 @@ def get_bias_and_readnoise_from_overscan_collapse(img, gain=None, ramps=[35, 35,
 
 
 
-def get_bias_and_readnoise_from_bias_frames(bias_list, degpol=5, clip=5, gain=None, save_medimg=True, debug_level=0, timit=False):
+def get_bias_and_readnoise_from_bias_frames(bias_list, degpol=5, clip=5, gain=None, save_medimg=True, 
+                                            debug_level=0, timit=False, date=None, path='./'):
     """
     Calculate the median bias frame after subtracting the overscan levels, the remaining offsets in the four different quadrants
     (assuming bias frames are flat within a quadrant), and the read-out noise per quadrant (ie the STDEV of the signal, but from difference images).
@@ -690,7 +696,8 @@ def get_bias_and_readnoise_from_bias_frames(bias_list, degpol=5, clip=5, gain=No
 
     # first get mean / median for all bias images (per quadrant)
     for name in bias_list:
-        
+        print('name == ', name)
+
         if debug_level >= 1:
             print('OK, reading file  "' + name + '"')
         
@@ -767,13 +774,13 @@ def get_bias_and_readnoise_from_bias_frames(bias_list, degpol=5, clip=5, gain=No
     y_norm = (YY_q1.flatten() / ((len(yq1)-1)/2.)) - 1.
     
     # Quadrant 1
-    medimg_q1 = clean_medimg[:(ny/2), :(nx/2)]
+    medimg_q1 = clean_medimg[:int(ny/2), :int(nx/2)]
     # clean this, otherwise the surface fit will be rubbish
     medimg_q1[np.abs(medimg_q1 - np.median(medians_q1)) > clip * np.median(sigs_q1)] = np.median(medians_q1)
     coeffs_q1 = polyfit2d(x_norm, y_norm, medimg_q1.flatten(), order=degpol)
     
     # Quadrant 2
-    medimg_q2 = clean_medimg[:(ny/2), (nx/2):]
+    medimg_q2 = clean_medimg[:int(ny/2), int(nx/2):]
     # clean this, otherwise the surface fit will be rubbish
     medimg_q2[np.abs(medimg_q2 - np.median(medians_q2)) > clip * np.median(sigs_q2)] = np.median(medians_q2)
 #     xq2 = np.arange((nx/2),nx)
@@ -784,13 +791,13 @@ def get_bias_and_readnoise_from_bias_frames(bias_list, degpol=5, clip=5, gain=No
     coeffs_q2 = polyfit2d(x_norm, y_norm, medimg_q2.flatten(), order=degpol)
     
     # Quadrant 3
-    medimg_q3 = clean_medimg[(ny/2):, (nx/2):]
+    medimg_q3 = clean_medimg[int(ny/2):, int(nx/2):]
     # clean this, otherwise the surface fit will be rubbish
     medimg_q3[np.abs(medimg_q3 - np.median(medians_q3)) > clip * np.median(sigs_q3)] = np.median(medians_q3)
     coeffs_q3 = polyfit2d(x_norm, y_norm, medimg_q3.flatten(), order=degpol)
     
     # Quadrant 4
-    medimg_q4 = clean_medimg[(ny/2):, :(nx/2)]
+    medimg_q4 = clean_medimg[int(ny/2):, :int(nx/2)]
     # clean this, otherwise the surface fit will be rubbish
     medimg_q4[np.abs(medimg_q4 - np.median(medians_q4)) > clip * np.median(sigs_q4)] = np.median(medians_q4)
     coeffs_q4 = polyfit2d(x_norm, y_norm, medimg_q4.flatten(), order=degpol)
@@ -809,12 +816,13 @@ def get_bias_and_readnoise_from_bias_frames(bias_list, degpol=5, clip=5, gain=No
     if save_medimg:
         # save median bias image
         dum = bias_list[0].split('/')
-        path = bias_list[0][0:-len(dum[-1])]
-        date = path.split('/')[-2]
+#        path = bias_list[0][0:-len(dum[-1])]
+#        date = path.split('/')[-2]
         # write median bias image to file
-        pyfits.writeto(path + date + '_median_bias.fits', np.float32(medimg), overwrite=True)
-        pyfits.setval(path + date + '_median_bias.fits', 'UNITS', value='ADU')
-        pyfits.setval(path + date + '_median_bias.fits', 'HISTORY', value='   median BIAS frame - created ' + time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()) + ' (GMT)')
+        fn = os.path.join(path, '{0}_median_bias.fits'.format(date))
+        pyfits.writeto(fn, np.float32(medimg), overwrite=True)
+        pyfits.setval(fn , 'UNITS', value='ADU')
+        pyfits.setval(fn , 'HISTORY', value='   median BIAS frame - created ' + time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()) + ' (GMT)')
 
     return medimg, coeffs, offsets, rons
 
@@ -1177,7 +1185,7 @@ def make_offmask_and_ronmask(offsets, rons, nx, ny, gain=None, savefiles=False, 
 
 
 
-def make_master_bias_from_coeffs(coeffs, nx, ny, savefile=False, path=None, timit=False):
+def make_master_bias_from_coeffs(coeffs, nx, ny, savefile=False, path=None, timit=False, date=None):
     """
     Construct the master bais frame from the coefficients for the 2-dim polynomial surface fits to the 4 quadrants of the median bias frame.
     
@@ -1218,10 +1226,10 @@ def make_master_bias_from_coeffs(coeffs, nx, ny, savefile=False, path=None, timi
     
     #make master bias frame from 4 quadrant models
     master_bias = np.zeros((ny,nx))
-    master_bias[:(ny/2), :(nx/2)] = model_q1
-    master_bias[:(ny/2), (nx/2):] = model_q2
-    master_bias[(ny/2):, (nx/2):] = model_q3
-    master_bias[(ny/2):, :(nx/2)] = model_q4
+    master_bias[:int(ny/2), :int(nx/2)] = model_q1
+    master_bias[:int(ny/2), int(nx/2):] = model_q2
+    master_bias[int(ny/2):, int(nx/2):] = model_q3
+    master_bias[int(ny/2):, :int(nx/2)] = model_q4
     
     
     #now save to FITS file
@@ -1238,7 +1246,8 @@ def make_master_bias_from_coeffs(coeffs, nx, ny, savefile=False, path=None, timi
             h['UNITS'] = 'ADU'
             h['HISTORY'][0] = ('   master BIAS frame - created '+time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())+' (GMT)')
             #write master bias to file
-            pyfits.writeto(path+'master_bias.fits', np.float32(master_bias), h, overwrite=True)
+            pyfits.writeto(os.path.join(path,'{0}_master_bias.fits'.format(date)), 
+                           np.float32(master_bias), h, overwrite=True)
     
     
     if timit:
@@ -1250,7 +1259,7 @@ def make_master_bias_from_coeffs(coeffs, nx, ny, savefile=False, path=None, timi
 
 
 
-def make_master_dark(dark_list, MB, gain=None, scalable=False, noneg=False, savefile=True, path=None, debug_level=0, timit=False):
+def make_master_dark(dark_list, MB, gain=None, scalable=False, noneg=False, savefile=True, path=None, debug_level=0, timit=False, date=None):
     """
     This routine creates a "MASTER DARK" frame from a given list of dark frames. It also subtracts the MASTER BIAS and the overscan levels 
     from each dark frame before combining them into the master dark frame.
@@ -1295,7 +1304,7 @@ def make_master_dark(dark_list, MB, gain=None, scalable=False, noneg=False, save
     # create median dark files
     if scalable:
         # get median image (including subtraction of master bias) and scale to texp=1s 
-        MD = make_median_image(dark_list, MB=MB, scale=scalable, raw=False)
+        MD = make_median_image(dark_list, MB=MB, scale=scalable)#, raw=False)
         ny,nx = MD.shape
         q1,q2,q3,q4 = make_quadrant_masks(nx,ny)
         # convert to units of electrons
@@ -1313,7 +1322,7 @@ def make_master_dark(dark_list, MB, gain=None, scalable=False, noneg=False, save
         # get median image (including subtraction of master bias) for each "sub-list"
         MD = []
         for sublist in all_dark_lists:
-            sub_MD = make_median_image(sublist, MB=MB, scale=scalable, raw=False)
+            sub_MD = make_median_image(sublist, MB=MB, scale=scalable)[0]#, raw=False)
             ny,nx = sub_MD.shape
             q1,q2,q3,q4 = make_quadrant_masks(nx,ny)
             # convert to units of electrons

@@ -319,7 +319,7 @@ def fit_multiple_profiles(P_id, stripes, err_stripes, mask=None, slit_height=25,
 
     # loop over all orders
     #for ord in sorted(P_id.iterkeys()):
-    for ord in sorted(P_id.keys()):
+    for ord in sorted(list(P_id.keys())):
         print('OK, now processing ' + str(ord))
 
         ordpol = P_id[ord]
@@ -399,7 +399,7 @@ def fit_multiple_profiles_from_indices(P_id, img, err_img, stripe_indices, mask=
         cenmask = central_parts_of_mask(mask)
 
     # loop over all orders
-    for ord in sorted(P_id.iterkeys()):
+    for ord in sorted(list(P_id.keys())):
         print('OK, now processing ' + str(ord))
 
         ordpol = P_id[ord]
