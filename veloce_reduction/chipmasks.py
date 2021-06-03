@@ -271,9 +271,16 @@ def get_mean_fibre_separation(fibparms, nx=4112):
 
 
 
-def make_chipmask(date, pathdict=None, savefile=False, combined_fibparms=True, timit=False):
+def make_chipmask(date, pathdict=None, savefile=False, combined_fibparms=True, timit=False, path=None):
 
-    assert pathdict is not None, 'ERROR: path dictionary not provided!!!'
+    if pathdict is None and path is not None:
+        archive_path = path
+        outpath = path
+    else:
+        archive_path = pathdict['fp']
+        outpath = pathdict['cm']
+
+#    assert pathdict is not None, 'ERROR: path dictionary not provided!!!'
 
     print('Creating chipmask for ' + date + '...')
 
@@ -284,8 +291,8 @@ def make_chipmask(date, pathdict=None, savefile=False, combined_fibparms=True, t
 
     chipmask = {}
 
-    archive_path = pathdict['fp'] + 'archive/'
-    outpath = pathdict['cm']
+#    archive_path = pathdict['fp'] + 'archive/'
+#    outpath = pathdict['cm']
 
     if combined_fibparms:
         fibparms = np.load(archive_path + 'combined_fibre_profile_fits_' + date + '.npy').item()

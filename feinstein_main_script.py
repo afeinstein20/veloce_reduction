@@ -59,7 +59,7 @@ medbias, coeffs, offsets, rons = get_bias_and_readnoise_from_bias_frames(files_o
 offmask,ronmask = make_offmask_and_ronmask(offsets, rons, nx, 
                                            ny, gain=gain, savefiles=True, 
                                            path=path, timit=True)
-np.save(os.path.join(path, '{0}_ronmask.npy'), ronmask)
+np.save(os.path.join(path, '{0}_ronmask.npy'.format(date)), ronmask)
 
 MB = make_master_bias_from_coeffs(coeffs, nx, ny, savefile=True, 
                                   path=path, timit=True, date=date)
