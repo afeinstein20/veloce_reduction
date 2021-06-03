@@ -22,7 +22,7 @@ from .barycentric_correction import get_barycentric_correction
 
 
 
-def process_whites(white_list, MB=None, ronmask=None, MD=None, gain=None, P_id=None, scalable=False, fancy=False, remove_bg=True, clip=5., savefile=True, saveall=False, diffimg=False, path=None, debug_level=0, timit=False):
+def process_whites(white_list, MB=None, ronmask=None, MD=None, gain=None, P_id=None, scalable=False, fancy=False, remove_bg=True, clip=5., savefile=True, saveall=False, diffimg=False, path=None, debug_level=0, timit=False, date=None):
     """
     This routine processes all whites from a given list of files. It corrects the orientation of the image and crops the overscan regions,
     and subtracts both the MASTER BIAS frame [in ADU], and the MASTER DARK frame [in e-] from every image before combining them to create a MASTER WHITE frame.
@@ -196,7 +196,8 @@ def process_whites(white_list, MB=None, ronmask=None, MD=None, gain=None, P_id=N
 
     # now save master white to file
     if savefile:
-        outfn = path + date + '_master_white.fits'
+        outfn = os.path.join(path, '{0}_master_white.fits'.format(date))
+#        outfn = path + date + '_master_white.fits'
         pyfits.writeto(outfn, np.float32(master), overwrite=True)
         pyfits.setval(outfn, 'HISTORY', value='   MASTER WHITE frame - created '+time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())+' (GMT)')
         # pyfits.setval(outfn, 'EXPTIME', value=texp, comment='exposure time [s]')
