@@ -21,6 +21,9 @@ from .helper_functions import make_norm_profiles_2, central_parts_of_mask, CMB_p
 from .order_tracing import flatten_single_stripe, flatten_single_stripe_from_indices
 from .wavelength_solution import find_suitable_peaks
 
+__all__ =  ['get_relints_single_order', 'old_get_relints_single_order', 'get_relints', 
+            'get_relints_from_indices', 'get_relints_single_order_gaussian', 
+            'get_relints_from_indices_gaussian', 'append_relints_to_FITS']
 
 
 

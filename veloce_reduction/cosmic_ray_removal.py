@@ -15,6 +15,9 @@ import matplotlib.pyplot as plt
 from .helper_functions import sigma_clip
 
 
+__all__ =  ['median_remove_cosmics', 'onedim_medfilt_cosmic_ray_removal', 
+            'old_onedim_medfilt_cosmic_ray_removal', 'remove_cosmics', 
+            'identify_cosmics', 'clean_cosmics', 'subsample', 'rebin', 'rebin2x2']
 
 
 def median_remove_cosmics(img_list, main_index=0, scales=None, ronmask=None, thresh=5., low_thresh=3., debug_level=0, timit=False):

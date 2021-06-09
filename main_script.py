@@ -184,16 +184,3 @@ dum = process_science_images(stellar_list, P_id, mask=mask, sampling_size=25, sl
 
 
 rv,rverr = get_rvs_from_xcorr(quick_extracted, obsnames, mask, smoothed_flat, debug_level=0)
-
-
-
-
-
-
-
-
-
-
-
-
-

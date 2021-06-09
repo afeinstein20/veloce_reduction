@@ -13,6 +13,10 @@ import time, sys
 from .helper_functions import sigma_clip
 
 
+__all__ =  ['find_stripes', 'find_gaps', 'make_P_id_old', 'make_P_id', 'make_mask_dict', 
+            'make_order_traces_from_fibparms', 'extract_single_stripe', 'extract_stripes', 
+            'flatten_single_stripe', 'flatten_single_stripe_from_indices', 'flatten_stripes', 
+            'find_tramlines_single_order', 'find_tramlines', 'find_laser_tramlines_single_order', 'find_laser_tramlines']
 
 
 

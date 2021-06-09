@@ -1,16 +1,3 @@
-'''
-Created on 5 Oct. 2018
-
-@author: christoph
-'''
-
-
-'''
-Created on 25 Jul. 2018
-
-@author: christoph
-'''
-
 import glob
 import astropy.io.fits as pyfits
 import numpy as np

@@ -13,6 +13,7 @@ from .helper_functions import laser_on, thxe_on, find_nearest
 from .calibration import correct_for_bias_and_dark_from_filename
 
 
+__all__ =  ['get_obstype_lists', 'identify_obstypes', 'get_obstype_lists_temp', 'get_obs_coords_from_header']
 
 
 
@@ -75,6 +76,8 @@ def get_obstype_lists(pathdict, pattern=None, weeding=True, quick=False, raw_goo
     laser_list = []
     laser_and_thxe_list = []
     stellar_list = []
+    simth_only_list = []
+    laser_and_simth_list = []
     unknown_list = []
 
     for file in unbinned:
@@ -89,10 +92,9 @@ def get_obstype_lists(pathdict, pattern=None, weeding=True, quick=False, raw_goo
             dark_list.append(file)
         elif obj_type.lower().startswith('flat'):
             flat_list.append(file)
-        # elif obj_type.lower().startswith('skyflat'):
-        #     skyflat_list.append(file)
-        # elif obj_type.lower().startswith('domeflat'):
-        #     domeflat_list.append(file)
+        elif obj_type.lower() in ['simth']:
+            simth_only_list.append(file)
+
         elif obj_type.lower().startswith('arc'):
             arc_list.append(file)
         elif obj_type.lower() in ["thxe", "thxe-only", "simth"]:
@@ -109,68 +111,9 @@ def get_obstype_lists(pathdict, pattern=None, weeding=True, quick=False, raw_goo
             unknown_list.append(file)
 
     
-    # sort out which calibration lamps were actually on for the exposures tagged as either "SimLC" or "SimTh"
-    laser_only_list = []
-    simth_only_list = []
-    laser_and_simth_list = []
     calib_list = laser_list + thxe_list + laser_and_thxe_list
     calib_list.sort()
-    
-    if quick:
-        checkdate = date[:]
-    else:
-        checkdate = '1' + date[1:]
-    """
-    if int(checkdate) < 20190503:
-        # check if chipmask for that night already exists (if not revert to the closest one in time (preferably earlier in time))
-        if os.path.isfile(chipmask_path + 'chipmask_' + date + '.npy'):
-            chipmask = np.load(chipmask_path + 'chipmask_' + date + '.npy').item()
-        else:
-            cm_list = glob.glob(chipmask_path + 'chipmask*.npy')
-            cm_datelist = [int(cm.split('.')[-2][-8:]) for cm in cm_list]
-            cm_datelist.sort()   # need to make sure it is sorted, so that find_nearest finds the earlier one in time if two dates are found that have the same delta_t to date
-            cm_dates = np.array(cm_datelist)
-            alt_date = find_nearest(cm_dates, int(date))
-            chipmask = np.load(chipmask_path + 'chipmask_' + str(alt_date) + '.npy').item()
-            
-        # look at the actual 2D image (using chipmasks for LFC and simThXe) to determine which calibration lamps fired
-        for file in calib_list:
-            img = correct_for_bias_and_dark_from_filename(file, np.zeros((4096,4112)), np.zeros((4096,4112)), gain=[1., 1.095, 1.125, 1.], scalable=False, savefile=False, path=pathdict['raw'])
-            lc = laser_on(img, chipmask)
-            thxe = thxe_on(img, chipmask)
-            if (not lc) and (not thxe):
-                unknown_list.append(file)
-            elif (lc) and (thxe):
-                laser_and_simth_list.append(file)
-            else:
-                if lc:
-                    laser_only_list.append(file)
-                elif thxe:
-                    simth_only_list.append(file)
-    else:
-        # since May 2019 the header keywords are (mostly) correct, so could check for LFC / ThXe in header, as that is MUCH faster    
-        for file in calib_list:
-            lc = 0
-            thxe = 0
-            h = pyfits.getheader(file)
-            if 'LCNEXP' in h.keys():   # this indicates the latest version of the FITS headers (from May 2019 onwards)
-                if ('LCEXP' in h.keys()) or ('LCMNEXP' in h.keys()):   # this indicates the LFC actually was actually exposed (either automatically or manually)
-                    lc = 1
-            else:   # if not, just go with the OBJECT field
-                if file in laser_list + laser_and_thxe_list:
-                    lc = 1
-            if (h['SIMCALTT'] > 0) and (h['SIMCALN'] > 0) and (h['SIMCALSE'] > 0):
-                thxe = 1
-            if lc+thxe == 1:
-                if lc == 1:
-                    laser_only_list.append(file)
-                else:
-                    simth_only_list.append(file)
-            elif lc+thxe == 2:
-                laser_and_simth_list.append(file)
-            else:
-                unknown_list.append(file)
-    """    
+
     # sort all lists
     acq_list.sort()
     bias_list.sort()
@@ -178,7 +121,7 @@ def get_obstype_lists(pathdict, pattern=None, weeding=True, quick=False, raw_goo
     flat_list.sort()
     arc_list.sort()
     simth_only_list.sort()
-    laser_only_list.sort()
+    laser_list.sort()
     laser_and_simth_list.sort()
     stellar_list.sort()
     unknown_list.sort()
@@ -197,7 +140,7 @@ def get_obstype_lists(pathdict, pattern=None, weeding=True, quick=False, raw_goo
         np.savetxt(path + date + '_arc_list.txt', shortfn_arc_list, fmt='%s')
         shortfn_simth_only_list = [fn.split('/')[-1] for fn in simth_only_list]
         np.savetxt(path + date + '_simth_only_list.txt', shortfn_simth_only_list, fmt='%s')
-        shortfn_laser_only_list = [fn.split('/')[-1] for fn in laser_only_list]
+        shortfn_laser_only_list = [fn.split('/')[-1] for fn in laser_list]
         np.savetxt(path + date + '_lfc_only_list.txt', shortfn_laser_only_list, fmt='%s')
         shortfn_laser_and_simth_list = [fn.split('/')[-1] for fn in laser_and_simth_list]
         np.savetxt(path + date + '_lfc_and_simth_list.txt', shortfn_laser_and_simth_list, fmt='%s')
@@ -207,7 +150,7 @@ def get_obstype_lists(pathdict, pattern=None, weeding=True, quick=False, raw_goo
         np.savetxt(path + date + '_unknown_list.txt', shortfn_unknown_list, fmt='%s')
 
     # return acq_list, bias_list, dark_list, flat_list, skyflat_list, domeflat_list, arc_list, simth_only_list, laser_only_list, laser_and_simth_list, stellar_list, unknown_list
-    return acq_list, bias_list, dark_list, flat_list, arc_list, simth_only_list, laser_only_list, laser_and_simth_list, stellar_list, unknown_list
+    return acq_list, bias_list, dark_list, flat_list, arc_list, simth_only_list, laser_list, laser_and_simth_list, stellar_list, unknown_list
 
 
 

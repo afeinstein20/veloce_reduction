@@ -11,7 +11,9 @@ from .get_info_from_headers import get_obstype_lists
 from .helper_functions import short_filenames
 
 
-
+__all__ = ['create_gaiadr2_id_dict', 'create_gaia_coords_dict', 'get_barycentric_correction', 'get_bc_from_gaia',
+           'get_bc_from_gaia_coords', 'append_bc_to_reduced_files', 'append_bc_to_reduced_files_alt',
+           'old_get_barycentric_correction', 'define_target_dict']
 
 
 def create_gaiadr2_id_dict(path='/Users/christoph/OneDrive - UNSW/observations/', savefile=True):

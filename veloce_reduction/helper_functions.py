@@ -23,7 +23,21 @@ from scipy.integrate import quad, fixed_quad
 from scipy import ndimage
 # from json.decoder import _decode_uXXXX
 
-
+__all__ =  ['linfunc', 'gauss2D', 'fibmodel_fwhm', 'fibmodel', 'CMB_multi_gaussian', 
+            'CMB_multi_gaussian_with_offset', 'CMB_pure_gaussian', 'CMB_norm_gaussian', 
+            'gaussian_with_offset', 'gaussian_with_offset_and_slope', 'gaussian_with_slope', 
+            'fibmodel_with_amp', 'norm_fibmodel_with_amp', 'multi_fibmodel_with_amp', 
+            'multi_fibmodel_with_amp_and_offset', 'fibmodel_with_offset', 'fibmodel_with_amp_and_offset', 
+            'norm_fibmodel_with_amp_and_offset', 'fibmodel_with_amp_and_offset_and_slope', 
+            'gausslike_with_amp_and_offset', 'gausslike_with_amp_and_offset_and_slope', 
+            'make_norm_profiles', 'make_norm_profiles_2', 'make_norm_profiles_3', 'make_norm_profiles_4', 
+            'make_norm_profiles_5', 'make_norm_profiles_6', 'make_norm_profiles_temp', 'make_norm_single_profile_temp', 
+            'blaze', 'compose_matrix', 'center', 'polyfit2d', 'test_polyfit2d', 'polyval2d', 'fit_poly_surface_2D', 
+            'find_blaze_peaks', 'find_nearest', 'binary_indices', 'single_sigma_clip', 'sigma_clip', 'offset_pseudo_gausslike', 
+            'get_iterable', 'get_datestring', 'get_snr', 'central_parts_of_mask', 'short_filenames', 'correct_orientation', 
+            'find_maxima', 'affine_matrix', 'affine_transformation', 'quick_bg_fix', 'brendans_weighted_sample_variance', 
+            'wm_and_wsv', 'xcorr', 'cmb_ccf', 'jdnow', 'laser_on', 'thxe_on', 'spectres', 'cmb_scrunch', 'specplothist', 
+            'add_date_to_reduced_filenames']
 
 
 

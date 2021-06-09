@@ -6,6 +6,7 @@ Created on 3 Aug. 2018
 
 import numpy as np
 
+__all__ =  ['linalg_extract_column', 'mikes_linalg_extraction']
 
 
 def linalg_extract_column(z, w, phi, RON=3.3, naive_variance=False, altvar=True):

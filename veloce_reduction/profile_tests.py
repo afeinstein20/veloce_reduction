@@ -11,6 +11,8 @@ from .helper_functions import multi_fibmodel_with_amp, CMB_multi_gaussian, \
 from .order_tracing import flatten_single_stripe, flatten_single_stripe_from_indices
 
 
+__all__ =  ['get_multiple_fibre_profiles_single_order', 'fit_multiple_profiles', 'fit_multiple_profiles_from_indices']
+
 
 
 def get_multiple_fibre_profiles_single_order(sc, sr, err_sc, ordpol, ordmask=None, nfib=24, sampling_size=25, step_size=None,

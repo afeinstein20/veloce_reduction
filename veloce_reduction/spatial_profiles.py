@@ -15,6 +15,9 @@ from .helper_functions import find_maxima, fibmodel, fibmodel_with_amp, offset_p
 from .order_tracing import flatten_single_stripe, flatten_single_stripe_from_indices
 
 
+__all__ =  ['determine_spatial_profiles_single_order', 'fit_stacked_single_fibre_profile', 
+            'fit_single_fibre_profile', 'fit_profiles_single_order', 'fit_profiles', 
+            'fit_profiles_from_indices', 'make_model_stripes_gausslike', 'older_routines']
 
 
 

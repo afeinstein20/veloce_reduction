@@ -12,6 +12,7 @@ from scipy.optimize import curve_fit
 
 from .helper_functions import gauss2D, affine_matrix
 
+__all__ =  ['find_laser_peaks_2D', 'find_affine_transformation_matrix_test']
 
 
 # #some parameters

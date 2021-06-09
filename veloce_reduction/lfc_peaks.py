@@ -12,6 +12,9 @@ import matplotlib.pyplot as plt
 from .readcol import readcol
 from .helper_functions import find_nearest
 
+__all__ =  ['find_affine_transformation_matrix', 'unfinished_find_manual_transformation_matrix', 
+            'divide_lfc_peaks_into_orders', 'get_pixel_phase', 'check_transformation_scatter_daophot', 
+            'unfinished_check_transformation_scatter_xcorr', 'vector_plot', 'lfc_peak_diffs']
 
 
 # path = '/Volumes/BERGRAID/data/veloce/lfc_peaks/'

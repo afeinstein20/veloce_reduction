@@ -20,6 +20,8 @@ from .relative_intensities import get_relints, get_relints_from_indices, append_
 from .barycentric_correction import get_barycentric_correction
 
 
+__all__ =  ['process_whites', 'process_science_images']
+
 
 
 def process_whites(white_list, MB=None, ronmask=None, MD=None, gain=None, P_id=None, scalable=False, fancy=False, remove_bg=True, clip=5., savefile=True, saveall=False, diffimg=False, path=None, debug_level=0, timit=False, date=None):

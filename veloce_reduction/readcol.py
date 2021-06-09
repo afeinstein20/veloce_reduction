@@ -19,6 +19,11 @@ except ValueError:
     #print "error"
     hasmode = False
 
+
+__all__ =  ['readcol', 'get_autotype', 'readff', 'make_commentfilter']
+
+
+
 def readcol(filename,skipline=0,skipafter=0,names=False,fsep=None,twod=True,
         fixedformat=None,asdict=False,comment='#',verbose=True,nullval=None,
         asStruct=False,namecomment=True):

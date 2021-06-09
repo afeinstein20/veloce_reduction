@@ -12,6 +12,12 @@ from veloce_reduction.spatial_profiles import *
 from veloce_reduction.wavelength_solution import *
 from veloce_reduction.chipmasks import make_chipmask
 from veloce_reduction.process_scripts import *
+from veloce_reduction.profile_tests import *
+from veloce_reduction.get_profile_parameters import *
+from veloce_reduction.chipmasks import *
+from veloce_reduction.extraction import *
+from veloce_reduction.wavelength_solution import *
+
 
 date = str(sys.argv[1])
 
@@ -92,7 +98,19 @@ P_id = make_P_id(P)
 mask = make_mask_dict(tempmask)
 
 print('making stripes...')
-MW_stripes, MW_stripe_indices = extract_stripes(MW, P_id, return_indices=True, slit_height=30)
+MW_stripes, MW_indices = extract_stripes(MW, P_id, return_indices=True, slit_height=30)
 err_MW_stripes = extract_stripes(err_MW, P_id, return_indices=False, slit_height=30)
 
-np.save(os.path.join(path, '{0}_stripe_masks.npy'.format(date)), MW_stripe_indices)
+np.save(os.path.join(path, '{0}_stripe_masks.npy'.format(date)), MW_indices)
+np.save(os.path.join(path, '{0}_stripes_errs.npy'.format(date)), [MW_stripes, err_MW_stripes])
+del MW_stripes # saves memory apparently
+
+fp_in = fit_multiple_profiles_from_indices(P_id, MW, err_MW, MW_indices,
+                                           slit_height=30, timit=True, debug_level=1)
+np.save(os.path.join(path, '{0}_individual_fibre_profiles.npy'.format(date)), fp_in)
+
+stellar_fibparms = make_real_fibparms_by_ord(fp_in, date=date, path=path)
+fibparms = combine_fibparms(date=date, path=path)
+
+np.save(os.path.join(path, '{0}_combined_fibparms.npy'.format(date)),
+        fibparms)

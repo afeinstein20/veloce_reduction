@@ -8,7 +8,7 @@ import time
 from scipy.ndimage import label
 
 
-
+__all__ = ['make_single_chipmask', 'old_make_single_chipmask', 'get_mean_fibre_separation', 'make_chipmask']
 
 
 def make_single_chipmask(fibparms, meansep, masktype='stellar', exclude_top_and_bottom=True, nx=4112, ny=4096,

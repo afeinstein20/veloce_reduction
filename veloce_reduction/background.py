@@ -12,7 +12,8 @@ import astropy.io.fits as pyfits
 
 from .helper_functions import polyfit2d, polyval2d, fit_poly_surface_2D, sigma_clip
 
-
+__all__ = ['make_dummy_background', 'remove_background', 'remove_background_pid', 'extract_background', 'extract_background_pid',
+           'fit_background', 'fit_background_astropy']
 
 def make_dummy_background(nx=4112, ny=4096):
     # make simulated background

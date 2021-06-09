@@ -27,7 +27,14 @@ from .lfc_peaks import find_affine_transformation_matrix, divide_lfc_peaks_into_
 
 
 
-
+__all__ =  ['find_suitable_peaks', 'fit_emission_lines', 'fit_emission_lines_lmfit', 
+            'get_wavelength_solution_from_thorium', 'get_wl', 'get_wavelength_solution_labtests', 
+            'get_simu_dispsol', 'quick_bg_fix', 'get_arc_dispsol', 'define_arc_mask', 'xcorr_thflux', 
+            'get_dispsol_from_known_lines', 'define_pixel_offsets_between_fibres', 
+            'old_get_dispsol_for_all_fibs', 'get_dispsol_for_all_fibs', 'get_dispsol_for_all_fibs_2', 
+            'get_dispsol_for_all_fibs_3', 'make_master_fibth', 'make_arc_dispsols', 
+            'make_arc_dispsols_for_all_nights', 'get_dispsol_for_all_fibs_from_fibth', 
+            'make_lfc_only_wl_files_for_all_fibs', 'interpolate_dispsols', 'WIP']
 
 
 def find_suitable_peaks(rawdata, thresh = 5000., bgthresh = 2000., maxthresh = None, gauss_filter_sigma=1., slope=1e-4,
@@ -2679,7 +2686,7 @@ def get_dispsol_for_all_fibs_3(obsname, date=None, relto='LFC', degpol=7, nx=411
 
 
 
-def make_master_fibth(path=None, date=None, savefile=True, overwrite=False):
+def make_master_fibth(arc_list=None, path=None, date=None, savefile=True, overwrite=False):
     
     # # make sure we have an existing date
     # if date is None:
@@ -2695,11 +2702,12 @@ def make_master_fibth(path=None, date=None, savefile=True, overwrite=False):
     assert path is not None, 'ERROR: path not provided!!!'
     assert date is not None, 'ERROR: date not provided!!!'
 
-    # list of all Fibre Thoriums (ThAr for 20180917; ThXe for all later nights)
-    arc_list = glob.glob(path + '*ARC*optimal*') + glob.glob(path + '*FibTh*optimal*')
-    if len(arc_list) == 0:
-        print('WARNING: no Fibre Thorium (ARC) exposures found for '+date+' !!!')
-        return (-1,-1)
+    if arc_list is None:
+        # list of all Fibre Thoriums (ThAr for 20180917; ThXe for all later nights)
+        arc_list = glob.glob(path + '*ARC*optimal*') + glob.glob(path + '*FibTh*optimal*')
+        if len(arc_list) == 0:
+            print('WARNING: no Fibre Thorium (ARC) exposures found for '+date+' !!!')
+            return (-1,-1)
     
     # prepare arrays
     allspec = []

@@ -16,7 +16,9 @@ from .order_tracing import find_stripes, make_P_id, extract_stripes, flatten_sin
 from .chipmasks import get_mean_fibre_separation
 
 
-
+__all__ =  ['make_real_fibparms_by_ord', 'old_make_real_fibparms_by_ord', 
+            'make_fibparms_by_fib', 'make_fibparms_by_ord', 'get_lfc_offset', 
+            'get_simthxe_offset', 'combine_fibparms']
 
 
 def make_real_fibparms_by_ord(fp_in, degpol=7, savefile=True, date=None, simthxe=False, lfc=False, nx=4112, path=None):

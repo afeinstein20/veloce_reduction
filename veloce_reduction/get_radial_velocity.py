@@ -17,7 +17,10 @@ from .helper_functions import xcorr, gausslike_with_amp_and_offset, gausslike_wi
 from .flat_fielding import deblaze_orders, onedim_pixtopix_variations
 
 
-    
+__all__ =  ['get_rvs_from_xcorr', 'get_RV_from_xcorr', 'get_RV_from_xcorr_2', 
+            'make_ccfs', 'old_make_ccfs', 'make_ccfs_quick', 'make_self_indfib_ccfs', 
+            'rv_shift_resid', 'rv_shift_chi2', 'rv_shift_jac', 'calculate_rv_shift', 
+            'normalised', 'old_calculate_rv_shift']    
     
 
 def get_rvs_from_xcorr(extracted_spectra, obsnames, mask, smoothed_flat, debug_level=0):
