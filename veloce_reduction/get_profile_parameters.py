@@ -48,7 +48,7 @@ def make_real_fibparms_by_ord(fp_in, degpol=7, savefile=True, date=None, simthxe
 
     fibparms = {}
 
-    for ord in sorted(fp_in.keys()):
+    for ord in sorted(fp_in.keys())[6:]:
 
         print('OK, processing ', ord)
 
@@ -68,6 +68,8 @@ def make_real_fibparms_by_ord(fp_in, degpol=7, savefile=True, date=None, simthxe
 
         pix = np.array(fp_in[ord]['pix'])
         snr = np.array(fp_in[ord]['SNR'])
+
+        print(pix, snr)
 
         #these are the "names" of the stellar and sky fibres (01=LFC, 05=blank, 25=blank, 28=ThXe)
         if simthxe:

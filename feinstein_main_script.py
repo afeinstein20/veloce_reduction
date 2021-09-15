@@ -91,11 +91,17 @@ MW,err_MW = process_whites(files_on_date['flat'],
 MW = np.nanmedian(MW, axis=0)
 err_MW = np.nanmedian(err_MW, axis=0)
 
+np.save(os.path.join(path, '{0}_mw.npy'.format(date)), [MW, err_MW])
+
+
 P,tempmask = find_stripes(MW, deg_polynomial=2, min_peak=0.05, 
                           gauss_filter_sigma=3., simu=False)
 
 P_id = make_P_id(P)
 mask = make_mask_dict(tempmask)
+
+np.save(os.path.join(path, '{0}_pid.npy'.format(date)), P_id)
+np.save(os.path.join(path, '{0}_mask.npy'.format(date)), mask)
 
 print('making stripes...')
 MW_stripes, MW_indices = extract_stripes(MW, P_id, return_indices=True, slit_height=30)

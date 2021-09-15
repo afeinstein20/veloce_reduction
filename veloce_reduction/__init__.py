@@ -22,7 +22,7 @@ from .process_scripts import *
 from .profile_tests import *
 from .readcol import *
 from .relative_intensities import *
-from .spatiial_profiles import *
+from .spatial_profiles import *
 from .wavelength_solution import *
 
 
